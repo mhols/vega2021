@@ -83,6 +83,87 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
 		
 	return time, velocity, intens, signoise, listOfNightsTimes, listOfNightsIntens, listOfNightsIndices
 
+    """
+    loads a filematrix type data file
+
+    nval       : number of bins for the spectrum
+    rangei     : (a,b) taking indicies from a to b (included)
+    vrange     : alternatively prescribing velocity range
+    noiselevel : for outlier removal
+    """
+
+    coltime = 0  # colum of time values
+    colspec = 1
+    colval = colspec + nval
+    colvul = colval + nval
+
+    # test
+
+    data = np.loadtxt(DATAFILE)
+    # data = tmp[:100]
+    time = data[:, coltime:colspec].ravel()
+    print(data.shape, time.shape, time[0].shape)
+    time = time-int(time[0])
+    velocity = data[0, colspec:colval]  # velocities of bins
+    intens = data[:, colval:colvul]  # intensities
+    tmp = +intens
+    for i in range(intens.shape[0]):
+        intens[i] = np.convolve(intens[i], np.array([1,2,3,4,3,2,1])/16, 'full')[3:-3]
+    signoise = data[:, colvul:colvul+nval]
+    meani    = intens.mean(axis=0)  # mean intensity
+    diff     = intens - meani  # fluctuation around mean
+
+    # selecting velocity bins
+    if vrange is not None:          # wenn vrange verschieden ist von none
+        I1, I2 = np.where(velocity >= vrange[0])[0], np.where(velocity<=vrange[1])[0]
+        rangei = (I1[0], I2[-1])    # -1 ist letztes element des vektors
+    rangel   = np.arange(rangei[0], rangei[1])  # range of spectral line
+
+    stdi = diff.ravel().std()  # variance of f TODO better wirh std ?       #macht vektor flach, dann varianz
+    #ueber langen vektor (ntimes*nval), dh varianz vom gesamten Bild
+    t0 = time[0]  # first rime
+
+    # outlier removal
+    I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
+    plt.plot(np.std(diff[I, :], axis=1))
+
+    plt.show()
+
+    print("reducing from ", time.shape , "to ", len(I), " spectral lines")
+
+    time = time[I]
+    velocity = velocity[rangel]
+
+    intens = intens[I, :]
+    intens = intens[:, rangel]
+
+    signoise = signoise[I,:]
+    signoise = signoise[:,rangel]
+
+    # recomputing mean and diff
+    meani = intens.mean(axis=0)
+    diff = intens - meani
+
+    #grouping into nights
+    tt = time - int(time[0])
+
+    listOfNightsIndices = []
+    listOfNightsTimes = []
+    listOfNightsIntens = []
+
+    for i in range(100):
+        I = np.where( (tt-i) * (i+1-tt) > 0)[0]     # quadratische Ungleichung waehlt Tag aus
+                                # zwischen Tag i und Tag i+1
+                                # TODO: ok fuer Europa, fuer Chile kann Nacht
+                                # ueber integersprung gehen...
+                                # Klasse Observatorium einrichten!!
+        if len(I) > 0:
+            listOfNightsIndices.append(I)
+            listOfNightsTimes.append( time[I] )
+            listOfNightsIntens.append ( intens[I] )
+
+    return time, velocity, intens, signoise, listOfNightsTimes, listOfNightsIntens, listOfNightsIndices
+
 
 def bisector(velocity, intensity, depth):
 	"""
