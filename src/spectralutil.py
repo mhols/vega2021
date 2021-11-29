@@ -8,6 +8,7 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+import os
 
 #for full profile 60,124
 #for short profile 72,112
@@ -30,8 +31,10 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
     # data = tmp[:100]
     time = data[:, coltime:colspec].ravel()
     print(data.shape, time.shape, time[0].shape)
+
 #    time = time-int(time[0])
     time = time-2458331.
+
     velocity = data[0, colspec:colval]  # velocities of bins
     intens = data[:, colval:colvul]  # intensities
     tmp = +intens
@@ -268,10 +271,41 @@ def vrad_translat(intensity):
     scaling, translat, median, at, delta = estimate_translat_scaling(intensity)
     return translat
 
+
+def FILEMATRIX_to_JSON(
+        DATAFILE,     # datafile containing the filematrix
+        nval=201,     # number of velocity bins
+    ):
+    data = np.loadtxt(DATAFILE)
+    time = data[:, 0].ravel()
+    print(data.shape, time.shape, time[0].shape)
+    velocity = data[0, 1:nval+1]  # velocities of bins
+    intensity = data[:, nval+1:2*nval+2]  # intensities
+    errors = data[:, 2*nval+2:]
+    name, ext = os.path.splitext(DATAFILE)
+    res = {
+        'name': name + '.json',
+        'description': "a little info",
+        'noiselevel': 0.7,
+        'nvals': nval,
+        'range': [72, 201],
+        'time': time.tolist(),
+        'velocity': velocity.tolist(),
+        'intensity': intensity.tolist(),
+        'errors': errors.tolist()
+    }
+    with open(os.path.join(os.path.dirname(DATAFILE), name+".json"), 'w') as outfile:
+        json.dump(res, outfile, indent=2)
+
+
+
+
+
 class SpectralAnalyser:
     """
     a class for the modeling of spectral lines a la Boehm
     """
+
 
     def __init__(self,
                 DATAFILE,     # datafile containing the filematrix
@@ -307,10 +341,40 @@ class SpectralAnalyser:
         res = {
             'name': 'VEGA_384.json',
             'description': "This data file is based on Boehm",
+
             'time': self.time.tolist()
         }
         with open("data.json", 'w') as outfile:
             json.dump(res, outfile)
+
+    def mean_spectrum_interp3(self, v):
+        """
+        cubic spline interpolation of spectrum
+        """
+        return interpolate.splev(v, self._tck, der=0)
+
+
+    def _Fsystem(self, freq, nharm=1):
+        """
+        returns a system matrix for a given frequency freq
+        and times t
+        """
+
+        'noiselevel': 0.7,
+        'nvals': 201,
+        'range': [72, 201],
+            'time': self.time.tolist(),
+            'velocity': self.velocity.tolist(),
+            'intensity': self.intensity.tolist(),
+        }
+        with open("data.json", 'w') as outfile:
+            json.dump(res, outfile, indent=2)
+
+
+    def load_json(self, fname):
+        with open(fname, 'r') as infile:
+            res = json.load(infile)
+        return res
 
     def mean_spectrum_interp3(self, v):
         """
