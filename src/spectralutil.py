@@ -353,29 +353,6 @@ class SpectralAnalyser:
         """
         return interpolate.splev(v, self._tck, der=0)
 
-
-    def _Fsystem(self, freq, nharm=1):
-        """
-        returns a system matrix for a given frequency freq
-        and times t
-        """
-
-        'noiselevel': 0.7,
-        'nvals': 201,
-        'range': [72, 201],
-            'time': self.time.tolist(),
-            'velocity': self.velocity.tolist(),
-            'intensity': self.intensity.tolist(),
-        }
-        with open("data.json", 'w') as outfile:
-            json.dump(res, outfile, indent=2)
-
-
-    def load_json(self, fname):
-        with open(fname, 'r') as infile:
-            res = json.load(infile)
-        return res
-
     def mean_spectrum_interp3(self, v):
         """
         cubic spline interpolation of spectrum
