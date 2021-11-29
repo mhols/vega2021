@@ -26,6 +26,8 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
     colval = colspec + nval
     colvul = colval + nval
 
+    # test
+
     data = np.loadtxt(DATAFILE)
     # data = tmp[:100]
     time = data[:, coltime:colspec].ravel()
