@@ -56,9 +56,9 @@ vranges[DATAFILE7] = (-60.0, 40.0)
 vranges[DATAFILE8] = None
 vranges[DATAFILE9] = (-60.0, 40.0)
 vranges[DATAFILE10] = (-60.0, 40.0)
-vranges[DATAFILE11] = (-100.0,100.0)
+vranges[DATAFILE11] = (-60.0,40.0)
 
-DATAFILE = DATAFILE10  # DATAFILE8
+DATAFILE = DATAFILE11  # DATAFILE8
 
 
 class Pictures(object):
