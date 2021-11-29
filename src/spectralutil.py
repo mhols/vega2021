@@ -8,6 +8,7 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+import os
 
 #for full profile 60,124
 #for short profile 72,112
@@ -268,13 +269,31 @@ def vrad_translat(intensity):
     return translat
 
 
-def FILEMATRIX_to_JSON(DATAFILE,     # datafile containing the filematrix
+def FILEMATRIX_to_JSON(
+        DATAFILE,     # datafile containing the filematrix
         nval=201,     # number of velocity bins
-        normalise=False,    # shall the spectra be normlized True or False
-        rangei=(72, 112),       # intensity ranges
-        vrange=(-60, 40),       # velocity ranges
-        noiselevel=0.5    # variance of noise TODO CHECK s
     ):
+    data = np.loadtxt(DATAFILE)
+    time = data[:, 0].ravel()
+    print(data.shape, time.shape, time[0].shape)
+    velocity = data[0, 1:nval+1]  # velocities of bins
+    intensity = data[:, nval+1:2*nval+2]  # intensities
+    errors = data[:, 2*nval+2:]
+    name, ext = os.path.splitext(DATAFILE)
+    res = {
+        'name': name + '.json',
+        'description': "a little info",
+        'noiselevel': 0.7,
+        'nvals': nval,
+        'range': [72, 201],
+        'time': time.tolist(),
+        'velocity': velocity.tolist(),
+        'intensity': intensity.tolist(),
+        'errors': errors.tolist()
+    }
+    with open(os.path.join(os.path.dirname(DATAFILE), name+".json"), 'w') as outfile:
+        json.dump(res, outfile, indent=2)
+
 
 
 
@@ -290,7 +309,11 @@ class SpectralAnalyser:
 
         # reading the file matrix
 
-        self.time, self.velocity, self.intensity, self.signoise, \
+        self.time = np.aray(res['times'])
+        self.velocity = np.array(res['velocity'])
+        self.intensity = np.array(res['intensity'])
+
+        self.signoise = 0.2
         self.list_time, self.list_inte, self.list_index = \
         load_data(DATAFILE, nval, rangei, vrange, noiselevel)
 
