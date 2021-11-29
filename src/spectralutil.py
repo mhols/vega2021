@@ -30,7 +30,7 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
     # data = tmp[:100]
     time = data[:, coltime:colspec].ravel()
     print(data.shape, time.shape, time[0].shape)
-    time = time-int(time[0])
+    # time = time-int(time[0])
     velocity = data[0, colspec:colval]  # velocities of bins
     intens = data[:, colval:colvul]  # intensities
     tmp = +intens
@@ -267,19 +267,26 @@ def vrad_translat(intensity):
     scaling, translat, median, at, delta = estimate_translat_scaling(intensity)
     return translat
 
+
+def FILEMATRIX_to_JSON(DATAFILE,     # datafile containing the filematrix
+        nval=201,     # number of velocity bins
+        normalise=False,    # shall the spectra be normlized True or False
+        rangei=(72, 112),       # intensity ranges
+        vrange=(-60, 40),       # velocity ranges
+        noiselevel=0.5    # variance of noise TODO CHECK s
+    ):
+
+
+
 class SpectralAnalyser:
     """
     a class for the modeling of spectral lines a la Boehm
     """
 
-    def __init__(self,
-                DATAFILE,     # datafile containing the filematrix
-                nval,     # number of velocity bins
-                normalise,    # shall the spectra be normlized True or False
-                rangei,       # intensity ranges
-                vrange,       # velocity ranges
-                noiselevel    # variance of noise TODO CHECK std ?
-        ):
+    def __init__(self, jsonfile):
+
+
+        res = self.load_json(jsonfile)
 
         # reading the file matrix
 
@@ -306,10 +313,21 @@ class SpectralAnalyser:
         res = {
             'name': 'VEGA_384.json',
             'description': "This data file is based on Boehm",
-            'time': self.time.tolist()
+            'noiselevel': 0.7,
+            'nvals': 201,
+            'range': [72, 201],
+            'time': self.time.tolist(),
+            'velocity': self.velocity.tolist(),
+            'intensity': self.intensity.tolist(),
         }
         with open("data.json", 'w') as outfile:
-            json.dump(res, outfile)
+            json.dump(res, outfile, indent=2)
+
+
+    def load_json(self, fname):
+        with open(fname, 'r') as infile:
+            res = json.load(infile)
+        return res
 
     def mean_spectrum_interp3(self, v):
         """
