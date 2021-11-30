@@ -280,21 +280,21 @@ def FILEMATRIX_to_JSON(
     intensity = data[:, nval+1:2*nval+2]  # intensities
     errors = data[:, 2*nval+2:]
     name, ext = os.path.splitext(DATAFILE)
+
+    I = np.argsort(time)
     res = {
         'name': name + '.json',
         'description': "a little info",
         'noiselevel': 0.7,
         'nvals': nval,
         'range': [72, 201],
-        'time': time.tolist(),
+        'time': time[I].tolist(),
         'velocity': velocity.tolist(),
-        'intensity': intensity.tolist(),
-        'errors': errors.tolist()
+        'intensity': intensity[I].tolist(),
+        'errors': errors[I].tolist()
     }
     with open(os.path.join(os.path.dirname(DATAFILE), name+".json"), 'w') as outfile:
         json.dump(res, outfile, indent=2)
-
-
 
 
 class SpectralAnalyser:
@@ -304,16 +304,83 @@ class SpectralAnalyser:
 
     def __init__(self, jsonfile):
 
-
         res = self.load_json(jsonfile)
 
         # reading the file matrix
 
-        self.time = np.aray(res['times'])
+        self.time = np.array(res['time'])
         self.velocity = np.array(res['velocity'])
         self.intensity = np.array(res['intensity'])
+        self.errors = np.array(res['errors'])
+        self.usedindex = np.full(self.time.shape[0], True)
 
-        self.signoise = 0.2
+    def velocity_of_bin(self, bin):
+        return self.velocity[bin]
+
+    def select_velocities(self, bins):
+        """
+        reduces to the subset of bins
+        """
+        self.time = self.time[bins]
+        self.velocity = self.velocity[bins]
+        self.intensity = self.intensity[bins]
+        self.errors = self.errors[bins]
+
+    def outlier_removal(self, noiselevel, **kwargs):
+        # outlier_removal based on usedindex set
+        usedindex = kwargs.get('usedindex', self.usedindex)
+        meani    = self.intensity[usedindex].mean(axis=0)  # mean intensity
+        diff     = self.intensity[usedindex] - meani  # fluctuation around mean
+
+        I, =  np.where(diff.std(axis=1) >= noiselevel)
+        self.remove_indices(I)
+
+        print("reducing from ", self.time.shape , "to ",
+              np.sum(self.usedindex), " spectral lines")
+
+    def mean_intensity(self, **kwargs):
+        usedindex = kwargs.get('usedindex', self.usedindex)
+        return np.mean(self.intensity[usedindex], axis=0)
+
+
+    def std_over_time(self, **kwargs):
+        tmp = self.mean_intensity(**kwargs)
+        usedindex = kwargs.get('usedindex', self.usedindex)
+        tmp = self.intensity[usedindex] - tmp[np.newaxis, :]
+        return np.std(tmp, axis=1)
+
+    def list_of_new_night_indices(self, **kwargs):
+        # grouping into nights
+
+        delta = kwargs.get('delta', 0.5)
+
+        dt = self.time[1:] - self.time[:-1]
+        I, = np.where(dt > delta)
+
+        return I
+
+    def number_of_nights(self, **kwargs):
+        return len(self.list_of_new_night_indices(**kwargs))+1
+
+    def indices_of_night(self, n, **kwargs):
+        I = self.list_of_new_night_indices(**kwargs)
+        if n == 0:
+            return np.arange(I[0]+1)
+        if n == len(I):
+            return np.arange(I[n-1]+1, len(self.time))
+        return np.arange(I[n-1]+1, I[n]+1)
+
+    def used_indices_of_night(self, n, **kwargs):
+        I = self.indices_of_night(n, **kwargs)
+        return I[self.usedindex[I]]
+
+    def remove_indices(self, I):
+        """
+        sets usedindices to false on I
+        """
+        self.usedindices[I] = False
+
+    def sprout(self):
         self.list_time, self.list_inte, self.list_index = \
         load_data(DATAFILE, nval, rangei, vrange, noiselevel)
 
@@ -339,9 +406,9 @@ class SpectralAnalyser:
             'noiselevel': 0.7,
             'nvals': 201,
             'range': [72, 201],
-            'time': self.time.tolist(),
+            'time': self.time[self.usedindex].tolist(),
             'velocity': self.velocity.tolist(),
-            'intensity': self.intensity.tolist(),
+            'intensity': self.intensity[self.usedindex].tolist(),
         }
         with open("data.json", 'w') as outfile:
             json.dump(res, outfile, indent=2)
