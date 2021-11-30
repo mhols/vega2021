@@ -29,6 +29,10 @@ DATAFILE8 = os.path.join(DATADIR, 'Vega_9500.40.03-10.dat')  # lines between 0.3
 DATAFILE9 = os.path.join(DATADIR, 'Vega_tbl10.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # lines between 0.3 and 1.0 depth, medium
+#DATAFILE11 = os.path.join(DATADIR, 'test.dat')  # lines between 0.3 and 1.0 depth, medium
+
+
+
 ames = ["full", "single"]
 
 
@@ -56,7 +60,7 @@ vranges[DATAFILE7] = (-60.0, 40.0)
 vranges[DATAFILE8] = None
 vranges[DATAFILE9] = (-60.0, 40.0)
 vranges[DATAFILE10] = (-60.0, 40.0)
-vranges[DATAFILE11] = (-60.0,40.0)
+vranges[DATAFILE11] = (-60.0, 40.0)
 
 DATAFILE = DATAFILE11  # DATAFILE8
 
