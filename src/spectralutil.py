@@ -277,8 +277,8 @@ def FILEMATRIX_to_JSON(
     time = data[:, 0].ravel()
     print(data.shape, time.shape, time[0].shape)
     velocity = data[0, 1:nval+1]  # velocities of bins
-    intensity = data[:, nval+1:2*nval+2]  # intensities
-    errors = data[:, 2*nval+2:]
+    intensity = data[:, nval+1:2*nval+1]  # intensities
+    errors = data[:, 2*nval+1:]
     name, ext = os.path.splitext(DATAFILE)
 
     I = np.argsort(time)
@@ -296,6 +296,7 @@ def FILEMATRIX_to_JSON(
     with open(os.path.join(os.path.dirname(DATAFILE), name+".json"), 'w') as outfile:
         json.dump(res, outfile, indent=2)
 
+    print (time[I].shape, intensity[I].shape, errors[I].shape)
 
 class SpectralAnalyser:
     """
