@@ -92,6 +92,25 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
 
     return time, velocity, intens, signoise, listOfNightsTimes, listOfNightsIntens, listOfNightsIndices
 
+def spectrum_matrix(time, quantity, **kwargs):
+    """
+    binns the spec into nphase bins
+    """
+    period = kwargs.get('period', 0.678)
+    nphase = kwargs.get('nphase', 128)
+
+    bins = np.linspace(0, period, nphase + 1)
+    res = np.zeros((nphase, quantity.shape[1]))
+    nn = np.zeros(nphase)
+    ii = np.digitize(np.mod(time, period), bins)
+    for i, s in zip(ii, quantity):
+        res[i-1, :] += s
+        nn[i-1] += 1
+
+    nn = np.where(nn>0,nn,1)
+    res[:,:] = res / nn[:,np.newaxis]
+    return res, bins[:-1]
+
 
 def bisector(velocity, intensity, depth):
     """
@@ -309,45 +328,42 @@ class SpectralAnalyser:
 
         # reading the file matrix
 
-        self.time = np.array(res['time'])
+        self._time = np.array(res['time'])
         self.velocity = np.array(res['velocity'])
-        self.intensity = np.array(res['intensity'])
+        self._intensity = np.array(res['intensity'])  # bar intensity before selection
+        # self.intensity = +self._intensity  # computation is based on this field
         self.errors = np.array(res['errors'])
-        self.usedindex = np.full(self.time.shape[0], True)
+        self.usedindex = np.full(self._intensity.shape[0], True)
+        self.vrange = np.full(self._intensity.shape[1], True)
 
-    def velocity_of_bin(self, bin):
-        return self.velocity[bin]
-
-    def select_velocities(self, bins):
-        """
-        reduces to the subset of bins
-        """
-        self.time = self.time[bins]
-        self.velocity = self.velocity[bins]
-        self.intensity = self.intensity[bins]
-        self.errors = self.errors[bins]
+    def time(self):
+        return self._time[self.usedindex]
 
     def outlier_removal(self, noiselevel, **kwargs):
         # outlier_removal based on usedindex set
-        usedindex = kwargs.get('usedindex', self.usedindex)
-        meani    = self.intensity[usedindex].mean(axis=0)  # mean intensity
-        diff     = self.intensity[usedindex] - meani  # fluctuation around mean
 
-        I, =  np.where(diff.std(axis=1) >= noiselevel)
-        self.remove_indices(I)
+        intensity = self.get_intensity()
+        mean = np.mean(intensity, axis=0)  # mean intensity
+        diff = np.zeros_like(self._time)
+        tmp = intensity - mean[np.newaxis, :]  # fluctuation around mean
+        diff[self.usedindex] = tmp.std(axis=1)
+        I, = np.where(diff >= noiselevel)
+        self.usedindex[I] = False
 
-        print("reducing from ", self.time.shape , "to ",
+        print("reducing from ", self._time.shape , "to ",
               np.sum(self.usedindex), " spectral lines")
 
+    def get_intensity(self):
+        tmp = self._intensity[self.usedindex]
+        return tmp[:, self.vrange]
+
     def mean_intensity(self, **kwargs):
-        usedindex = kwargs.get('usedindex', self.usedindex)
-        return np.mean(self.intensity[usedindex], axis=0)
+        tmp = self.get_intensity()
+        return np.mean(self.intensity, axis=0)
 
-
-    def std_over_time(self, **kwargs):
-        tmp = self.mean_intensity(**kwargs)
-        usedindex = kwargs.get('usedindex', self.usedindex)
-        tmp = self.intensity[usedindex] - tmp[np.newaxis, :]
+    def std_over_time(self):
+        avg = self.mean_intensity()
+        tmp = self.intensity - avg[np.newaxis, :]
         return np.std(tmp, axis=1)
 
     def list_of_new_night_indices(self, **kwargs):
@@ -355,7 +371,7 @@ class SpectralAnalyser:
 
         delta = kwargs.get('delta', 0.5)
 
-        dt = self.time[1:] - self.time[:-1]
+        dt = self._time[1:] - self._time[:-1]
         I, = np.where(dt > delta)
 
         return I
@@ -371,19 +387,48 @@ class SpectralAnalyser:
             return np.arange(I[n-1]+1, len(self.time))
         return np.arange(I[n-1]+1, I[n]+1)
 
+    def mask_of_night(self, n, **kwargs):
+        tmp = np.full(self._time.shape[0], False)
+        tmp[self.indices_of_night(n, **kwargs)] =  True
+        return tmp
+
     def used_indices_of_night(self, n, **kwargs):
-        I = self.indices_of_night(n, **kwargs)
-        return I[self.usedindex[I]]
+        I = self.mask_of_night(n, **kwargs)
+        return np.arange(self._time.shape[0])[I * self.usedindex]
+
+    def _copy_intensity(self):
+        """
+        updating intensity as a function used indices...
+        """
+        self.intensity = self._intensity[self.usedindex]
+        self.intensity = self.intensity[:, self.vrange]
 
     def remove_indices(self, I):
         """
         sets usedindices to false on I
         """
-        self.usedindices[I] = False
+        self.usedindex[I] = False
+        # self._copy_intensity()
+
+    def time_interval(self, tmin, tmax):
+        I, = np.where((self._time-tmin)*(self._time-tmax) <= 0)
+        return I
+
+    def remove_time_interval(self, tmin, tmax):
+        self.usedindex
+
+    def velocity_range(self, vrange):
+        """
+        setting the velocity range
+        vrange: list of indices
+        """
+        self.vrange[:] = False
+        self.vrange[vrange] = True
+        self._copy_intensity()
 
     def sprout(self):
         self.list_time, self.list_inte, self.list_index = \
-        load_data(DATAFILE, nval, rangei, vrange, noiselevel)
+            load_data(DATAFILE, nval, rangei, vrange, noiselevel)
 
         # normalize the spectrum if required TODO
         if normalise:
@@ -414,7 +459,6 @@ class SpectralAnalyser:
         with open("data.json", 'w') as outfile:
             json.dump(res, outfile, indent=2)
 
-
     def load_json(self, fname):
         with open(fname, 'r') as infile:
             res = json.load(infile)
@@ -425,7 +469,6 @@ class SpectralAnalyser:
         cubic spline interpolation of spectrum
         """
         return interpolate.splev(v, self._tck, der=0)
-
 
     def _Fsystem(self, freq, nharm=1):
         """
@@ -674,27 +717,10 @@ class SpectralAnalyser:
 #               # res -= res.max()
 #           return res  # np.exp(res)
 
-    def spectrum_matrix(self, time, spec, period=1, nphase=128):
-        """
-    binns the spec into nphase bins
-    """
-        bins = np.linspace(0, period, nphase + 1)
-        res = np.zeros((nphase, self.nvelocity))
-        nn = np.zeros(nphase)
-        ii = np.digitize(np.mod(time, period), bins)
-        for i, s in zip(ii, spec):
-            #i = i%nphase
-            res[i-1, :] += s
-            nn[i-1] +=1.
-        nn = np.where(nn>0,nn,1)
-        res[:,:] = nn[:,np.newaxis]#res/nn[:,np.newaxis]
-        #res[:,:] = nn[:,np.newaxis]
-        return res, bins[:-1]
-
     def spectrum_matrix_full(self, time, spec, period=1, nphase=128, method=None):
         """
-    binns the spec into nphase bins
-    """
+        binns the spec into nphase bins
+        """
         bins = np.linspace(0, period, nphase + 1)
         res = np.zeros((nphase, self.nvelocity))
         ii = np.digitize(np.mod(time, period), bins)
@@ -708,24 +734,15 @@ class SpectralAnalyser:
         return res, bins[:-1], mask
 
 if __name__ == '__main__':
-    import os
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.signal import spectral
-
-    PROGDIR = os.path.dirname(__file__)
-    DATADIR = os.path.join(PROGDIR, '../data')
-
-    DATAFILE = os.path.join(DATADIR, 'Vega_2018_0310.dat')
-    # DATAFILE = os.path.join(DATADIR, 'filematrix.dat')
-
-
-    myanal = SpectralAnalyser( DATAFILE,     # datafile containing the filematrix
-        nval=201,     # number of velocity bins
-        normalise=False,    # shall the spectra be normlized True or False
-        rangei=(72, 112),       # intensity ranges
-        vrange=(-60, 40),       # velocity ranges
-        noiselevel=0.5    # variance of noise TODO CHECK std ?
+    narval = SpectralAnalyser('../data/Vega_Narval_2018_031.json')
+    sophie = SpectralAnalyser('../data/Vega_2018_0310.json')
+    sophie.velocity_range(range(72, 112))
+    sophie.outlier_removal(9.0015)
+    binnedspec, bins = spectrum_matrix(
+        time = sophie.time(),
+        nphase=32,
+        quantity=sophie.get_intensity() - sophie.mean_intensity()[np.newaxis, :],
     )
-    myanal.export_json()
-
+    plt.figure(figsize=(10,4))
+    plt.imshow(np.sign(binnedspec)*np.abs(binnedspec)**0.25)
+    plt.show()
