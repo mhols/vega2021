@@ -63,7 +63,7 @@ vranges[DATAFILE9] = (-60.0, 40.0)
 vranges[DATAFILE10] = (-60.0, 40.0)
 vranges[DATAFILE11] = (-60.0, 40.0)
 
-DATAFILE = DATAFILE9  # DATAFILE8
+DATAFILE = DATAFILE10  # DATAFILE8
 
 
 class Pictures(object):
@@ -768,14 +768,44 @@ class Pictures(object):
         plt.plot(tmp)
         plt.savefig(name + self.format)
         
-    def moving_peaks_signoise(self):
+    def ew_noise_corr(self):
         name = 'moving_peaks_eq_width'
         #return #TODO REMOVE
         vul = 1.-self.inte
         eqwidth = self.analyzer.eqwidth()
         signois = self.analyzer.meansignoise()
         
-        for na, nightlist in zip(['s:1', 's:2', 's:3', 's:123'], [[0], [1], [2], [0,1,2]]):
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+            VV =[]
+            TT =[]
+            plt.title('night'+na)
+            for night in nightlist:
+                print("night = ", night)
+                I = self.analyzer.list_index[night]
+                print(night, len(I))
+                TT += list(self.time[I])
+                pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
+            
+                plt.figure()
+                plt.plot(signois[I],eqwidth[I],'o')
+                maxs = np.max(signois[I])
+                mins = np.min(signois[I])
+                newx = np.linspace(mins,maxs,1000)
+                plt.plot(newx,pp(newx))
+                plt.show()
+            
+    def moving_peaks_signoise(self):
+        name = 'moving_peaks_eq_width'
+        #return #TODO REMOVE
+        vul = 1.-self.inte
+        eqwidth = self.analyzer.eqwidth()
+        signois = self.analyzer.meansignoise()
+    
+        
+#        for na, nightlist in zip(['s:1', 's:2', 's:3', 's:123456'], [[0], [1], [2], [0,1,2,3,4,5]]):
+        
+        
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
         #for na, nightlist in zip(['s:12','s:3','s:123'], [[0,1],[2],[0,1,2]]):
             VV =[]
             TT =[]           
@@ -817,6 +847,7 @@ class Pictures(object):
             yt = [0,0.2,0.4,0.6,0.8, 1]
             plt.yticks(yt,[str(t) for t in yt])
             plt.vlines([-22, 0, 22], 0,1)
+            plt.vlines([-35, 0, 37], 0,1,linestyles='dashed')
             plt.hlines([1./2], -33,32)
             plt.xlim(self.velocity[0]-v0, self.velocity[-1]-v0)
             plt.xlabel('velocity [km/s]')
@@ -923,6 +954,7 @@ if __name__ == '__main__':
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #    myPics.bayes_freq_vrad_mean()
+    
     myPics.moving_peaks_signoise()
 #    myPics.estrotentropy()
     
@@ -934,4 +966,6 @@ if __name__ == '__main__':
     
 
     plt.show()
+    
+ #   myPics.ew_noise_corr()
 
