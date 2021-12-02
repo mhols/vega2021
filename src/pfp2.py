@@ -794,6 +794,8 @@ class Pictures(object):
                 plt.plot(newx,pp(newx))
                 plt.show()
 
+
+
     def moving_peaks_signoise(self):
         name = 'moving_peaks_eq_width'
         #return #TODO REMOVE
@@ -854,6 +856,36 @@ class Pictures(object):
             plt.ylabel('phase fraction of period]')
 
             plt.savefig(name + na +self.format)
+
+
+    def ew_noise_corr(self):
+        name = 'moving_peaks_eq_width'
+        #return #TODO REMOVE
+        vul = 1.-self.inte
+        eqwidth = self.analyzer.eqwidth()
+        signois = self.analyzer.meansignoise()
+
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7'], [[0], [1], [2], [3], [4], [5], [6]]):
+            VV =[]
+            TT =[]
+
+            for night in nightlist:
+                print("night = ", night)
+                try:
+                    I = self.analyzer.list_index[night]
+                    print(night, len(I))
+                except:
+                    continue
+                TT += list(self.time[I])
+                pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
+
+                plt.figure()
+                plt.title('night'+na)
+                plt.plot(signois[I],eqwidth[I],'o')
+                maxs = np.max(signois[I])
+                mins = np.min(signois[I])
+                newx = np.linspace(mins,maxs,1000)
+                plt.plot(newx,pp(newx))
 
 
     def signoise_eqwidth(self):
@@ -965,7 +997,7 @@ if __name__ == '__main__':
     #myPics.saveData("time_skew.dat", [myPics.time, myPics.vrad_skew])  # first column
 
 
-    plt.show()
+
 
     myPics.ew_noise_corr()
 
