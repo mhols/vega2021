@@ -837,7 +837,9 @@ class Pictures(object):
         eqwidth = self.analyzer.eqwidth()
         signois = self.analyzer.meansignoise()
         
-        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7'], [[0], [1], [2], [3], [4], [5], [6]]):
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6'], [[0], [1], [2], [3], [4], [5]]):
+#        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7'], [[0], [1], [2], [3], [4], [5], [6]]):
+
             VV =[]
             TT =[]
 
