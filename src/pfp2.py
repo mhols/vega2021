@@ -768,32 +768,7 @@ class Pictures(object):
         plt.plot(tmp)
         plt.savefig(name + self.format)
         
-    def ew_noise_corr(self):
-        name = 'moving_peaks_eq_width'
-        #return #TODO REMOVE
-        vul = 1.-self.inte
-        eqwidth = self.analyzer.eqwidth()
-        signois = self.analyzer.meansignoise()
-        
-        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
-            VV =[]
-            TT =[]
-            plt.title('night'+na)
-            for night in nightlist:
-                print("night = ", night)
-                I = self.analyzer.list_index[night]
-                print(night, len(I))
-                TT += list(self.time[I])
-                pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
-            
-                plt.figure()
-                plt.plot(signois[I],eqwidth[I],'o')
-                maxs = np.max(signois[I])
-                mins = np.min(signois[I])
-                newx = np.linspace(mins,maxs,1000)
-                plt.plot(newx,pp(newx))
-                plt.show()
-            
+     
     def moving_peaks_signoise(self):
         name = 'moving_peaks_eq_width'
         #return #TODO REMOVE
@@ -855,7 +830,33 @@ class Pictures(object):
             
             plt.savefig(name + na +self.format)
 
-    
+    def ew_noise_corr(self):
+        name = 'moving_peaks_eq_width'
+        #return #TODO REMOVE
+        vul = 1.-self.inte
+        eqwidth = self.analyzer.eqwidth()
+        signois = self.analyzer.meansignoise()
+        
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7'], [[0], [1], [2], [3], [4], [5], [6]]):
+            VV =[]
+            TT =[]
+
+            for night in nightlist:
+                print("night = ", night)
+                I = self.analyzer.list_index[night]
+                print(night, len(I))
+                TT += list(self.time[I])
+                pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
+            
+                plt.figure()
+                plt.title('night'+na)
+                plt.plot(signois[I],eqwidth[I],'o')
+                maxs = np.max(signois[I])
+                mins = np.min(signois[I])
+                newx = np.linspace(mins,maxs,1000)
+                plt.plot(newx,pp(newx))
+                
+       
     def signoise_eqwidth(self):
         bins = [0,0.4,0.5, 0.55, 0.6,0.7]
         clrs = ['-r', '-g', '-b', '-k','-c']
@@ -965,7 +966,8 @@ if __name__ == '__main__':
     #myPics.saveData("time_skew.dat", [myPics.time, myPics.vrad_skew])  # first column
     
 
-    plt.show()
+   
     
- #   myPics.ew_noise_corr()
+    myPics.ew_noise_corr()
 
+    plt.show()
