@@ -743,15 +743,42 @@ class SpectralAnalyser:
 if __name__ == '__main__':
     narval = SpectralAnalyser('../data/Vega_Narval_2018_031.json')
     sophie = SpectralAnalyser('../data/Vega_2018_0310.json')
-    # narval.velocity_range(range(72, 112))
-    narval.outlier_removal(0.003)
+
+    # --------- narval ------------
+    dataset = narval
+
+    dataset.outlier_removal(0.003)
     F = np.array([1,2,3,4,3,2,1]); F = F / np.sum(F)
-    quantity = narval.filtered_intensity(F) - narval.mean_intensity()[np.newaxis, :]
+    quantity = dataset.filtered_intensity(F)
+    quantity = 1-quantity
+    quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
+    quantity = quantity - np.mean(quantity, axis=0)[np.newaxis, :]
     binnedspec, bins = spectrum_matrix(
-        time = narval.time(),
+        time=dataset.time(),
         nphase=128,
         quantity=quantity
     )
     plt.figure(figsize=(10,4))
+    plt.title('narval')
+    plt.imshow(np.sign(binnedspec)*np.abs(binnedspec)**0.5)
+
+    #------ sophie ----------
+
+    dataset = sophie
+
+    I = dataset.used_indices_of_night(0)
+    dataset.outlier_removal(0.003)
+    F = np.array([1,2,3,4,3,2,1]); F = F / np.sum(F)
+    quantity = dataset.filtered_intensity(F)
+    quantity = 1-quantity
+    quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
+    quantity = quantity - np.mean(quantity, axis=0)[np.newaxis, :]
+    binnedspec, bins = spectrum_matrix(
+        time=dataset.time(),
+        nphase=128,
+        quantity=quantity
+    )
+    plt.figure(figsize=(10,4))
+    plt.title('sophie')
     plt.imshow(np.sign(binnedspec)*np.abs(binnedspec)**0.5)
     plt.show()
