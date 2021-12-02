@@ -353,17 +353,24 @@ class SpectralAnalyser:
         print("reducing from ", self._time.shape , "to ",
               np.sum(self.usedindex), " spectral lines")
 
+    def filtered_intensity(self, F):
+        intensity = self.get_intensity()
+        n = (F.shape[0]-1)//2
+        for i in range(intensity.shape[0]):
+            intensity[i] = np.convolve(F, intensity[i], 'full')[n:-n]
+        return intensity
+
     def get_intensity(self):
         tmp = self._intensity[self.usedindex]
         return tmp[:, self.vrange]
 
     def mean_intensity(self, **kwargs):
         tmp = self.get_intensity()
-        return np.mean(self.intensity, axis=0)
+        return np.mean(self.get_intensity(), axis=0)
 
     def std_over_time(self):
         avg = self.mean_intensity()
-        tmp = self.intensity - avg[np.newaxis, :]
+        tmp = self.get_intensity() - avg[np.newaxis, :]
         return np.std(tmp, axis=1)
 
     def list_of_new_night_indices(self, **kwargs):
@@ -736,13 +743,15 @@ class SpectralAnalyser:
 if __name__ == '__main__':
     narval = SpectralAnalyser('../data/Vega_Narval_2018_031.json')
     sophie = SpectralAnalyser('../data/Vega_2018_0310.json')
-    sophie.velocity_range(range(72, 112))
-    sophie.outlier_removal(9.0015)
+    # narval.velocity_range(range(72, 112))
+    narval.outlier_removal(0.003)
+    F = np.array([1,2,3,4,3,2,1]); F = F / np.sum(F)
+    quantity = narval.filtered_intensity(F) - narval.mean_intensity()[np.newaxis, :]
     binnedspec, bins = spectrum_matrix(
-        time = sophie.time(),
-        nphase=32,
-        quantity=sophie.get_intensity() - sophie.mean_intensity()[np.newaxis, :],
+        time = narval.time(),
+        nphase=128,
+        quantity=quantity
     )
     plt.figure(figsize=(10,4))
-    plt.imshow(np.sign(binnedspec)*np.abs(binnedspec)**0.25)
+    plt.imshow(np.sign(binnedspec)*np.abs(binnedspec)**0.5)
     plt.show()
