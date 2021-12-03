@@ -89,9 +89,9 @@ sophie12.velocity_range(np.arange(50, 130))
 eps = 0.0015
 for i in range(10):
     sophie12.outlier_removal(eps)
-# removing by hand
 
-sophie12.usedindex[[2037, 2038, 1726, 1774, 1800, 1413, 1414, 534, 84, 445 ]] = False
+# removing by hand
+sophie12.usedindex[[2021, 2037, 2038, 1726, 1774, 1800, 1413, 1414, 1593, 534, 84, 445 ]] = False
 sophie12.usedindex[range(1788, 1800)] = False
 sophie12.usedindex[range(1326, 1377)] = False
 sophie12.usedindex[range(2490, 2534)] = False
@@ -101,8 +101,7 @@ sophie12.usedindex[range(13, 21)] = False
 sophie12.usedindex[range(156, 171)] = False
 sophie12.usedindex[range(2400, 2490)] = False
 sophie12.usedindex[range(1946, 2020)] = False
-
-
+sophie12.usedindex[range(1002, 1021)] = False
 # presenting the selected data
 nights = [sophie12.indices_of_night(i) for i in range(nnights)]
 used_nights = [sophie12.used_indices_of_night(i) for i in range(nnights)]
@@ -135,20 +134,62 @@ plt.title('sophie narval')
 plt.subplot(121)
 plt.title('sophie 2018')
 plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5,
-           aspect='auto', origin='lower', cmap='gist_gray')
+           aspect='auto', origin='lower', cmap='gist_gray',
+            extent=[
+                np.min(sophie.velocity()),
+                np.max(sophie.velocity()),
+                0, 1]
+)
+plt.axvline(x=sophie.v0())
+plt.axvline(x=sophie.v0()+22)
+plt.axvline(x=sophie.v0()+37)
+plt.axvline(x=sophie.v0()-22)
+plt.axvline(x=sophie.v0()-37)
+
 plt.subplot(122)
 plt.title('narval 2018')
 plt.imshow(np.sign(binnedspec_narval)*np.abs(binnedspec_narval)**0.5,
-           aspect='auto', origin='lower', cmap='gist_gray')
+           aspect='auto', origin='lower', cmap='gist_gray',
+           extent=[
+                np.min(narval.velocity()),
+                np.max(narval.velocity()),
+                0, 1]
+)
+plt.axvline(x=narval.v0())
+plt.axvline(x=narval.v0()+22)
+plt.axvline(x=narval.v0()+37)
+plt.axvline(x=narval.v0()-22)
+plt.axvline(x=narval.v0()-37)
+
 plt.figure(figsize=(10,10))
 plt.title('sophie2012 sophie2018')
 plt.subplot(121)
 plt.title('sophie 2018')
 plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5,
-           aspect='auto', origin='lower', cmap='gist_gray')
+           aspect='auto', origin='lower',      cmap='gist_gray',
+           extent=[
+                np.min(sophie12.velocity()),
+                np.max(sophie12.velocity()),
+                0, 1]
+ )
+plt.axvline(x=sophie.v0())
+plt.axvline(x=sophie.v0()+22)
+plt.axvline(x=sophie.v0()+37)
+plt.axvline(x=sophie.v0()-22)
+plt.axvline(x=sophie.v0()-37)
 plt.subplot(122)
 plt.title('sophie 2012')
 plt.imshow(np.sign(binnedspec_sophie2012)*np.abs(binnedspec_sophie2012)**0.5,
-           cmap='gist_gray', aspect='auto', origin='lower')
+           cmap='gist_gray', aspect='auto', origin='lower',
+           extent=[
+                np.min(sophie12.velocity()),
+                np.max(sophie12.velocity()),
+                0, 1]
+           )
 
+plt.axvline(x=sophie12.v0())
+plt.axvline(x=sophie12.v0()+22)
+plt.axvline(x=sophie12.v0()+37)
+plt.axvline(x=sophie12.v0()-22)
+plt.axvline(x=sophie12.v0()-37)
 plt.show()

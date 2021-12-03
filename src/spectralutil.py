@@ -329,7 +329,7 @@ class SpectralAnalyser:
         # reading the file matrix
 
         self._time = np.array(res['time'])
-        self.velocity = np.array(res['velocity'])
+        self._velocity = np.array(res['velocity'])
         self._intensity = np.array(res['intensity'])  # bar intensity before selection
         # self.intensity = +self._intensity  # computation is based on this field
         self.errors = np.array(res['errors'])
@@ -339,8 +339,14 @@ class SpectralAnalyser:
     def time(self):
         return self._time[self.usedindex]
 
+    def velocity(self):
+        return self._velocity[self.vrange]
+
     def reverse_intensity(self):
         self._intensity = 1 - self._intensity
+
+    def v0(self):
+        return self.velocity()[np.argmin(self.mean_intensity())]
 
     def normalize_flux(self):
         tmp = 1 - self._intensity
@@ -351,7 +357,7 @@ class SpectralAnalyser:
         # outlier_removal based on usedindex set
 
         intensity = self._intensity[:, self.vrange]
-        mean = self.median_intensity()
+        mean = self.mean_intensity()
         # np.mean(intensity[self.usedindex], axis=0)  # mean intensity
         # diff = np.zeros_like(self._time)
         tmp = intensity - mean[np.newaxis, :]  # fluctuation around mean
@@ -371,6 +377,10 @@ class SpectralAnalyser:
         return intensity
 
     def get_intensity(self):
+        tmp = self._intensity[self.usedindex]
+        return tmp[:, self.vrange]
+
+    def intensity(self):
         tmp = self._intensity[self.usedindex]
         return tmp[:, self.vrange]
 
@@ -472,7 +482,7 @@ class SpectralAnalyser:
             'nvals': 201,
             'range': [72, 201],
             'time': self.time[self.usedindex].tolist(),
-            'velocity': self.velocity.tolist(),
+            'velocity': self.velocity().tolist(),
             'intensity': self.intensity[self.usedindex].tolist(),
         }
         with open("data.json", 'w') as outfile:
