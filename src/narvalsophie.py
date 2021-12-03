@@ -92,8 +92,9 @@ eps = 0.00125
 for i in range(10):
     sophie.outlier_removal(eps)
 # removing by hand
-#sophie.usedindex[[289, 686, 2112]] = False
-#sophie.usedindex[range(986, 1037)] = False
+sophie.usedindex[[2037, 2038, 1726, 1774, ]] = False
+sophie.usedindex[range(1788, 1800)] = False
+sophie.usedindex[range(1326, 1377)] = False
 
 # presenting the selected data
 nights = [sophie.indices_of_night(i) for i in range(nnights)]
@@ -113,7 +114,7 @@ quantity = sophie.filtered_intensity(F)
 quantity = 1-quantity
 quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
 quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
-binnedspec_sophie, bins  = sp.spectrum_matrix(
+binnedspec_sophie2012, bins  = sp.spectrum_matrix(
     time=sophie.time(),
     nphase=128,
     quantity=quantity
@@ -130,5 +131,16 @@ plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5, cmap='gist
 plt.subplot(122)
 plt.title('narval 2018')
 plt.imshow(np.sign(binnedspec_narval)*np.abs(binnedspec_narval)**0.5, cmap='gist_gray')
+
+plt.figure(figsize=(10,4))
+plt.title('sophie2012 sophie2018')
+plt.subplot(121)
+plt.title('sophie 2018')
+plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5, cmap='gist_gray')
+plt.subplot(122)
+plt.title('sophie 2012')
+plt.imshow(np.sign(binnedspec_sophie2012)*np.abs(binnedspec_narval)**0.5, cmap='gist_gray')
+
+
 
 plt.show()
