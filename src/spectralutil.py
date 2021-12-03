@@ -339,11 +339,19 @@ class SpectralAnalyser:
     def time(self):
         return self._time[self.usedindex]
 
+    def reverse_intensity(self):
+        self._intensity = 1 - self._intensity
+
+    def normalize_flux(self):
+        tmp = 1 - self._intensity
+        tmp = tmp / np.sum(tmp, axis=1)[:, np.newaxis]
+        self._intensity = 1-tmp
+
     def outlier_removal(self, noiselevel, **kwargs):
         # outlier_removal based on usedindex set
 
         intensity = self._intensity[:, self.vrange]
-        mean = self.mean_intensity()
+        mean = self.median_intensity()
         # np.mean(intensity[self.usedindex], axis=0)  # mean intensity
         # diff = np.zeros_like(self._time)
         tmp = intensity - mean[np.newaxis, :]  # fluctuation around mean
@@ -365,6 +373,9 @@ class SpectralAnalyser:
     def get_intensity(self):
         tmp = self._intensity[self.usedindex]
         return tmp[:, self.vrange]
+
+    def median_intensity(self, **kwargs):
+        return np.median(self.get_intensity(), axis=0)
 
     def mean_intensity(self, **kwargs):
         return np.mean(self.get_intensity(), axis=0)
@@ -413,7 +424,11 @@ class SpectralAnalyser:
         I, = np.where((self._time-tmin)*(self._time-tmax) <= 0)
         return I
 
-    def remove_time_interval(self, tmin, tmax):
+    def remove_time_interval_indices(self, tmin, tmax):
+        """
+        indices with respect to original
+        time selected time stamps
+        """
         self.remove_indices(self.time_interval(tmin, tmax))
 
     def velocity_range(self, vrange):

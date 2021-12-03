@@ -7,10 +7,13 @@ narval = sp.SpectralAnalyser('../data/Vega_Narval_2018_031.json')
 nnights = narval.number_of_nights()
 
 # downsampling of data
-eps = 0.00095
+eps = 0.001
 narval.velocity_range(np.arange(50, 130))
 for i in range(10):
     narval.outlier_removal(eps)
+
+# keeping night 5 entirely
+narval.usedindex[narval.indices_of_night(5)] = True
 
 # presenting the selected data
 nights = [narval.indices_of_night(i) for i in range(nnights)]
@@ -21,15 +24,15 @@ for i, (I, II) in enumerate(zip(nights, used_nights)):
     plt.figure()
     plt.title('night narval' + str(i))
     t0 = time[I][0]
-    plt.plot(time[I], stds[I])
-    plt.plot(time[II], stds[II], 'o')
+    plt.plot(I, stds[I])
+    plt.plot(II, stds[II], 'o')
     plt.ylim(0.*eps, 1.5*eps)
 
 F = np.array([1,2,3,4,3,2,1]); F = F / np.sum(F)
 quantity = narval.filtered_intensity(F)
 quantity = 1-quantity
 quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
-quantity = quantity - np.mean(quantity, axis=0)[np.newaxis, :]
+quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
 binnedspec_narval, bins = sp.spectrum_matrix(
     time=narval.time(),
     nphase=128,
@@ -48,7 +51,9 @@ for i in range(10):
 eps = 0.00125
 for i in range(10):
     sophie.outlier_removal(eps)
-
+# removing by hand
+sophie.usedindex[[289, 686, 2112]] = False
+sophie.usedindex[range(986, 1037)] = False
 
 # presenting the selected data
 nights = [sophie.indices_of_night(i) for i in range(nnights)]
@@ -59,15 +64,15 @@ for i, (I, II) in enumerate(zip(nights, used_nights)):
     plt.figure()
     plt.title('night sophie' + str(i))
     t0 = time[I][0]
-    plt.plot(time[I], stds[I])
-    plt.plot(time[II], stds[II], 'o')
+    plt.plot(I, stds[I])
+    plt.plot(II, stds[II], 'o')
     plt.ylim(0.*eps, 1.5*eps)
 
 F = np.array([1,2,1]); F = F / np.sum(F)
 quantity = sophie.filtered_intensity(F)
 quantity = 1-quantity
 quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
-quantity = quantity - np.mean(quantity, axis=0)[np.newaxis, :]
+quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
 binnedspec_sophie, bins  = sp.spectrum_matrix(
     time=sophie.time(),
     nphase=128,
