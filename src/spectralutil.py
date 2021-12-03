@@ -109,7 +109,7 @@ def spectrum_matrix(time, quantity, **kwargs):
 
     nn = np.where(nn>0,nn,1)
     res[:,:] = res / nn[:,np.newaxis]
-    return res, bins[:-1]
+    return res[:, 1:-1], bins[:-1]
 
 
 def bisector(velocity, intensity, depth):
@@ -342,12 +342,14 @@ class SpectralAnalyser:
     def outlier_removal(self, noiselevel, **kwargs):
         # outlier_removal based on usedindex set
 
-        intensity = self.get_intensity()
-        mean = np.mean(intensity, axis=0)  # mean intensity
-        diff = np.zeros_like(self._time)
+        intensity = self._intensity[:, self.vrange]
+        mean = self.mean_intensity()
+        # np.mean(intensity[self.usedindex], axis=0)  # mean intensity
+        # diff = np.zeros_like(self._time)
         tmp = intensity - mean[np.newaxis, :]  # fluctuation around mean
-        diff[self.usedindex] = tmp.std(axis=1)
-        I, = np.where(diff >= noiselevel)
+        # diff[self.usedindex] = tmp.std(axis=1)
+        I, = np.where(tmp.std(axis=1) >= noiselevel)
+        self.usedindex = np.full(self._time.shape[0], True)
         self.usedindex[I] = False
 
         print("reducing from ", self._time.shape , "to ",
@@ -365,13 +367,11 @@ class SpectralAnalyser:
         return tmp[:, self.vrange]
 
     def mean_intensity(self, **kwargs):
-        tmp = self.get_intensity()
         return np.mean(self.get_intensity(), axis=0)
 
     def std_over_time(self):
-        avg = self.mean_intensity()
-        tmp = self.get_intensity() - avg[np.newaxis, :]
-        return np.std(tmp, axis=1)
+        mean = self.mean_intensity()
+        return np.std(self._intensity[:, self.vrange] - mean[np.newaxis, :], axis=1)
 
     def list_of_new_night_indices(self, **kwargs):
         # grouping into nights
@@ -391,7 +391,7 @@ class SpectralAnalyser:
         if n == 0:
             return np.arange(I[0]+1)
         if n == len(I):
-            return np.arange(I[n-1]+1, len(self.time))
+            return np.arange(I[n-1]+1, len(self._time))
         return np.arange(I[n-1]+1, I[n]+1)
 
     def mask_of_night(self, n, **kwargs):
@@ -403,26 +403,18 @@ class SpectralAnalyser:
         I = self.mask_of_night(n, **kwargs)
         return np.arange(self._time.shape[0])[I * self.usedindex]
 
-    def _copy_intensity(self):
-        """
-        updating intensity as a function used indices...
-        """
-        self.intensity = self._intensity[self.usedindex]
-        self.intensity = self.intensity[:, self.vrange]
-
     def remove_indices(self, I):
         """
         sets usedindices to false on I
         """
         self.usedindex[I] = False
-        # self._copy_intensity()
 
     def time_interval(self, tmin, tmax):
         I, = np.where((self._time-tmin)*(self._time-tmax) <= 0)
         return I
 
     def remove_time_interval(self, tmin, tmax):
-        self.usedindex
+        self.remove_indices(self.time_interval(tmin, tmax))
 
     def velocity_range(self, vrange):
         """
@@ -431,7 +423,6 @@ class SpectralAnalyser:
         """
         self.vrange[:] = False
         self.vrange[vrange] = True
-        self._copy_intensity()
 
     def sprout(self):
         self.list_time, self.list_inte, self.list_index = \
