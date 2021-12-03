@@ -35,7 +35,7 @@ quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
 quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
 binnedspec_narval, bins = sp.spectrum_matrix(
     time=narval.time(),
-    nphase=128,
+    nphase=256,
     quantity=quantity
 )
 
@@ -75,7 +75,7 @@ quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
 quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
 binnedspec_sophie, bins  = sp.spectrum_matrix(
     time=sophie.time(),
-    nphase=128,
+    nphase=256,
     quantity=quantity
 )
 
@@ -85,10 +85,13 @@ nnights = sophie.number_of_nights()
 
 # downsampling of data
 sophie.velocity_range(np.arange(50, 130))
-eps = 0.00138
+#eps = 0.00138
+eps = 0.0016
+
 for i in range(10):
     sophie.outlier_removal(eps)
-eps = 0.00125
+#eps = 0.00125
+eps = 0.0015
 for i in range(10):
     sophie.outlier_removal(eps)
 # removing by hand
@@ -116,7 +119,7 @@ quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
 quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
 binnedspec_sophie2012, bins  = sp.spectrum_matrix(
     time=sophie.time(),
-    nphase=128,
+    nphase=256,
     quantity=quantity
 )
 
@@ -139,7 +142,7 @@ plt.title('sophie 2018')
 plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5, cmap='gist_gray')
 plt.subplot(122)
 plt.title('sophie 2012')
-plt.imshow(np.sign(binnedspec_sophie2012)*np.abs(binnedspec_narval)**0.5, cmap='gist_gray')
+plt.imshow(np.sign(binnedspec_sophie2012)*np.abs(binnedspec_sophie2012)**0.5, cmap='gist_gray')
 
 
 

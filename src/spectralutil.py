@@ -35,8 +35,8 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
     velocity = data[0, colspec:colval]  # velocities of bins
     intens = data[:, colval:colvul]  # intensities
     tmp = +intens
-    for i in range(intens.shape[0]):
-        intens[i] = np.convolve(intens[i], np.array([1,2,3,4,3,2,1])/16, 'full')[3:-3]
+#    for i in range(intens.shape[0]):
+#        intens[i] = np.convolve(intens[i], np.array([1,2,3,4,3,2,1])/16, 'full')[3:-3]
     signoise = data[:, colvul:colvul+nval]
     meani    = intens.mean(axis=0)  # mean intensity
     diff     = intens - meani  # fluctuation around mean
