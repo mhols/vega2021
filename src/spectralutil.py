@@ -384,6 +384,12 @@ class SpectralAnalyser:
         mean = self.mean_intensity()
         return np.std(self._intensity[:, self.vrange] - mean[np.newaxis, :], axis=1)
 
+    def std_normalized_over_time(self):
+        tmp = 1 - self._intensity[:, self.vrange]
+        tmp = tmp / tmp.sum(axis=1)[:,np.newaxis]
+        mean = tmp.mean(axis=0)
+        return np.std(tmp - mean[np.newaxis, :], axis=1)
+
     def list_of_new_night_indices(self, **kwargs):
         # grouping into nights
 

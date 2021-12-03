@@ -12,14 +12,14 @@ narval.velocity_range(np.arange(50, 130))
 for i in range(10):
     narval.outlier_removal(eps)
 
-# keeping night 5 entirely
+# keeping night 5 and  entirely
 narval.usedindex[narval.indices_of_night(5)] = True
-
+narval.usedindex[narval.indices_of_night(6)] = True
 # presenting the selected data
 nights = [narval.indices_of_night(i) for i in range(nnights)]
 used_nights = [narval.used_indices_of_night(i) for i in range(nnights)]
 time = narval._time
-stds = narval.std_over_time()
+stds = narval.std_normalized_over_time()  # std_over_time()
 for i, (I, II) in enumerate(zip(nights, used_nights)):
     plt.figure()
     plt.title('night narval' + str(i))
@@ -59,7 +59,7 @@ sophie.usedindex[range(986, 1037)] = False
 nights = [sophie.indices_of_night(i) for i in range(nnights)]
 used_nights = [sophie.used_indices_of_night(i) for i in range(nnights)]
 time = sophie._time
-stds = sophie.std_over_time()
+stds = sophie.std_normalized_over_time()  # std_over_time()
 for i, (I, II) in enumerate(zip(nights, used_nights)):
     plt.figure()
     plt.title('night sophie' + str(i))
@@ -87,5 +87,9 @@ plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5, cmap='gist
 plt.subplot(122)
 plt.title('narval')
 plt.imshow(np.sign(binnedspec_narval)*np.abs(binnedspec_narval)**0.5, cmap='gist_gray')
+
+print(sophie.velocity.min(), sophie.velocity.max())
+print(narval.velocity.min(), narval.velocity.max())
+
 
 plt.show()
