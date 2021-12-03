@@ -35,7 +35,7 @@ quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
 quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
 binnedspec_narval, bins = sp.spectrum_matrix(
     time=narval.time(),
-    nphase=128,
+    nphase=256,
     quantity=quantity
 )
 
@@ -70,12 +70,13 @@ for i, (I, II) in enumerate(zip(nights, used_nights)):
 
 F = np.array([1,2,1]); F = F / np.sum(F)
 quantity = sophie.filtered_intensity(F)
+quantity = sophie.get_intensity()
 quantity = 1-quantity
 quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
 quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
 binnedspec_sophie, bins  = sp.spectrum_matrix(
     time=sophie.time(),
-    nphase=128,
+    nphase=256,
     quantity=quantity
 )
 
@@ -88,12 +89,13 @@ sophie.velocity_range(np.arange(50, 130))
 eps = 0.00138
 for i in range(10):
     sophie.outlier_removal(eps)
-eps = 0.00125
+eps = 0.0012
 for i in range(10):
     sophie.outlier_removal(eps)
 # removing by hand
-#sophie.usedindex[[289, 686, 2112]] = False
-#sophie.usedindex[range(986, 1037)] = False
+sophie.usedindex[[2037, 2038, 1726, 1774, ]] = False
+sophie.usedindex[range(1788, 1800)] = False
+sophie.usedindex[range(1326, 1377)] = False
 
 # presenting the selected data
 nights = [sophie.indices_of_night(i) for i in range(nnights)]
@@ -110,12 +112,13 @@ for i, (I, II) in enumerate(zip(nights, used_nights)):
 
 F = np.array([1,2,1]); F = F / np.sum(F)
 quantity = sophie.filtered_intensity(F)
+quantity = sophie.get_intensity()
 quantity = 1-quantity
 quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
 quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
-binnedspec_sophie, bins  = sp.spectrum_matrix(
+binnedspec_sophie2012, bins  = sp.spectrum_matrix(
     time=sophie.time(),
-    nphase=128,
+    nphase=256,
     quantity=quantity
 )
 
@@ -131,8 +134,16 @@ plt.subplot(122)
 plt.title('narval 2018')
 plt.imshow(np.sign(binnedspec_narval)*np.abs(binnedspec_narval)**0.5, cmap='gist_gray')
 
-print(sophie.velocity.min(), sophie.velocity.max())
-print(narval.velocity.min(), narval.velocity.max())
-
+plt.figure(figsize=(10,10))
+plt.title('sophie2012 sophie2018')
+plt.subplot(121)
+plt.title('sophie 2018')
+plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5,
+           aspect='auto', origin='lower', cmap='gist_gray')
+plt.subplot(122)
+plt.title('sophie 2012')
+tmp = np.sign(binnedspec_sophie2012)*np.abs(binnedspec_sophie2012)**0.5
+plt.imshow(tmp, cmap='gist_gray', aspect='auto',
+                       interpolation='none', origin='lower')
 
 plt.show()
