@@ -331,7 +331,7 @@ class SpectralAnalyser:
         self._time = np.array(res['time'])
         self._velocity = np.array(res['velocity'])
         self._intensity = np.array(res['intensity'])  # bar intensity before selection
-        self.errors = np.array(res['errors'])
+        self._errors = np.array(res['errors'])
 
         # initializing indices for data reduction
         self.usedindex = np.full(self._intensity.shape[0], True)
@@ -396,6 +396,10 @@ class SpectralAnalyser:
 
     def intensity(self):
         tmp = self._intensity[self.usedindex]
+        return tmp[:, self.vrange]
+
+    def errors(self):
+        tmp = self._errors[self.usedindex]
         return tmp[:, self.vrange]
 
     def median_intensity(self, **kwargs):
@@ -489,6 +493,7 @@ class SpectralAnalyser:
             'time': self.time().tolist(),
             'velocity': self.velocity().tolist(),
             'intensity': self.intensity().tolist(),
+            'errors': self.errors().tolist(),
         }
         with open(kwargs.get('outfile', 
             os.path.join(os.path.dirname(__file__), 'vega.json')), 'w') as outfile:
