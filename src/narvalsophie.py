@@ -15,6 +15,9 @@ for i in range(10):
 # keeping night 5 and  entirely
 narval.usedindex[narval.indices_of_night(5)] = True
 narval.usedindex[narval.indices_of_night(6)] = True
+
+# exporting reduced data to json
+narval.export_json(outfile='narval_reduced.json') #  exporting reduced data to json)
 # presenting the selected data
 nights = [narval.indices_of_night(i) for i in range(nnights)]
 used_nights = [narval.used_indices_of_night(i) for i in range(nnights)]
@@ -54,6 +57,9 @@ for i in range(10):
 # removing by hand
 sophie.usedindex[[289, 686, 2112]] = False
 sophie.usedindex[range(986, 1037)] = False
+
+# exporting reduced data as json
+sophie.export_json(outfile='sophie_reduced.json') #  exporting reduced data to json)
 
 # presenting the selected data
 nights = [sophie.indices_of_night(i) for i in range(nnights)]
@@ -102,6 +108,11 @@ sophie12.usedindex[range(156, 171)] = False
 sophie12.usedindex[range(2400, 2490)] = False
 sophie12.usedindex[range(1946, 2020)] = False
 sophie12.usedindex[range(1002, 1021)] = False
+
+# exporting reduced data as json
+sophie12.export_json(outfile='sophie12_reduced.json') #  exporting reduced data to json)
+#
+
 # presenting the selected data
 nights = [sophie12.indices_of_night(i) for i in range(nnights)]
 used_nights = [sophie12.used_indices_of_night(i) for i in range(nnights)]

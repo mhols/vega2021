@@ -327,25 +327,38 @@ class SpectralAnalyser:
         res = self.load_json(jsonfile)
 
         # reading the file matrix
-
+        self._name = res['name']
         self._time = np.array(res['time'])
         self._velocity = np.array(res['velocity'])
         self._intensity = np.array(res['intensity'])  # bar intensity before selection
-        # self.intensity = +self._intensity  # computation is based on this field
         self.errors = np.array(res['errors'])
+
+        # initializing indices for data reduction
         self.usedindex = np.full(self._intensity.shape[0], True)
         self.vrange = np.full(self._intensity.shape[1], True)
 
     def time(self):
+        """
+        return: time stamps of used data
+        """
         return self._time[self.usedindex]
 
     def velocity(self):
+        """
+        return: used velocities
+        """
         return self._velocity[self.vrange]
 
     def reverse_intensity(self):
+        """
+        substracts continuum based on continuum = 1
+        """
         self._intensity = 1 - self._intensity
 
     def v0(self):
+        """
+        location of minimum spectrum
+        """
         return self.velocity()[np.argmin(self.mean_intensity())]
 
     def normalize_flux(self):
@@ -358,10 +371,7 @@ class SpectralAnalyser:
 
         intensity = self._intensity[:, self.vrange]
         mean = self.mean_intensity()
-        # np.mean(intensity[self.usedindex], axis=0)  # mean intensity
-        # diff = np.zeros_like(self._time)
         tmp = intensity - mean[np.newaxis, :]  # fluctuation around mean
-        # diff[self.usedindex] = tmp.std(axis=1)
         I, = np.where(tmp.std(axis=1) >= noiselevel)
         self.usedindex = np.full(self._time.shape[0], True)
         self.usedindex[I] = False
@@ -377,6 +387,10 @@ class SpectralAnalyser:
         return intensity
 
     def get_intensity(self):
+        """
+        return: used intensity
+        TODO: fade out and replace by intensity
+        """
         tmp = self._intensity[self.usedindex]
         return tmp[:, self.vrange]
 
@@ -385,12 +399,16 @@ class SpectralAnalyser:
         return tmp[:, self.vrange]
 
     def median_intensity(self, **kwargs):
-        return np.median(self.get_intensity(), axis=0)
+        return np.median(self.intensity(), axis=0)
 
     def mean_intensity(self, **kwargs):
-        return np.mean(self.get_intensity(), axis=0)
+        return np.mean(self.intensity(), axis=0)
 
     def std_over_time(self):
+        """
+        return: time serries of deviation (std) of actual
+        spectrum from global mean
+        """
         mean = self.mean_intensity()
         return np.std(self._intensity[:, self.vrange] - mean[np.newaxis, :], axis=1)
 
@@ -402,11 +420,12 @@ class SpectralAnalyser:
 
     def list_of_new_night_indices(self, **kwargs):
         # grouping into nights
+        # delta: float fraction of day used to determine observational gap
 
         delta = kwargs.get('delta', 0.5)
 
         dt = self._time[1:] - self._time[:-1]
-        I, = np.where(dt > delta)
+        I, = np.where(dt > delta)  # gap larger than delta
 
         return I
 
@@ -422,11 +441,17 @@ class SpectralAnalyser:
         return np.arange(I[n-1]+1, I[n]+1)
 
     def mask_of_night(self, n, **kwargs):
+        """
+        out: ndarray of boolean which is true only in night n
+        """
         tmp = np.full(self._time.shape[0], False)
         tmp[self.indices_of_night(n, **kwargs)] =  True
         return tmp
 
     def used_indices_of_night(self, n, **kwargs):
+        """
+        out: ndarray of indices of night n
+        """
         I = self.mask_of_night(n, **kwargs)
         return np.arange(self._time.shape[0])[I * self.usedindex]
 
@@ -455,6 +480,25 @@ class SpectralAnalyser:
         self.vrange[:] = False
         self.vrange[vrange] = True
 
+    def export_json(self, **kwargs):
+        res = {
+            'name': kwargs.get('outfile', 'vega.json'),
+            'description': "reduction from {}".format(self._name),
+            'nvals': int(sum(self.vrange)),
+            'range': [0, int(sum(self.vrange))-1],
+            'time': self.time().tolist(),
+            'velocity': self.velocity().tolist(),
+            'intensity': self.intensity().tolist(),
+        }
+        with open(kwargs.get('outfile', 
+            os.path.join(os.path.dirname(__file__), 'vega.json')), 'w') as outfile:
+            json.dump(res, outfile, indent=2)
+
+    def load_json(self, fname):
+        with open(fname, 'r') as infile:
+            res = json.load(infile)
+        return res
+
     def sprout(self):
         self.list_time, self.list_inte, self.list_index = \
             load_data(DATAFILE, nval, rangei, vrange, noiselevel)
@@ -473,25 +517,6 @@ class SpectralAnalyser:
         self.deltavbin = self.velocity[2] - self.velocity[1]
 
         self._tck = interpolate.splrep(self.velocity, self.meanIntensity, s=0)
-
-    def export_json(self):
-        res = {
-            'name': 'VEGA_384.json',
-            'description': "This data file is based on Boehm",
-            'noiselevel': 0.7,
-            'nvals': 201,
-            'range': [72, 201],
-            'time': self.time[self.usedindex].tolist(),
-            'velocity': self.velocity().tolist(),
-            'intensity': self.intensity[self.usedindex].tolist(),
-        }
-        with open("data.json", 'w') as outfile:
-            json.dump(res, outfile, indent=2)
-
-    def load_json(self, fname):
-        with open(fname, 'r') as infile:
-            res = json.load(infile)
-        return res
 
     def mean_spectrum_interp3(self, v):
         """
