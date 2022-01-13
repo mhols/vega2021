@@ -3,7 +3,6 @@ Created on May 22, 2014
 
 @author: hols
 '''
-#from dycos.lmm import LM
 from scipy import interpolate
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,15 +32,9 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
     colvul = colval + nval
 
     data = np.loadtxt(DATAFILE)
-    # data = tmp[:100]
     time = data[:, coltime:colspec].ravel()
-    print(data.shape, time.shape, time[0].shape)
-    # time = time-int(time[0])
     velocity = data[0, colspec:colval]  # velocities of bins
     intens = data[:, colval:colvul]  # intensities
-    tmp = +intens
-#    for i in range(intens.shape[0]):
-#        intens[i] = np.convolve(intens[i], np.array([1,2,3,4,3,2,1])/16, 'full')[3:-3]
     signoise = data[:, colvul:colvul+nval]
     meani    = intens.mean(axis=0)  # mean intensity
     diff     = intens - meani  # fluctuation around mean
@@ -342,6 +335,10 @@ class SpectralAnalyser:
         self.usedindex = np.full(self._intensity.shape[0], True)
         self.vrange = np.full(self._intensity.shape[1], True)
 
+
+    def name(self):
+        return self._name
+
     def time(self):
         """
         return: time stamps of used data
@@ -526,6 +523,23 @@ class SpectralAnalyser:
                 for i in range(intens.shape[0])
                 ]
         return np.array(res)
+
+    def rv_mean(self, relative_depth=1):
+        """
+        mean position of spectrum
+        """
+        mv = self.mean_intensity().min()
+        depth = mv + (1 - mv) * relative_depth
+        I, = np.where(self.mean_intensity() > depth)
+
+        vv = self.velocity()
+        res = 1 - self.intensity()
+        res[:, I] = 0
+        v = np.sum(res * vv[np.newaxis, :], axis=1)
+        v /= np.sum(res, axis=1)
+        return v
+
+class tobemodified(SpectralAnalyser):
 
     def _Fsystem(self, freq, nharm=1):
         """

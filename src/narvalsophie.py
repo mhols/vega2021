@@ -208,7 +208,10 @@ def working_from_rawdata():
 
 def work_from_selected_data():
     sophie2018 = sp.SpectralAnalyser('sophie_reduced.json')
-    # sophie2012= sp.SpectralAnalyser('sophie12_reduced.json')
+    sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json')
+    narval = sp.SpectralAnalyser("narval_reduced.json")
+
+    specdata = sophie2018
 
     colors = ['r', 'g', 'b', 'k', 'm', 'y']
     
@@ -216,8 +219,8 @@ def work_from_selected_data():
     for factor in np.linspace(0.99, 1.05, 15):
         plt.figure()
         F = np.array([1,2,1]); F = F / np.sum(F)
-        quantity = sophie2018.filtered_intensity(F)
-        quantity = quantity[sophie2018.used_indices_of_night(1)]
+        quantity = specdata.filtered_intensity(F)
+        quantity = quantity[specdata.used_indices_of_night(1)]
         quantity = 1-quantity
         quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
         quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
@@ -235,14 +238,9 @@ def work_from_selected_data():
                         np.max(sophie2018.velocity()),
                         0, 1]
                    )
-        
-        plt.axvline(x=sophie2018.v0())
-        plt.axvline(x=sophie2018.v0()+22)
-        plt.axvline(x=sophie2018.v0()+37)
-        plt.axvline(x=sophie2018.v0()-22)
-        plt.axvline(x=sophie2018.v0()-37)
-
-    
+        for ofs in [0, 22, 37, -22, -37]: 
+            plt.axvline(x=specdata.v0()+ofs)
+           
     """
     for factor in np.linspace(0.95, 1.1, 20):
         plt.figure()
@@ -260,7 +258,30 @@ def work_from_selected_data():
         plt.legend()
     """
     plt.show()
+
+
+def radial_velocity(*specdat):
+    ax = plt.figure()
+    name = ''
+    for spdat in specdat:
+        name += spdat.name()
+        for I in spdat.indices_of_used_nights():
+            plt.plot(np.mod(spdat.time()[I], sp.VEGAPERIOD), spdat.rv_mean()[I], 'o')
+
+    plt.title(name)
+
 if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
     # working_from_rawdata()
-    work_from_selected_data()
+
+    sophie2018 = sp.SpectralAnalyser('sophie_reduced.json')
+    sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json')
+    narval = sp.SpectralAnalyser("narval_reduced.json")
+
+    # work_from_selected_data()
+
+
+    radial_velocity(sophie2012)
+    radial_velocity(sophie2018)
+    radial_velocity(narval, sophie2018)
+    plt.show()
