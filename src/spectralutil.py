@@ -134,7 +134,7 @@ def bisector_v(velocity, intensity, depth):
     the bisector for the values in depth
     """
     res = np.zeros(len(depth))
-    for i in xrange(len(depth)):
+    for i in range(len(depth)):
         res[i] = bisector(velocity, intensity, depth[i])
     return res
 
@@ -419,12 +419,41 @@ class SpectralAnalyser:
         return np.mean(self.intensity, axis=0)
 
     @property
+    def min_intensity(self):
+        return np.min(self.intensity)
+
+    @property
     def deltavbin(self):
         return self.velocity[1]-self.velocity[0]
 
     @property
     def nobs(self):
         return np.sum(self.usedindex)
+
+    def bisector_borders(self, depth=0.9):
+        mv = self.mean_intensity.min()
+        depth = mv + (1 - mv) * depth
+        I = np.where(self.mean_intensity <= depth)[0]
+
+        intens = +self.intensity[:, I]
+        v = +self.velocity[I]
+
+        res = []
+        for inte in intens:
+            i0 = np.argmin(inte)
+            left = interp1d(inte[:i0][::-1], v[:i0][::-1])
+            right = interp1d(inte[i0:], v[i0:])
+            res.append((left, right))
+
+        return res
+
+
+    def rv_bis(self, depth=0.9, atdepth=0.5):
+        bise = self.bisector_borders(depth)
+        at = 1*(1-atdepth) + self.min_intensity * atdepth
+        res = ((r(at) + l(at))/2 for l, r in bise)
+        return np.fromiter(res, dtype=float)
+
 
     def std_over_time(self):
         """
@@ -820,7 +849,7 @@ class tobemodified(SpectralAnalyser):
 
     def vrad_bis(self, extension):
         """
-    calculates vrad as the median of part of bisector
+        calculates vrad as the median of part of bisector
         """
         nn = 20
         tmp = np.zeros(len(self.time))

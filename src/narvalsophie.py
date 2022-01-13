@@ -279,7 +279,7 @@ def radial_velocity(*specdat, relative_depth=1.0):
 
 
 def radial_velocity_correlation(*specdat, relative_depth=1.0):
-    ax = plt.figure()
+    ax = plt.figure('radial velocity correlation')
     colors = ['r', 'g', 'b', 'k', 'm', 'y']
     name = ''
     i = 0
@@ -294,6 +294,24 @@ def radial_velocity_correlation(*specdat, relative_depth=1.0):
     plt.legend()
 
     plt.title(name)
+
+def radial_velocity_bisector(*specdat, depth=0.9, atdepth=0.5):
+    ax = plt.figure('radial velocity bisector')
+    colors = ['r', 'g', 'b', 'k', 'm', 'y']
+    name = ''
+    i = 0
+    for spdat in specdat:
+        col = colors[i]
+        name += spdat.name
+        plt.plot(np.mod(spdat.time, sp.VEGAPERIOD), 
+                spdat.rv_bis(depth, atdepth), 
+                    'o', color=col, label=spdat.name,
+                    markersize=10)
+        i+=1
+    plt.legend()
+
+    plt.title(name)
+
 
 
 if __name__ == '__main__':
@@ -310,5 +328,5 @@ if __name__ == '__main__':
 
     radial_velocity(sophie2018, sophie2012, relative_depth=0.8)
     radial_velocity_correlation(sophie2018, sophie2012, relative_depth=0.8)
-
+    radial_velocity_bisector(sophie2018, sophie2012, depth=0.9, atdepth=0.5)
     plt.show()
