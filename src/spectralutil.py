@@ -10,6 +10,11 @@ import numpy as np
 import json
 import os
 
+from scipy.interpolate.fitpack2 import UnivariateSpline
+
+
+VEGAPERIOD = 0.98739 * 0.678  # period in days
+
 #for full profile 60,124
 #for short profile 72,112
 def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
@@ -96,7 +101,7 @@ def spectrum_matrix(time, quantity, **kwargs):
     """
     binns the spec into nphase bins
     """
-    period = kwargs.get('period', 0.678)
+    period = kwargs.get('period', VEGAPERIOD)
     nphase = kwargs.get('nphase', 128)
 
     bins = np.linspace(0, period, nphase + 1)
@@ -324,7 +329,7 @@ class SpectralAnalyser:
 
     def __init__(self, jsonfile):
 
-        res = self.load_json(jsonfile)
+        res = self._load_json(jsonfile)
 
         # reading the file matrix
         self._name = res['name']
@@ -349,9 +354,10 @@ class SpectralAnalyser:
         """
         return self._velocity[self.vrange]
 
-    def reverse_intensity(self):
+    def reverse_intensity_m(self):
         """
         substracts continuum based on continuum = 1
+        suffix _m stands for modifies data
         """
         self._intensity = 1 - self._intensity
 
@@ -361,7 +367,7 @@ class SpectralAnalyser:
         """
         return self.velocity()[np.argmin(self.mean_intensity())]
 
-    def normalize_flux(self):
+    def normalize_flux_m(self):
         tmp = 1 - self._intensity
         tmp = tmp / np.sum(tmp, axis=1)[:, np.newaxis]
         self._intensity = 1-tmp
@@ -417,10 +423,10 @@ class SpectralAnalyser:
         return np.std(self._intensity[:, self.vrange] - mean[np.newaxis, :], axis=1)
 
     def std_normalized_over_time(self):
-        tmp = 1 - self._intensity[:, self.vrange]
-        tmp = tmp / tmp.sum(axis=1)[:,np.newaxis]
-        mean = tmp.mean(axis=0)
-        return np.std(tmp - mean[np.newaxis, :], axis=1)
+       tmp = 1 - self._intensity[:, self.vrange]
+       tmp = tmp / tmp.sum(axis=1)[:,np.newaxis]
+       mean = tmp.mean(axis=0)
+       return np.std(tmp - mean[np.newaxis, :], axis=1)
 
     def list_of_new_night_indices(self, **kwargs):
         # grouping into nights
@@ -458,6 +464,12 @@ class SpectralAnalyser:
         """
         I = self.mask_of_night(n, **kwargs)
         return np.arange(self._time.shape[0])[I * self.usedindex]
+
+    def indices_of_used_nights(self, **kwargs):
+        """
+        out: list of ndarrays of inidices of used (i.e. downsampled) data
+        """
+        return [self.used_indices_of_night(n) for n in range(self.number_of_nights())]
 
     def remove_indices(self, I):
         """
@@ -499,35 +511,21 @@ class SpectralAnalyser:
             os.path.join(os.path.dirname(__file__), 'vega.json')), 'w') as outfile:
             json.dump(res, outfile, indent=2)
 
-    def load_json(self, fname):
+    def _load_json(self, fname):
         with open(fname, 'r') as infile:
             res = json.load(infile)
         return res
 
-    def sprout(self):
-        self.list_time, self.list_inte, self.list_index = \
-            load_data(DATAFILE, nval, rangei, vrange, noiselevel)
-
-        # normalize the spectrum if required TODO
-        if normalise:
-            fac = 1. / np.max(self.intensity)
-            self.intensity = 1 - fac * (1 - self.intensity)
-
-        self.nobs, self.nvelocity = self.intensity.shape
-        self.intshape = (self.nobs, self.nvelocity)
-
-        self.meanIntensity = np.mean(self.intensity, axis=0)
-
-        self.variation = self.intensity - self.meanIntensity[np.newaxis, :]
-        self.deltavbin = self.velocity[2] - self.velocity[1]
-
-        self._tck = interpolate.splrep(self.velocity, self.meanIntensity, s=0)
-
-    def mean_spectrum_interp3(self, v):
+    def spectrum_smooth(self, factor=None):
         """
         cubic spline interpolation of spectrum
         """
-        return interpolate.splev(v, self._tck, der=0)
+        intens = self.intensity()
+        res = [ 
+            UnivariateSpline(self.velocity(), intens[i], s=factor)(self.velocity())
+                for i in range(intens.shape[0])
+                ]
+        return np.array(res)
 
     def _Fsystem(self, freq, nharm=1):
         """
