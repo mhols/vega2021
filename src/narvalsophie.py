@@ -266,7 +266,7 @@ def radial_velocity(*specdat):
     for spdat in specdat:
         name += spdat.name()
         for I in spdat.indices_of_used_nights():
-            plt.plot(np.mod(spdat.time()[I], sp.VEGAPERIOD), spdat.rv_mean()[I], 'o')
+            plt.plot(np.mod(spdat.time()[I], sp.VEGAPERIOD), spdat.rv_mean(1)[I], 'o')
 
     plt.title(name)
 
@@ -281,7 +281,5 @@ if __name__ == '__main__':
     # work_from_selected_data()
 
 
-    radial_velocity(sophie2012)
-    radial_velocity(sophie2018)
-    radial_velocity(narval, sophie2018)
+    radial_velocity(narval, sophie2018, sophie2012)
     plt.show()

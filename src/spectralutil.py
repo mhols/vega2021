@@ -530,7 +530,7 @@ class SpectralAnalyser:
         """
         mv = self.mean_intensity().min()
         depth = mv + (1 - mv) * relative_depth
-        I, = np.where(self.mean_intensity() > depth)
+        I, = np.where(self.mean_intensity() >= depth)
 
         vv = self.velocity()
         res = 1 - self.intensity()
