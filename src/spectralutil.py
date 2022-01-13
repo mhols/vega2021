@@ -10,7 +10,7 @@ import json
 import os
 
 from scipy.interpolate.fitpack2 import UnivariateSpline
-
+from scipy.interpolate import interp1d
 
 VEGAPERIOD = 0.98739 * 0.678  # period in days
 
@@ -335,16 +335,18 @@ class SpectralAnalyser:
         self.usedindex = np.full(self._intensity.shape[0], True)
         self.vrange = np.full(self._intensity.shape[1], True)
 
-
+    @property
     def name(self):
         return self._name
 
+    @property
     def time(self):
         """
         return: time stamps of used data
         """
         return self._time[self.usedindex]
 
+    @property
     def velocity(self):
         """
         return: used velocities
@@ -358,11 +360,12 @@ class SpectralAnalyser:
         """
         self._intensity = 1 - self._intensity
 
+    @property
     def v0(self):
         """
         location of minimum spectrum
         """
-        return self.velocity()[np.argmin(self.mean_intensity())]
+        return self.velocity[np.argmin(self.mean_intensity)]
 
     def normalize_flux_m(self):
         tmp = 1 - self._intensity
@@ -373,7 +376,7 @@ class SpectralAnalyser:
         # outlier_removal based on usedindex set
 
         intensity = self._intensity[:, self.vrange]
-        mean = self.mean_intensity()
+        mean = self.mean_intensity
         tmp = intensity - mean[np.newaxis, :]  # fluctuation around mean
         I, = np.where(tmp.std(axis=1) >= noiselevel)
         self.usedindex = np.full(self._time.shape[0], True)
@@ -383,7 +386,7 @@ class SpectralAnalyser:
               np.sum(self.usedindex), " spectral lines")
 
     def filtered_intensity(self, F):
-        intensity = self.get_intensity()
+        intensity = self.intensity
         n = (F.shape[0]-1)//2
         for i in range(intensity.shape[0]):
             intensity[i] = np.convolve(F, intensity[i], 'full')[n:-n]
@@ -397,26 +400,38 @@ class SpectralAnalyser:
         tmp = self._intensity[self.usedindex]
         return tmp[:, self.vrange]
 
+    @property
     def intensity(self):
         tmp = self._intensity[self.usedindex]
         return tmp[:, self.vrange]
 
+    @property
     def errors(self):
         tmp = self._errors[self.usedindex]
         return tmp[:, self.vrange]
 
+    @property
     def median_intensity(self, **kwargs):
-        return np.median(self.intensity(), axis=0)
+        return np.median(self.intensity, axis=0)
 
+    @property
     def mean_intensity(self, **kwargs):
-        return np.mean(self.intensity(), axis=0)
+        return np.mean(self.intensity, axis=0)
+
+    @property
+    def deltavbin(self):
+        return self.velocity[1]-self.velocity[0]
+
+    @property
+    def nobs(self):
+        return np.sum(self.usedindex)
 
     def std_over_time(self):
         """
         return: time serries of deviation (std) of actual
         spectrum from global mean
         """
-        mean = self.mean_intensity()
+        mean = self.mean_intensity
         return np.std(self._intensity[:, self.vrange] - mean[np.newaxis, :], axis=1)
 
     def std_normalized_over_time(self):
@@ -499,10 +514,10 @@ class SpectralAnalyser:
             'description': "reduction from {}".format(self._name),
             'nvals': int(sum(self.vrange)),
             'range': [0, int(sum(self.vrange))-1],
-            'time': self.time().tolist(),
-            'velocity': self.velocity().tolist(),
-            'intensity': self.intensity().tolist(),
-            'errors': self.errors().tolist(),
+            'time': self.time.tolist(),
+            'velocity': self.velocity.tolist(),
+            'intensity': self.intensity.tolist(),
+            'errors': self.errors.tolist(),
         }
         with open(kwargs.get('outfile', 
             os.path.join(os.path.dirname(__file__), 'vega.json')), 'w') as outfile:
@@ -517,9 +532,9 @@ class SpectralAnalyser:
         """
         cubic spline interpolation of spectrum
         """
-        intens = self.intensity()
+        intens = self.intensity
         res = [ 
-            UnivariateSpline(self.velocity(), intens[i], s=factor)(self.velocity())
+            UnivariateSpline(self.velocity, intens[i], s=factor)(self.velocity)
                 for i in range(intens.shape[0])
                 ]
         return np.array(res)
@@ -528,16 +543,78 @@ class SpectralAnalyser:
         """
         mean position of spectrum
         """
-        mv = self.mean_intensity().min()
-        depth = mv + (1 - mv) * relative_depth
-        I, = np.where(self.mean_intensity() >= depth)
 
-        vv = self.velocity()
-        res = 1 - self.intensity()
+        # computing depth for truncation
+        # relative_depth = 0 at the bottom
+        # relative_depth = 1 truncate at 1
+        # note intensity is between mv and 1 (<-- continuum)
+        mv = self.mean_intensity.min()
+        depth = mv + (1 - mv) * relative_depth
+        I, = np.where(self.mean_intensity >= depth)
+
+        vv = self.velocity
+        res = 1 - self.intensity
         res[:, I] = 0
         v = np.sum(res * vv[np.newaxis, :], axis=1)
         v /= np.sum(res, axis=1)
         return v
+
+
+    def done_data_selection(self):
+        self._intensity = self.intensity
+        self._velocity = self.velocity
+        self._errors = self.errors
+
+        self.usedindex = np.full(self._intensity.shape[0], True)
+        self.vrange = np.full(self._intensity.shape[1], True)
+
+        return self
+
+    def rv_corr(self, relative_depth=1, use='mean'):
+        """
+        correlation based vrad
+        """
+
+        base = self.intensity[0]
+        if 'mean' == use:
+            base = self.mean_intensity
+
+        mv = self.mean_intensity.min()
+        depth = mv + (1 - mv) * relative_depth
+        I = np.where(self.mean_intensity <= depth)[0]
+
+        # working only with a reduced part of the spectrum
+        inte = self.intensity[:, I]
+        # m = np.ones(I.size)
+        # mask = np.correlate(m, m, mode='full')
+
+        # computing factor to map correlation based 
+        # shifts to vrads...
+        eps = 0.001  # small number to shift 
+        v0 = self.velocity - 0.5 * self.deltavbin  # evaluation at center
+        v1 = v0 - eps * self.deltavbin  # shifted centers
+        tmp = interp1d(v0, base)
+        ii0 = tmp(v0[I])
+        ii1 = tmp(v1[I])
+        tmp = np.correlate(1 - ii1, 1 - ii0, mode='full')
+
+        n = 3  # offset
+        i0 = np.argmax(tmp)
+        poly = np.polyfit(np.arange(-n, n + 1), tmp[i0 - n:i0 + n + 1], deg=2)
+        pos = -0.5 * poly[1] / poly[0]  # position of maximum of polynomial
+
+        factor = self.deltavbin * eps / pos
+
+        # now doing the same for the spectral data
+        res = np.zeros(self.nobs)
+        for r, i in enumerate (inte):
+            tmp = np.correlate(1 - i, 1 - base[I], mode='full')
+            i = np.argmax(tmp)
+            poly = np.polyfit(np.arange(-n, n + 1), tmp[i - n:i + n + 1], deg=2)
+            res[r] = -0.5 * poly[1] / poly[0] + (i - i0)
+
+        return factor * res
+
 
 class tobemodified(SpectralAnalyser):
 
@@ -818,7 +895,7 @@ if __name__ == '__main__':
     quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
     quantity = quantity - np.mean(quantity, axis=0)[np.newaxis, :]
     binnedspec, bins = spectrum_matrix(
-        time=dataset.time(),
+        time=dataset.time,
         nphase=128,
         quantity=quantity
     )
@@ -838,7 +915,7 @@ if __name__ == '__main__':
     quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
     quantity = quantity - np.mean(quantity, axis=0)[np.newaxis, :]
     binnedspec, bins = spectrum_matrix(
-        time=dataset.time(),
+        time=dataset.time,
         nphase=128,
         quantity=quantity
     )

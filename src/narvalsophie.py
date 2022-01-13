@@ -40,7 +40,7 @@ def working_from_rawdata():
     quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
     quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
     binnedspec_narval, bins = sp.spectrum_matrix(
-        time=narval.time(),
+        time=narval.time,
         nphase=256,
         quantity=quantity
     )
@@ -83,7 +83,7 @@ def working_from_rawdata():
     quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
     quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
     binnedspec_sophie, bins  = sp.spectrum_matrix(
-        time=sophie.time(),
+        time=sophie.time,
         nphase=256,
         quantity=quantity
     )
@@ -133,7 +133,7 @@ def working_from_rawdata():
     quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
     quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
     binnedspec_sophie2012, bins  = sp.spectrum_matrix(
-        time=sophie12.time(),
+        time=sophie12.time,
         nphase=256,
         quantity=quantity
     )
@@ -148,30 +148,30 @@ def working_from_rawdata():
     plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5,
                aspect='auto', origin='lower', cmap='gist_gray',
                 extent=[
-                    np.min(sophie.velocity()),
-                    np.max(sophie.velocity()),
+                    np.min(sophie.velocity),
+                    np.max(sophie.velocity),
                     0, 1]
     )
-    plt.axvline(x=sophie.v0())
-    plt.axvline(x=sophie.v0()+22)
-    plt.axvline(x=sophie.v0()+37)
-    plt.axvline(x=sophie.v0()-22)
-    plt.axvline(x=sophie.v0()-37)
+    plt.axvline(x=sophie.v0)
+    plt.axvline(x=sophie.v0+22)
+    plt.axvline(x=sophie.v0+37)
+    plt.axvline(x=sophie.v0-22)
+    plt.axvline(x=sophie.v0-37)
     
     plt.subplot(122)
     plt.title('narval 2018')
     plt.imshow(np.sign(binnedspec_narval)*np.abs(binnedspec_narval)**0.5,
                aspect='auto', origin='lower', cmap='gist_gray',
                extent=[
-                    np.min(narval.velocity()),
-                    np.max(narval.velocity()),
+                    np.min(narval.velocity),
+                    np.max(narval.velocity),
                     0, 1]
     )
-    plt.axvline(x=narval.v0())
-    plt.axvline(x=narval.v0()+22)
-    plt.axvline(x=narval.v0()+37)
-    plt.axvline(x=narval.v0()-22)
-    plt.axvline(x=narval.v0()-37)
+    plt.axvline(x=narval.v0)
+    plt.axvline(x=narval.v0+22)
+    plt.axvline(x=narval.v0+37)
+    plt.axvline(x=narval.v0-22)
+    plt.axvline(x=narval.v0-37)
     
     plt.figure(figsize=(10,10))
     plt.title('sophie2012 sophie2018')
@@ -180,30 +180,30 @@ def working_from_rawdata():
     plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5,
                aspect='auto', origin='lower',      cmap='gist_gray',
                extent=[
-                    np.min(sophie12.velocity()),
-                    np.max(sophie12.velocity()),
+                    np.min(sophie12.velocity),
+                    np.max(sophie12.velocity),
                     0, 1]
      )
-    plt.axvline(x=sophie.v0())
-    plt.axvline(x=sophie.v0()+22)
-    plt.axvline(x=sophie.v0()+37)
-    plt.axvline(x=sophie.v0()-22)
-    plt.axvline(x=sophie.v0()-37)
+    plt.axvline(x=sophie.v0)
+    plt.axvline(x=sophie.v0+22)
+    plt.axvline(x=sophie.v0+37)
+    plt.axvline(x=sophie.v0-22)
+    plt.axvline(x=sophie.v0-37)
     plt.subplot(122)
     plt.title('sophie 2012')
     plt.imshow(np.sign(binnedspec_sophie2012)*np.abs(binnedspec_sophie2012)**0.5,
                cmap='gist_gray', aspect='auto', origin='lower',
                extent=[
-                    np.min(sophie12.velocity()),
-                    np.max(sophie12.velocity()),
+                    np.min(sophie12.velocity),
+                    np.max(sophie12.velocity),
                     0, 1]
                )
     
-    plt.axvline(x=sophie12.v0())
-    plt.axvline(x=sophie12.v0()+22)
-    plt.axvline(x=sophie12.v0()+37)
-    plt.axvline(x=sophie12.v0()-22)
-    plt.axvline(x=sophie12.v0()-37)
+    plt.axvline(x=sophie12.v0)
+    plt.axvline(x=sophie12.v0+22)
+    plt.axvline(x=sophie12.v0+37)
+    plt.axvline(x=sophie12.v0-22)
+    plt.axvline(x=sophie12.v0-37)
     plt.show()
 
 def work_from_selected_data():
@@ -225,7 +225,7 @@ def work_from_selected_data():
         quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
         quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
         binnedspec_sophie, bins  = sp.spectrum_matrix(
-            time=sophie2018.time(),
+            time=sophie2018.time,
             nphase=256,
             quantity=quantity,
             period = factor * sp.VEGAPERIOD
@@ -234,18 +234,18 @@ def work_from_selected_data():
         plt.imshow(np.sign(binnedspec_sophie)*np.abs(binnedspec_sophie)**0.5,
                    cmap='gist_gray', aspect='auto', origin='lower',
                    extent=[
-                        np.min(sophie2018.velocity()),
-                        np.max(sophie2018.velocity()),
+                        np.min(sophie2018.velocity),
+                        np.max(sophie2018.velocity),
                         0, 1]
                    )
         for ofs in [0, 22, 37, -22, -37]: 
-            plt.axvline(x=specdata.v0()+ofs)
+            plt.axvline(x=specdata.v0+ofs)
            
     """
     for factor in np.linspace(0.95, 1.1, 20):
         plt.figure()
         for n, I  in enumerate(sophie2018.indices_of_used_nights()):
-            t = sophie2018.time()[I]
+            t = sophie2018.time[I]
             d = sophie2018.intensity()[I, 41]
             v = UnivariateSpline(t, d-d.mean(), s=0.0001)(t)
     
@@ -260,26 +260,55 @@ def work_from_selected_data():
     plt.show()
 
 
-def radial_velocity(*specdat):
+def radial_velocity(*specdat, relative_depth=1.0):
     ax = plt.figure()
+    colors = ['r', 'g', 'b', 'k', 'm', 'y']
     name = ''
+    i = 0
     for spdat in specdat:
-        name += spdat.name()
-        for I in spdat.indices_of_used_nights():
-            plt.plot(np.mod(spdat.time()[I], sp.VEGAPERIOD), spdat.rv_mean(1)[I], 'o')
+        col = colors[i]
+        name += spdat.name
+        plt.plot(np.mod(spdat.time, sp.VEGAPERIOD), 
+                 spdat.rv_mean(relative_depth), 
+                    'o', color=col, label=spdat.name,
+                    markersize=10)
+        i+=1
+    plt.legend()
 
     plt.title(name)
+
+
+def radial_velocity_correlation(*specdat, relative_depth=1.0):
+    ax = plt.figure()
+    colors = ['r', 'g', 'b', 'k', 'm', 'y']
+    name = ''
+    i = 0
+    for spdat in specdat:
+        col = colors[i]
+        name += spdat.name
+        plt.plot(np.mod(spdat.time, sp.VEGAPERIOD), 
+                spdat.rv_corr(relative_depth), 
+                    'o', color=col, label=spdat.name,
+                    markersize=10)
+        i+=1
+    plt.legend()
+
+    plt.title(name)
+
 
 if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
     # working_from_rawdata()
 
-    sophie2018 = sp.SpectralAnalyser('sophie_reduced.json')
-    sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json')
-    narval = sp.SpectralAnalyser("narval_reduced.json")
+    sophie2018 = sp.SpectralAnalyser('sophie_reduced.json').done_data_selection()
+    sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json').done_data_selection()
+    narval = sp.SpectralAnalyser("narval_reduced.json").done_data_selection()
+
 
     # work_from_selected_data()
 
 
-    radial_velocity(narval, sophie2018, sophie2012)
+    radial_velocity(sophie2018, sophie2012, relative_depth=0.8)
+    radial_velocity_correlation(sophie2018, sophie2012, relative_depth=0.8)
+
     plt.show()
