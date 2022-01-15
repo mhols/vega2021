@@ -332,8 +332,8 @@ class SpectralAnalyser:
         self._errors = np.array(res['errors'])
 
         # initializing indices for data reduction
-        self.usedindex = np.full(self._intensity.shape[0], True)
-        self.vrange = np.full(self._intensity.shape[1], True)
+        self.usedindex = res.get('usedindex', np.full(self._intensity.shape[0], True))
+        self.vrange = res.get('vrange', np.full(self._intensity.shape[1], True))
 
     @property
     def name(self):
@@ -541,12 +541,14 @@ class SpectralAnalyser:
         res = {
             'name': kwargs.get('outfile', 'vega.json'),
             'description': "reduction from {}".format(self._name),
-            'nvals': int(sum(self.vrange)),
-            'range': [0, int(sum(self.vrange))-1],
-            'time': self.time.tolist(),
-            'velocity': self.velocity.tolist(),
-            'intensity': self.intensity.tolist(),
-            'errors': self.errors.tolist(),
+            # 'nvals': int(sum(self.vrange)),
+            # 'range': [0, int(sum(self.vrange))-1],
+            'time': self._time.tolist(),
+            'velocity': self._velocity.tolist(),
+            'intensity': self._intensity.tolist(),
+            'errors': self._errors.tolist(),
+            'usedindex': self.usedindex.tolist(),
+            'vrange': self.vrange.tolist(),
         }
         with open(kwargs.get('outfile', 
             os.path.join(os.path.dirname(__file__), 'vega.json')), 'w') as outfile:
@@ -593,7 +595,7 @@ class SpectralAnalyser:
         self._intensity = self.intensity
         self._velocity = self.velocity
         self._errors = self.errors
-
+        self._time = self.time
         self.usedindex = np.full(self._intensity.shape[0], True)
         self.vrange = np.full(self._intensity.shape[1], True)
 
