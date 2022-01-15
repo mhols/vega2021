@@ -204,7 +204,7 @@ def working_from_rawdata():
     plt.axvline(x=sophie12.v0+37)
     plt.axvline(x=sophie12.v0-22)
     plt.axvline(x=sophie12.v0-37)
-    plt.show()
+    # plt.show()
 
 def work_from_selected_data():
     sophie2018 = sp.SpectralAnalyser('sophie_reduced.json')
@@ -316,7 +316,7 @@ def radial_velocity_bisector(*specdat, depth=0.9, atdepth=0.5):
 
 if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
-    # working_from_rawdata()
+    working_from_rawdata()
 
     sophie2018 = sp.SpectralAnalyser('sophie_reduced.json').done_data_selection()
     sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json').done_data_selection()
