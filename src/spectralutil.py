@@ -12,7 +12,7 @@ import os
 from scipy.interpolate.fitpack2 import UnivariateSpline
 from scipy.interpolate import interp1d
 
-VEGAPERIOD = 0.98739 * 0.678  # period in days
+VEGAPERIOD = 0.678 # 0.98739 * 0.678  # period in days
 
 #for full profile 60,124
 #for short profile 72,112
@@ -591,16 +591,6 @@ class SpectralAnalyser:
         return v
 
 
-    def done_data_selection(self):
-        self._intensity = self.intensity
-        self._velocity = self.velocity
-        self._errors = self.errors
-        self._time = self.time
-        self.usedindex = np.full(self._intensity.shape[0], True)
-        self.vrange = np.full(self._intensity.shape[1], True)
-
-        return self
-
     def rv_corr(self, relative_depth=1, use='mean'):
         """
         correlation based vrad
@@ -645,6 +635,17 @@ class SpectralAnalyser:
             res[r] = -0.5 * poly[1] / poly[0] + (i - i0)
 
         return factor * res
+
+
+    def done_data_selection(self):
+        self._intensity = self.intensity
+        self._velocity = self.velocity
+        self._errors = self.errors
+        self._time = self.time
+        self.usedindex = np.full(self._intensity.shape[0], True)
+        self.vrange = np.full(self._intensity.shape[1], True)
+
+        return self
 
 
 class tobemodified(SpectralAnalyser):

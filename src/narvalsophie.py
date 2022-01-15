@@ -371,6 +371,34 @@ def work_from_selected_data():
     plt.show()
 
 
+def binned_spectrum(*specdat):
+    pass
+    for spec in specdat:
+        F = np.array([1,2,1]); F = F / np.sum(F)
+        quantity = spec.filtered_intensity(F)
+        quantity = 1-quantity
+        quantity = quantity / np.sum(quantity, axis=1)[:, np.newaxis]
+        quantity = quantity - np.median(quantity, axis=0)[np.newaxis, :]
+        binnedspec, bins  = sp.spectrum_matrix(
+            time=spec.time,
+            nphase=256,
+            quantity=quantity
+        )
+        plt.figure(figsize=(5,10))
+        plt.title(spec.name)
+        plt.imshow(np.sign(binnedspec)*np.abs(binnedspec)**0.5,
+                   aspect='auto', origin='lower',      cmap='gist_gray',
+                   extent=[
+                        np.min(spec.velocity),
+                        np.max(spec.velocity),
+                        0, 1]
+         )
+        plt.axvline(x=spec.v0)
+        plt.axvline(x=spec.v0+22)
+        plt.axvline(x=spec.v0+37)
+        plt.axvline(x=spec.v0-22)
+        plt.axvline(x=spec.v0-37)
+     
 def radial_velocity(*specdat, relative_depth=1.0):
     ax = plt.figure()
     colors = ['r', 'g', 'b', 'k', 'm', 'y']
@@ -429,15 +457,18 @@ if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
     # this need to to run only once
     # after the first round comment it out (TODO in own preparation module)
-    preparing_sophie2012()
-    preparing_sophie2018()
-    preparing_narval2018()
+    # preparing_sophie2012()
+    # preparing_sophie2018()
+    # preparing_narval2018()
 
     # work_from_selected_data()
     
     sophie2018 = sp.SpectralAnalyser('sophie_reduced.json')
     sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json')
     narval = sp.SpectralAnalyser("narval_reduced.json")
+
+
+    binned_spectrum(narval, sophie2018, sophie2012)
 
     radial_velocity(narval, sophie2018, sophie2012, relative_depth=0.8)
     radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
