@@ -469,9 +469,9 @@ if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
     # this need to to run only once
     # after the first round comment it out (TODO in own preparation module)
-    # preparing_sophie2012()
-    # preparing_sophie2018()
-    # preparing_narval2018()
+    preparing_sophie2012()
+    preparing_sophie2018()
+    preparing_narval2018()
 
     # work_from_selected_data()
     
