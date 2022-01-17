@@ -4,6 +4,7 @@ Created on May 22, 2014
 @author: hols
 '''
 from scipy import interpolate
+from scipy.signal import spectral
 import matplotlib.pyplot as plt
 import numpy as np
 import json
@@ -430,30 +431,6 @@ class SpectralAnalyser:
     def nobs(self):
         return np.sum(self.usedindex)
 
-    def bisector_borders(self, depth=0.9):
-        mv = self.mean_intensity.min()
-        depth = mv + (1 - mv) * depth
-        I = np.where(self.mean_intensity <= depth)[0]
-
-        intens = +self.intensity[:, I]
-        v = +self.velocity[I]
-
-        res = []
-        for inte in intens:
-            i0 = np.argmin(inte)
-            left = interp1d(inte[:i0][::-1], v[:i0][::-1])
-            right = interp1d(inte[i0:], v[i0:])
-            res.append((left, right))
-
-        return res
-
-
-    def rv_bis(self, depth=0.9, atdepth=0.5):
-        bise = self.bisector_borders(depth)
-        at = 1*(1-atdepth) + self.min_intensity * atdepth
-        res = ((r(at) + l(at))/2 for l, r in bise)
-        return np.fromiter(res, dtype=float)
-
 
     def std_over_time(self):
         """
@@ -636,6 +613,34 @@ class SpectralAnalyser:
 
         return factor * res
 
+    def bisector_borders(self, depth=0.9):
+        mv = self.mean_intensity.min()
+        depth = mv + (1 - mv) * depth
+        I = np.where(self.mean_intensity <= depth)[0]
+
+        intens = +self.intensity[:, I]
+        v = +self.velocity[I]
+
+        res = []
+        for inte in intens:
+            i0 = np.argmin(inte)
+            left = interp1d(inte[:i0][::-1], v[:i0][::-1])
+            right = interp1d(inte[i0:], v[i0:])
+            res.append((left, right))
+
+        return res
+
+
+    def rv_bis(self, depth=0.9, atdepth=0.5):
+        bise = self.bisector_borders(depth)
+        at = 1*(1-atdepth) + self.min_intensity * atdepth
+        res = ((r(at) + l(at))/2 for l, r in bise)
+        return np.fromiter(res, dtype=float)
+
+
+    def lomb_skagel_vr_bis(self, freqs, depth=0.9, atdepth=0.5):
+        rv = self.rv_bis(depth, atdepth)
+        return spectral.lombscargle(self.time, rv - np.mean(rv), freqs)
 
     def done_data_selection(self):
         self._intensity = self.intensity

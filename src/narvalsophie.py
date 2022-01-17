@@ -3,6 +3,7 @@ import spectralutil as sp
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 
 def preparing_narval2018(plotting=False):
@@ -371,9 +372,11 @@ def work_from_selected_data():
     plt.show()
 
 
-def binned_spectrum(*specdat):
-    pass
-    for spec in specdat:
+def binned_spectrum(*specdat, **kwargs):
+    nn = len(specdat)
+    plt.figure('period = '+str(kwargs.get('period', sp.VEGAPERIOD)), figsize=(8*nn, 16))
+    for i, spec in enumerate(specdat):
+        plt.subplot(100+10*nn+i+1)
         F = np.array([1,2,1]); F = F / np.sum(F)
         quantity = spec.filtered_intensity(F)
         quantity = 1-quantity
@@ -382,9 +385,10 @@ def binned_spectrum(*specdat):
         binnedspec, bins  = sp.spectrum_matrix(
             time=spec.time,
             nphase=256,
-            quantity=quantity
+            quantity=quantity,
+            **kwargs
         )
-        plt.figure(figsize=(5,10))
+        # plt.figure(figsize=(5,10))
         plt.title(spec.name)
         plt.imshow(np.sign(binnedspec)*np.abs(binnedspec)**0.5,
                    aspect='auto', origin='lower',      cmap='gist_gray',
@@ -434,24 +438,32 @@ def radial_velocity_correlation(*specdat, relative_depth=1.0):
 
     plt.title(name)
 
-def radial_velocity_bisector(*specdat, depth=0.9, atdepth=0.5):
-    ax = plt.figure('radial velocity bisector')
+def radial_velocity_bisector(*specdat, depth=0.9, atdepth=0.5, **kwargs):
+    plt.figure('radial velocity bisector {}'.format(kwargs.get('period', '')))
     colors = ['r', 'g', 'b', 'k', 'm', 'y']
     name = ''
     i = 0
     for spdat in specdat:
         col = colors[i]
         name += spdat.name
-        plt.plot(np.mod(spdat.time, sp.VEGAPERIOD), 
+        plt.plot(np.mod(spdat.time, kwargs.get('period', sp.VEGAPERIOD)), 
                 spdat.rv_bis(depth, atdepth), 
                     'o', color=col, label=spdat.name,
                     markersize=10)
         i+=1
     plt.legend()
 
-    plt.title(name)
+    plt.title(name+str(kwargs.get('period','')))
 
-
+def lomb_scargel(*specs, depth=0.8, atdepth=0.3):
+    nn = len(specs)
+    cpdmin, cpdmax = 0.2, 20
+    oms = 2*np.pi * np.linspace(cpdmin, cpdmax, 1024)
+    plt.figure(figsize=(18, nn*4))
+    for i, spec in enumerate(specs):
+        plt.subplot(nn*100 + 10 + i+1)
+        plt.title(spec.name)
+        plt.plot(oms/(2*np.pi), spec.lomb_skagel_vr_bis(oms, depth, atdepth))
 
 if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
@@ -467,8 +479,7 @@ if __name__ == '__main__':
     sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json')
     narval = sp.SpectralAnalyser("narval_reduced.json")
 
-
-    binned_spectrum(narval, sophie2018, sophie2012)
+    lomb_scargel(narval, sophie2018, sophie2012, atdepth=0.6)
 
     radial_velocity(narval, sophie2018, sophie2012, relative_depth=0.8)
     radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
