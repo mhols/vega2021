@@ -121,7 +121,7 @@ def bisector_v(velocity, intensity, depth):
     the bisector for the values in depth
     """
     res = np.zeros(len(depth))
-    for i in xrange(len(depth)):
+    for i in range(len(depth)):
         res[i] = bisector(velocity, intensity, depth[i])
     return res
 
