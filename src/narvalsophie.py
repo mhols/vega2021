@@ -455,7 +455,7 @@ def radial_velocity_bisector(*specdat, depth=0.9, atdepth=0.5, **kwargs):
 
     plt.title(name+str(kwargs.get('period','')))
 
-def lomb_scargel(*specs, depth=0.8, atdepth=0.3):
+def lomb_scargel(*specs, atdepth=0.3):
     nn = len(specs)
     cpdmin, cpdmax = 0.2, 20
     oms = 2*np.pi * np.linspace(cpdmin, cpdmax, 1024)
@@ -463,7 +463,18 @@ def lomb_scargel(*specs, depth=0.8, atdepth=0.3):
     for i, spec in enumerate(specs):
         plt.subplot(nn*100 + 10 + i+1)
         plt.title(spec.name)
-        plt.plot(oms/(2*np.pi), spec.lomb_skagel_vr_bis(oms, depth, atdepth))
+        plt.plot(oms/(2*np.pi), spec.lomb_skagel_vr_bis(oms, atdepth))
+
+def lomb_scargel_vspan_old(*specs, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
+    nn = len(specs)
+    cpdmin, cpdmax = 0.2, 20
+    oms = 2*np.pi * np.linspace(cpdmin, cpdmax, 1024)
+    plt.figure(figsize=(18, nn*4))
+    for i, spec in enumerate(specs):
+        plt.subplot(nn*100 + 10 + i+1)
+        plt.title(spec.name+' vspan')
+        plt.plot(oms/(2*np.pi), spec.lomb_scargel_vspan_old(oms, uu, ul, lu, ll))
+
 
 def lomb_scargel_vspan(*specs, depth=0.9, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
     nn = len(specs)
@@ -473,7 +484,8 @@ def lomb_scargel_vspan(*specs, depth=0.9, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
     for i, spec in enumerate(specs):
         plt.subplot(nn*100 + 10 + i+1)
         plt.title(spec.name+' vspan')
-        plt.plot(oms/(2*np.pi), spec.lomb_scargel_vspan(oms, depth, uu, ul, lu, ll))
+        data = spec.lomb_scargel_vspan(oms, uu, ul, lu, ll)
+        plt.plot(oms/(2*np.pi), data)
 
 
 if __name__ == '__main__':
@@ -493,7 +505,8 @@ if __name__ == '__main__':
     # lomb_scargel(narval, sophie2018, sophie2012, atdepth=0.6)
     lomb_scargel_vspan(sophie2012, sophie2018, narval, depth=0.99, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
 
-    radial_velocity(narval, sophie2018, sophie2012, relative_depth=0.8)
-    radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
-    radial_velocity_bisector(narval, sophie2018, sophie2012, depth=0.9, atdepth=0.5)
+    lomb_scargel_vspan_old(sophie2012, sophie2018, narval, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
+    # radial_velocity(narval, sophie2018, sophie2012, relative_depth=0.8)
+    # radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
+    # radial_velocity_bisector(narval, sophie2018, sophie2012, depth=0.9, atdepth=0.5)
     plt.show()

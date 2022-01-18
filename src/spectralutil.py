@@ -123,22 +123,19 @@ def bisector(velocity, intensity, depth):
     i = np.min(np.where(intensity < depth))
     j = np.max(np.where(intensity < depth))
 
-    if (i > 0) and (j < n - 1):
-        x = velocity[i - 1] + (depth - intensity[i - 1]) * (velocity[i] - velocity[i - 1]) / (intensity[i] - intensity[i - 1])
-        y = velocity[j + 1] + (depth - intensity[j + 1]) * (velocity[j] - velocity[j + 1]) / (intensity[j] - intensity[j + 1])
-        return (x + y) / 2.
-    else:
-        return -10000
+    if i<=0 or j>=n-1:
+        raise Exception('wrong depth')
 
+    x = velocity[i - 1] +  (depth - intensity[i - 1]) * (velocity[i] - velocity[i - 1]) / (intensity[i] - intensity[i - 1])
+    y = velocity[j + 1] + (depth - intensity[j + 1]) * (velocity[j] - velocity[j + 1]) / (intensity[j] - intensity[j + 1])
+    return (x + y) / 2.
+   
 def bisector_v(velocity, intensity, depth):
     """
     the bisector for the values in depth
     """
-    res = np.zeros(len(depth))
-    for i in range(len(depth)):
-        res[i] = bisector(velocity, intensity, depth[i])
+    res = [bisector(velocity, intensity, d) for d in depth]
     return res
-
 
 def remove_night_trend(time, value):
     """
@@ -147,7 +144,7 @@ def remove_night_trend(time, value):
     time -= int(time[0])
     nnight = int(time[-1] - time[0]) + 1
     t0 = int(time[-1])
-    for n in xrange(nnight):
+    for n in range(nnight):
         I = np.where((time - n) * (n + 1 - time) >= 0.)
         value[I], p, pp = remove_trend(time[I], value[I])
 
@@ -162,7 +159,7 @@ def remove_trend(time, value):
     print("shap of p ", p.shape)
     n, m = value.shape
     pp = np.zeros(value.shape)
-    for i in xrange(m):
+    for i in range(m):
         pp[:, i] = np.polyval(p[:, i], time)
     value -= pp
 
@@ -180,7 +177,7 @@ def vspan(upper, lower, time, velocity, intensity):
     du = np.linspace(upper[0], upper[1], nn)
     dl = np.linspace(lower[0], lower[1], nn)
 
-    for i in xrange(len(time)):
+    for i in range(len(time)):
         minval = intensity[i].min()
 
         bu = bisector_v(velocity, intensity[i], minval + du * (1 - minval))
@@ -201,7 +198,7 @@ def vrad_bis(extension, time, velocity, intensity):
 
     dl = np.linspace(extension[0], extension[1], nn)
 
-    for i in xrange(len(time)):
+    for i in range(len(time)):
         minval = intensity[i].min()
 
         bl = bisector_v(velocity, intensity[i], minval + dl * (1 - minval))
@@ -613,31 +610,44 @@ class SpectralAnalyser:
 
         return factor * res
 
-    def bisector_borders(self, depth=0.9):
-        mv = self.mean_intensity.min()
-        depth = mv + (1 - mv) * depth
-        I = np.where(self.mean_intensity <= depth)[0]
-
-        intens = +self.intensity[:, I]
-        v = +self.velocity[I]
+    def bisector_borders(self):
+        #mv = self.intensity.min(axis=0)
+        #depth = mv + (1 - mv) * depth
+        #I = np.where(self.mean_intensity <= depth)
+        intens = self.intensity
+        v = self.velocity
 
         res = []
         for inte in intens:
             i0 = np.argmin(inte)
-            left = interp1d(inte[:i0][::-1], v[:i0][::-1])
-            right = interp1d(inte[i0:], v[i0:])
+            """
+            in this simple form there are multiple values on the intensity axis
+            this is due to the fact that towards the edges the left ant right part of 
+            the intensity are not
+            monotonic functions of the the velocity..
+            TODO: add diagnostic tool for the minimal depth
+            """
+            left = interp1d(inte[:i0+1][::-1], v[:i0+1][::-1], assume_sorted=False)
+            right = interp1d(inte[i0:], v[i0:], assume_sorted=False)
+
             res.append((left, right))
 
         return res
 
 
-    def rv_bis(self, depth=0.9, atdepth=0.5):
-        bise = self.bisector_borders(depth)
-        at = 1*(1-atdepth) + self.min_intensity * atdepth
-        res = ((r(at) + l(at))/2 for l, r in bise)
+    def rv_bis(self, atdepth=0.5, **kwargs):
+        """
+        at: 0 -> at minimum  1-> at 1
+        """
+        bise = self.bisector_borders()
+        min_intens = np.min(self.intensity, axis=1)
+
+        at = min_intens + atdepth * (1-min_intens)  # linear interpolation between min_intens and 1
+    
+        res = ((r(a) + l(a))/2 for (l,r), a in zip(bise, at))
         return np.fromiter(res, dtype=float)
 
-    def vspan(self, uu, ul, lu, ll, nn=64, depth=0.9):
+    def vspan(self, uu, ul, lu, ll, nn=32):
         """
         vspan based on upper interval [uu, ul] and lower interval [lu, ll]
         of relative depth...
@@ -645,20 +655,47 @@ class SpectralAnalyser:
         ui = np.linspace(uu, ul, nn)
         li = np.linspace(lu, ll, nn)
 
-        vu = np.row_stack([ self.rv_bis(depth=depth, atdepth = d) for d in ui ])
-        vl = np.row_stack([ self.rv_bis(depth=depth, atdepth = d) for d in li ])
-        
-        return np.median(vu, axis=0) - np.median(vl, axis=0)
+        vu = np.row_stack([ self.rv_bis(atdepth=d) for d in ui ])
+        vl = np.row_stack([ self.rv_bis(atdepth=d) for d in li ])
+        data = np.median(vu, axis=0) - np.median(vl, axis=0)
+        np.savetxt('vspan_{}.dat'.format(self.name), np.column_stack((self.time, data)))
+       
+        return data
+
+    def vspan_old(self, upper, lower):
+        """
+        plotting vspan as function of time
+        """
+        nn = 20
+        tmp = np.zeros(len(self.time))
 
 
-    def lomb_scargel_vspan(self, freqs, depth=0.9, uu=0.2, ul=0.4, lu=0.6, ll=0.8):
-        rv = self.vspan(uu, ul, lu, ll, depth=depth)
+        du = np.linspace(upper[0], upper[1], nn)
+        dl = np.linspace(lower[0], lower[1], nn)
+
+        for t, i in enumerate(self.intensity):
+            minval = i.min()
+
+            bu = bisector_v(self.velocity, i, minval + du * (1 - minval))
+            bl = bisector_v(self.velocity, i, minval + dl * (1 - minval))
+            tmp[t] = np.median(bu) - np.median(bl)
+
+        return tmp
+
+
+    def lomb_scargel_vspan(self, freqs, uu=0.2, ul=0.4, lu=0.6, ll=0.8):
+        rv = self.vspan(uu, ul, lu, ll)
+        return spectral.lombscargle(self.time, rv - np.mean(rv), freqs)
+
+
+    def lomb_scargel_vspan_old(self, freqs, uu, ul, lu, ll):
+        rv = self.vspan_old((uu, ul), (lu, ll))
         return spectral.lombscargle(self.time, rv - np.mean(rv), freqs)
 
 
 
-    def lomb_skagel_vr_bis(self, freqs, depth=0.9, atdepth=0.5):
-        rv = self.rv_bis(depth, atdepth)
+    def lomb_skagel_vr_bis(self, freqs, atdepth=0.5):
+        rv = self.rv_bis(atdepth)
         return spectral.lombscargle(self.time, rv - np.mean(rv), freqs)
 
     def done_data_selection(self):
