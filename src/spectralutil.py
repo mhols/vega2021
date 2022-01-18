@@ -637,6 +637,25 @@ class SpectralAnalyser:
         res = ((r(at) + l(at))/2 for l, r in bise)
         return np.fromiter(res, dtype=float)
 
+    def vspan(self, uu, ul, lu, ll, nn=64, depth=0.9):
+        """
+        vspan based on upper interval [uu, ul] and lower interval [lu, ll]
+        of relative depth...
+        """
+        ui = np.linspace(uu, ul, nn)
+        li = np.linspace(lu, ll, nn)
+
+        vu = np.row_stack([ self.rv_bis(depth=depth, atdepth = d) for d in ui ])
+        vl = np.row_stack([ self.rv_bis(depth=depth, atdepth = d) for d in li ])
+        
+        return np.median(vu, axis=0) - np.median(vl, axis=0)
+
+
+    def lomb_scargel_vspan(self, freqs, depth=0.9, uu=0.2, ul=0.4, lu=0.6, ll=0.8):
+        rv = self.vspan(uu, ul, lu, ll, depth=depth)
+        return spectral.lombscargle(self.time, rv - np.mean(rv), freqs)
+
+
 
     def lomb_skagel_vr_bis(self, freqs, depth=0.9, atdepth=0.5):
         rv = self.rv_bis(depth, atdepth)

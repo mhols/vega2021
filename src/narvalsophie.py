@@ -465,13 +465,24 @@ def lomb_scargel(*specs, depth=0.8, atdepth=0.3):
         plt.title(spec.name)
         plt.plot(oms/(2*np.pi), spec.lomb_skagel_vr_bis(oms, depth, atdepth))
 
+def lomb_scargel_vspan(*specs, depth=0.9, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
+    nn = len(specs)
+    cpdmin, cpdmax = 0.2, 20
+    oms = 2*np.pi * np.linspace(cpdmin, cpdmax, 1024)
+    plt.figure(figsize=(18, nn*4))
+    for i, spec in enumerate(specs):
+        plt.subplot(nn*100 + 10 + i+1)
+        plt.title(spec.name+' vspan')
+        plt.plot(oms/(2*np.pi), spec.lomb_scargel_vspan(oms, depth, uu, ul, lu, ll))
+
+
 if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
     # this need to to run only once
     # after the first round comment it out (TODO in own preparation module)
-    preparing_sophie2012()
-    preparing_sophie2018()
-    preparing_narval2018()
+    # preparing_sophie2012()
+    # preparing_sophie2018()
+    # preparing_narval2018()
 
     # work_from_selected_data()
     
@@ -479,7 +490,8 @@ if __name__ == '__main__':
     sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json')
     narval = sp.SpectralAnalyser("narval_reduced.json")
 
-    lomb_scargel(narval, sophie2018, sophie2012, atdepth=0.6)
+    # lomb_scargel(narval, sophie2018, sophie2012, atdepth=0.6)
+    lomb_scargel_vspan(sophie2012, sophie2018, narval, depth=0.99, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
 
     radial_velocity(narval, sophie2018, sophie2012, relative_depth=0.8)
     radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
