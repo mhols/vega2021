@@ -184,7 +184,7 @@ class Pictures(object):
 
     @property
     def vspan(self):
-        if None == self._vspan:
+        if self._vspan is None:
             self._vspan = self.analyzer.vspan(upper=self.upper, lower=self.lower)
         return self._vspan
 
@@ -720,7 +720,7 @@ class Pictures(object):
         box = [0,15,0,1]
         self._plt_ls(data, box=box)
 
-        a = plt.axes([.4, .4, .4, .4], axisbg='white')
+        a = plt.axes([.4, .4, .4, .4], facecolor='white')
         plt.title('window function')
         wf = self.window
         wf /= wf.max()
@@ -970,10 +970,10 @@ if __name__ == '__main__':
     #myPics.vrad_mean_vrad_corr()
     #myPics.ts_vrad()
     #myPics.ts_eqwidth()
-    myPics.intens()
-    myPics.intens_all()
+#    myPics.intens()
+#    myPics.intens_all()
 #    myPics.vrad_mean_vspan()
-#    myPics.vrad_corr_vspan()
+    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
 #    myPics.vrad_corr_skew()
@@ -985,15 +985,14 @@ if __name__ == '__main__':
 #    myPics.ls_spec_all3()
 #    myPics.ls_spec_vrad_corr()
 #    myPics.ls_spec_vrad_bis()
-#    myPics.ls_spec_vspan()
+    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
 #    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #    myPics.bayes_freq_vrad_mean()
-
-    myPics.moving_peaks_signoise()
+#    myPics.moving_peaks_signoise()
 #    myPics.estrotentropy()
 
     #myPics.saveData("time_vrad_mean.dat", [6142.+myPics.time, myPics.vrad_mean])  # first column
@@ -1005,6 +1004,6 @@ if __name__ == '__main__':
 
 
 
-    myPics.ew_noise_corr()
+    # myPics.ew_noise_corr()
 
     plt.show()
