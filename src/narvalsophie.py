@@ -505,7 +505,7 @@ if __name__ == '__main__':
     # lomb_scargel(narval, sophie2018, sophie2012, atdepth=0.6)
     lomb_scargel_vspan(sophie2012, sophie2018, narval, depth=0.99, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
 
-    lomb_scargel_vspan_old(sophie2012, sophie2018, narval, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
+    # lomb_scargel_vspan_old(sophie2012, sophie2018, narval, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
     # radial_velocity(narval, sophie2018, sophie2012, relative_depth=0.8)
     # radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
     # radial_velocity_bisector(narval, sophie2018, sophie2012, depth=0.9, atdepth=0.5)

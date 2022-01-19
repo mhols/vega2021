@@ -647,7 +647,7 @@ class SpectralAnalyser:
         res = ((r(a) + l(a))/2 for (l,r), a in zip(bise, at))
         return np.fromiter(res, dtype=float)
 
-    def vspan(self, uu, ul, lu, ll, nn=32):
+    def vspan(self, uu, ul, lu, ll, nn=20):
         """
         vspan based on upper interval [uu, ul] and lower interval [lu, ll]
         of relative depth...
