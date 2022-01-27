@@ -13,7 +13,7 @@ import os
 from scipy.interpolate.fitpack2 import UnivariateSpline
 from scipy.interpolate import interp1d
 
-VEGAPERIOD = 0.678 # 0.98739 * 0.678  # period in days
+VEGAPERIOD = 0.68532 # 0.98739 * 0.678  # period in days
 
 #for full profile 60,124
 #for short profile 72,112
