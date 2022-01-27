@@ -1,0 +1,205 @@
+git branch
+git status
+git add -u
+git commit -m"toto"
+git push
+(git rm -rf xxxx)
+
+
+
+
+
+git branch
+* master
+  test
+  torsten
+(base) boehm@storm src % git add -u
+(base) boehm@storm src % git commit -m"toto"
+[master e6f4dcd] toto
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+(base) boehm@storm src % git checkout torsten
+Switched to branch 'torsten'
+Your branch is up to date with 'origin/torsten'.
+(base) boehm@storm src % git branch
+  master
+  test
+* torsten
+(base) boehm@storm src % git checkout master/spectralutil.py
+error: pathspec 'master/spectralutil.py' did not match any file(s) known to git
+(base) boehm@storm src % git branch
+  master
+  test
+* torsten
+(base) boehm@storm src % git checkout master spectralutil.py
+Updated 1 path from 9be9e19
+
+
+
+
+n [8]: plt.plot(sophie.time,sophie.std_over_time)
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+<ipython-input-8-53dce8e09f23> in <module>
+----> 1 plt.plot(sophie.time,sophie.std_over_time)
+
+NameError: name 'plt' is not defined
+
+In [9]: import matplotlib as plt
+
+In [10]: plt.plot(sophie.time,sophie.std_over_time)
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+<ipython-input-10-53dce8e09f23> in <module>
+----> 1 plt.plot(sophie.time,sophie.std_over_time)
+
+AttributeError: module 'matplotlib' has no attribute 'plot'
+
+In [11]: import matplotlib.pyplot as plt
+
+In [12]: plt.plot(sophie.time,sophie.std_over_time)
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+<ipython-input-12-53dce8e09f23> in <module>
+----> 1 plt.plot(sophie.time,sophie.std_over_time)
+
+~/opt/anaconda3/lib/python3.8/site-packages/matplotlib/pyplot.py in plot(scalex, scaley, data, *args, **kwargs)
+   2838 @_copy_docstring_and_deprecators(Axes.plot)
+   2839 def plot(*args, scalex=True, scaley=True, data=None, **kwargs):
+-> 2840     return gca().plot(
+   2841         *args, scalex=scalex, scaley=scaley,
+   2842         **({"data": data} if data is not None else {}), **kwargs)
+
+~/opt/anaconda3/lib/python3.8/site-packages/matplotlib/axes/_axes.py in plot(self, scalex, scaley, data, *args, **kwargs)
+   1741         """
+   1742         kwargs = cbook.normalize_kwargs(kwargs, mlines.Line2D)
+-> 1743         lines = [*self._get_lines(*args, data=data, **kwargs)]
+   1744         for line in lines:
+   1745             self.add_line(line)
+
+~/opt/anaconda3/lib/python3.8/site-packages/matplotlib/axes/_base.py in __call__(self, data, *args, **kwargs)
+    271                 this += args[0],
+    272                 args = args[1:]
+--> 273             yield from self._plot_args(this, kwargs)
+    274 
+    275     def get_next_color(self):
+
+~/opt/anaconda3/lib/python3.8/site-packages/matplotlib/axes/_base.py in _plot_args(self, tup, kwargs)
+    397 
+    398         if x.shape[0] != y.shape[0]:
+--> 399             raise ValueError(f"x and y must have same first dimension, but "
+    400                              f"have shapes {x.shape} and {y.shape}")
+    401         if x.ndim > 2 or y.ndim > 2:
+
+ValueError: x and y must have same first dimension, but have shapes (2705,) and (1,)
+
+In [13]: plt.plot(sophie.time(),sophie.std_over_time)()
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+<ipython-input-13-31583c04b8c5> in <module>
+----> 1 plt.plot(sophie.time(),sophie.std_over_time)()
+
+TypeError: 'numpy.ndarray' object is not callable
+
+In [14]: plt.plot(sophie.time(),sophie.std_over_time())
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+<ipython-input-14-8927f14664e8> in <module>
+----> 1 plt.plot(sophie.time(),sophie.std_over_time())
+
+TypeError: 'numpy.ndarray' object is not callable
+
+In [15]: plt.plot(sophie.time,sophie.std_over_time())
+Out[15]: [<matplotlib.lines.Line2D at 0x7fbde92247c0>]
+
+In [16]: plt.show()
+
+In [17]: plt.plot(sophie.std_over_time())
+Out[17]: [<matplotlib.lines.Line2D at 0x7fbe28ba4c40>]
+
+In [18]: plt.show()
+
+In [19]: plt.plot(sophie.intensity[647])
+Out[19]: [<matplotlib.lines.Line2D at 0x7fbe28e6ed60>]
+
+In [20]: plt.show()
+
+In [21]: plt.plot(sophie.intensity[648])
+Out[21]: [<matplotlib.lines.Line2D at 0x7fbe28efa4f0>]
+
+In [22]: plt.show()
+
+In [23]: plt.plot(sophie.std_over_time())
+Out[23]: [<matplotlib.lines.Line2D at 0x7fbe290149a0>]
+
+In [24]: plt.show()
+
+In [25]: plt.plot(sophie.intensity[1695])
+Out[25]: [<matplotlib.lines.Line2D at 0x7fbe2908f670>]
+
+In [26]: plt.show()
+
+In [27]: plt.plot(sophie.std_over_time())
+Out[27]: [<matplotlib.lines.Line2D at 0x7fbe291a41c0>]
+
+In [28]: plt.show()
+
+In [29]: plt.plot(sophie.intensity[2303])
+Out[29]: [<matplotlib.lines.Line2D at 0x7fbe289bfdf0>]
+
+In [30]: plt.show()
+
+In [31]: plt.plot(sophie.std_over_time())
+Out[31]: [<matplotlib.lines.Line2D at 0x7fbe28da9910>]
+
+In [32]: plt.show()
+
+In [33]: plt.plot(sophie.intensity[2696])
+Out[33]: [<matplotlib.lines.Line2D at 0x7fbe08854b20>]
+
+In [34]: plt.show()
+
+In [35]: plt.plot(sophie.intensity[2696])
+Out[35]: [<matplotlib.lines.Line2D at 0x7fbdc989fe20>]
+
+In [36]: plt.plot(sophie.intensity[2500])
+Out[36]: [<matplotlib.lines.Line2D at 0x7fbdc9885250>]
+
+In [37]: plt.show()
+
+In [38]: plt.plot(sophie.intensity[2300])
+Out[38]: [<matplotlib.lines.Line2D at 0x7fbdd9372af0>]
+
+In [39]: plt.plot(sophie.intensity[2600])
+Out[39]: [<matplotlib.lines.Line2D at 0x7fbdd9381ac0>]
+
+In [40]: plt.show()
+
+In [41]: plt.plot(sophie.std_over_time())
+Out[41]: [<matplotlib.lines.Line2D at 0x7fbe290c79a0>]
+
+In [42]: plt.show()
+
+In [43]: plt.plot(sophie.intensity[1580])
+Out[43]: [<matplotlib.lines.Line2D at 0x7fbe0883bfd0>]
+
+In [44]: plt.plot(sophie.intensity[1680])
+Out[44]: [<matplotlib.lines.Line2D at 0x7fbe28b62ee0>]
+
+In [45]: plt.show()
+
+In [46]: sophie = sp.SpectralAnalyser("../data/Vega_Narval_2018_031.json")
+
+In [47]: narval = sp.SpectralAnalyser("../data/Vega_Narval_2018_031.json")
+
+In [48]: plt.plot(narval.std_over_time())
+Out[48]: [<matplotlib.lines.Line2D at 0x7fbdc98e1730>]
+
+In [49]: plt.show()
+
+In [50]: plt.plot(narval.time,narval.std_over_time())
+Out[50]: [<matplotlib.lines.Line2D at 0x7fbdc9904430>]
+
+In [51]: plt.show()
+
+In [52]: 
+

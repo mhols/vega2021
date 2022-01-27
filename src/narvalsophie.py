@@ -507,7 +507,10 @@ if __name__ == '__main__':
 
     lomb_scargel(narval, sophie2018, sophie2012, atdepth=0.6)
     #lomb_scargel_vspan(sophie2012, sophie2018, narval, depth=0.99, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
+   # for f in np.linspace(0.9999, 1.0001, 21):
+    #    binned_spectrum(sophie2012, sophie2018, period=f*sp.VEGAPERIOD)
 
+    lomb_scargel_vspan(sophie2012, sophie2018, narval, depth=0.99, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
     # lomb_scargel_vspan_old(sophie2012, sophie2018, narval, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
     # radial_velocity(narval, sophie2018, sophie2012, relative_depth=0.8)
     # radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
