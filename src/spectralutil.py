@@ -635,7 +635,7 @@ class SpectralAnalyser:
         return res
 
 
-    def rv_bis(self, atdepth=0.5, **kwargs):
+    def rv_bis(self, atdepth, **kwargs):
         """
         at: 0 -> at minimum  1-> at 1
         """
