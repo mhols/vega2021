@@ -313,7 +313,7 @@ def FILEMATRIX_to_JSON(
 
     print (time[I].shape, intensity[I].shape, errors[I].shape)
 
-class SpectralAnalyser:
+classyser:
     """
     a class for the modeling of spectral lines a la Boehm
     """

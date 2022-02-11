@@ -981,8 +981,8 @@ if __name__ == '__main__':
 #    myPics.ls_spec_vrad_bis()
     myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
-#    myPics.bisector_time()
-#    myPics.bisector_width()
+    myPics.bisector_time()
+    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #    myPics.bayes_freq_vrad_mean()
