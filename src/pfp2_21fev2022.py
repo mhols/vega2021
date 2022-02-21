@@ -7,7 +7,6 @@ Created on Dec 2, 2014
 from matplotlib import gridspec
 import os
 from scipy.signal import spectral
-from scipy.stats import gaussian_kde
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
