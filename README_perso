@@ -1,0 +1,88 @@
+git @ -u
+git: '@' is not a git command. See 'git --help'.
+
+The most similar commands are
+	am
+	gc
+	mv
+	p4
+	rm
+(base) boehm@storm vega2021 % git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	toto
+
+nothing added to commit but untracked files present (use "git add" to track)
+(base) boehm@storm vega2021 % vi README.md 
+(base) boehm@storm vega2021 % git status  
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   README.md
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	toto
+
+no changes added to commit (use "git add" and/or "git commit -a")
+(base) boehm@storm vega2021 % git @ -u    
+git: '@' is not a git command. See 'git --help'.
+
+The most similar commands are
+	am
+	gc
+	mv
+	p4
+	rm
+(base) boehm@storm vega2021 % git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   README.md
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	toto
+
+no changes added to commit (use "git add" and/or "git commit -a")
+(base) boehm@storm vega2021 % git commit -m "progress in work"
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   README.md
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	toto
+
+no changes added to commit (use "git add" and/or "git commit -a")
+(base) boehm@storm vega2021 % git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   README.md
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	toto
+
+no changes added to commit (use "git add" and/or "git commit -a")
+(base) boehm@storm vega2021 % git push
+Everything up-to-date
+(base) boehm@storm vega2021 % 
+
