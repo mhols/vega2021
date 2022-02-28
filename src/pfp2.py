@@ -967,7 +967,7 @@ if __name__ == '__main__':
 #    myPics.intens()
 #    myPics.intens_all()
 #    myPics.vrad_mean_vspan()
-#    myPics.vrad_corr_vspan()
+    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
 #    myPics.vrad_corr_skew()
