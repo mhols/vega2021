@@ -15,275 +15,6 @@ from scipy.interpolate import interp1d
 
 VEGAPERIOD = 0.68532 # 0.98739 * 0.678  # period in days
 
-#for full profile 60,124
-#for short profile 72,112
-def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
-    """
-    loads a filematrix type data file
-
-    nval       : number of bins for the spectrum
-    rangei     : (a,b) taking indicies from a to b (included)
-    vrange     : alternatively prescribing velocity range
-    noiselevel : for outlier removal
-    """
-
-    coltime = 0  # colum of time values
-    colspec = 1
-    colval = colspec + nval
-    colvul = colval + nval
-
-    data = np.loadtxt(DATAFILE)
-    time = data[:, coltime:colspec].ravel()
-    velocity = data[0, colspec:colval]  # velocities of bins
-    intens = data[:, colval:colvul]  # intensities
-    signoise = data[:, colvul:colvul+nval]
-    meani    = intens.mean(axis=0)  # mean intensity
-    diff     = intens - meani  # fluctuation around mean
-
-    # selecting velocity bins
-    if vrange is not None:          # wenn vrange verschieden ist von none
-        I1, I2 = np.where(velocity >= vrange[0])[0], np.where(velocity<=vrange[1])[0]
-        rangei = (I1[0], I2[-1])    # -1 ist letztes element des vektors
-    rangel   = np.arange(rangei[0], rangei[1])  # range of spectral line
-
-    stdi = diff.ravel().std()  # variance of f TODO better wirh std ?       #macht vektor flach, dann varianz
-    #ueber langen vektor (ntimes*nval), dh varianz vom gesamten Bild
-    t0 = time[0]  # first rime
-
-    # outlier removal
-    I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
-    plt.plot(np.std(diff[I, :], axis=1))
-
-    plt.show()
-
-    print("reducing from ", time.shape , "to ", len(I), " spectral lines")
-
-    time = time[I]
-    velocity = velocity[rangel]
-
-    intens = intens[I, :]
-    intens = intens[:, rangel]
-
-    signoise = signoise[I,:]
-    signoise = signoise[:,rangel]
-
-    # recomputing mean and diff
-    meani = intens.mean(axis=0)
-    diff = intens - meani
-
-    #grouping into nights
-    tt = time - int(time[0])
-
-    listOfNightsIndices = []
-    listOfNightsTimes = []
-    listOfNightsIntens = []
-
-    for i in range(100):
-        I = np.where( (tt-i) * (i+1-tt) > 0)[0]     # quadratische Ungleichung waehlt Tag aus
-                                # zwischen Tag i und Tag i+1
-                                # TODO: ok fuer Europa, fuer Chile kann Nacht
-                                # ueber integersprung gehen...
-                                # Klasse Observatorium einrichten!!
-        if len(I) > 0:
-            listOfNightsIndices.append(I)
-            listOfNightsTimes.append( time[I] )
-            listOfNightsIntens.append ( intens[I] )
-
-    return time, velocity, intens, signoise, listOfNightsTimes, listOfNightsIntens, listOfNightsIndices
-
-def spectrum_matrix(time, quantity, **kwargs):
-    """
-    binns the spec into nphase bins
-    """
-    period = kwargs.get('period', VEGAPERIOD)
-    nphase = kwargs.get('nphase', 128)
-
-    bins = np.linspace(0, period, nphase + 1)
-    res = np.zeros((nphase, quantity.shape[1]))
-    nn = np.zeros(nphase)
-    ii = np.digitize(np.mod(time, period), bins)
-    for i, s in zip(ii, quantity):
-        res[i-1, :] += s
-        nn[i-1] += 1
-
-    nn = np.where(nn>0,nn,1)
-    res[:,:] = res / nn[:,np.newaxis]
-    return res[:, 1:-1], bins[:-1]
-
-
-def bisector(velocity, intensity, depth):
-    """
-    computes the bisector of the
-    absorption (!!) profile velocity, intensity
-    at the point depth
-    """
-
-    n = intensity.size # number of bins
-
-    i = np.min(np.where(intensity < depth))
-    j = np.max(np.where(intensity < depth))
-
-    if i<=0 or j>=n-1:
-        raise Exception('wrong depth')
-
-    x = velocity[i - 1] +  (depth - intensity[i - 1]) * (velocity[i] - velocity[i - 1]) / (intensity[i] - intensity[i - 1])
-    y = velocity[j + 1] + (depth - intensity[j + 1]) * (velocity[j] - velocity[j + 1]) / (intensity[j] - intensity[j + 1])
-    return (x + y) / 2.
-   
-def bisector_v(velocity, intensity, depth):
-    """
-    the bisector for the values in depth
-    """
-    res = [bisector(velocity, intensity, d) for d in depth]
-    return res
-
-def remove_night_trend(time, value):
-    """
-    removing individual trends for each night
-    """
-    time -= int(time[0])
-    nnight = int(time[-1] - time[0]) + 1
-    t0 = int(time[-1])
-    for n in range(nnight):
-        I = np.where((time - n) * (n + 1 - time) >= 0.)
-        value[I], p, pp = remove_trend(time[I], value[I])
-
-    return value
-
-def remove_trend(time, value):
-    """
-    removing individual trends for each night
-    """
-    p = np.polyfit(time, value, 2)
-
-    print("shap of p ", p.shape)
-    n, m = value.shape
-    pp = np.zeros(value.shape)
-    for i in range(m):
-        pp[:, i] = np.polyval(p[:, i], time)
-    value -= pp
-
-    return value, p, pp
-
-
-def vspan(upper, lower, time, velocity, intensity):
-    """
-    compute vspan as function of time
-    """
-    nn = 20
-    tmp = np.zeros(len(time))
-
-
-    du = np.linspace(upper[0], upper[1], nn)
-    dl = np.linspace(lower[0], lower[1], nn)
-
-    for i in range(len(time)):
-        minval = intensity[i].min()
-
-        bu = bisector_v(velocity, intensity[i], minval + du * (1 - minval))
-        bl = bisector_v(velocity, intensity[i], minval + dl * (1 - minval))
-        tmp[i] = np.median(bu) - np.median(bl)
-
-
-    return tmp
-
-
-def vrad_bis(extension, time, velocity, intensity):
-    """
-    calculates vrad as the median of part of bisector
-    """
-    nn = 20
-    tmp = np.zeros(len(time))
-
-
-    dl = np.linspace(extension[0], extension[1], nn)
-
-    for i in range(len(time)):
-        minval = intensity[i].min()
-
-        bl = bisector_v(velocity, intensity[i], minval + dl * (1 - minval))
-        tmp[i] = np.median(bl)
-
-    return tmp
-
-
-def vrad(relative_depth, velocity, intensity):
-
-    nt, nv = intensity.shape
-
-    res = np.zeros(nt)
-    for i in xrange(nt):
-        minval = intensity[i, :].min()
-        depth = minval + (1 - minval) * relative_depth
-        I = np.where(intensity[i, :] <= depth)[0]
-        iii = intensity[i, I]
-        iii = iii.max() - iii
-        res[i] = np.sum(iii * velocity[I]) / np.sum(iii)
-    return res
-
-def vrad_corr(velocity, intensity, usemean=True, depth=0.5):
-    """
-    correlation based vrad
-    """
-
-    base = intensity[0]
-    if usemean:
-        base = intensity.mean(axis=0)
-
-    minval = base.min()
-    I = np.where(base >= minval + depth * (1 - minval))[0]
-    # base = base[I]
-    # intensity=intensity[I]
-    n, d = intensity.shape
-    # d = len(I)
-    mask = np.correlate(np.ones(d), np.ones(d), mode='same')
-
-    res = np.zeros(n)
-    for r, inte in enumerate (intensity):
-        tmp = np.correlate(1 - inte, 1 - base, mode='same')
-        # tmp /= mask
-
-        # plt.plot(velocity, tmp)
-
-        # plt.show()
-
-        i = np.argmax(tmp)
-        poly = np.polyfit(velocity[i - 3:i + 4], tmp[i - 3:i + 4], deg=2)
-
-        res[r] = -0.5 * poly[1] / poly[0]
-
-
-    return res
-
-    # (base, intensity[i], mode=)
-
-def estimate_translat_scaling(intensity):
-    """
-    removing translational movements and scaling by a simple least square fit
-    """
-    n, d = intensity.shape
-    median = np.mean(intensity, axis=0)
-    v = np.linspace(0, 1, median.size)
-    tck = interpolate.splrep(v, median, s=2)
-    dermed = interpolate.splev(v, tck, der=1)
-
-    F = np.column_stack((median, -dermed))
-
-    print(F.shape)
-
-    res = np.linalg.lstsq(F, intensity.T)
-    scaling, translat = res[0]
-
-    movement = (np.dot(F, res[0])).T
-    delta = intensity - movement
-    at = movement - median
-    return scaling, translat, median, at, delta
-
-def vrad_translat(intensity):
-    scaling, translat, median, at, delta = estimate_translat_scaling(intensity)
-    return translat
-
-
 def FILEMATRIX_to_JSON(
         DATAFILE,     # datafile containing the filematrix
         nval=201,     # number of velocity bins
@@ -312,6 +43,25 @@ def FILEMATRIX_to_JSON(
         json.dump(res, outfile, indent=2)
 
     print (time[I].shape, intensity[I].shape, errors[I].shape)
+
+
+def spectrum_matrix(time, quantity, **kwargs):
+      """
+      binns the spec into nphase bins
+      """
+      period = kwargs.get('period', VEGAPERIOD)
+      nphase = kwargs.get('nphase', 128)
+      bins = np.linspace(0, period, nphase + 1) 
+      res = np.zeros((nphase, quantity.shape[1]))
+      nn = np.zeros(nphase) 
+      ii = np.digitize(np.mod(time, period), bins)
+      for i, s in zip(ii, quantity):
+          res[i-1, :] += s 
+          nn[i-1] += 1 
+      nn = np.where(nn>0,nn,1) 
+      res[:,:] = res / nn[:,np.newaxis]
+      return res[:, 1:-1], bins[:-1]                  
+
 
 class SpectralAnalyser:
     """
@@ -550,12 +300,12 @@ class SpectralAnalyser:
         """
 
         # computing depth for truncation
-        # relative_depth = 0 at the bottom
-        # relative_depth = 1 truncate at 1
+        # relative_depth = 1 at the bottom
+        # relative_depth = 0 truncate at 1
         # note intensity is between mv and 1 (<-- continuum)
         mv = self.mean_intensity.min()
-        depth = mv + (1 - mv) * relative_depth
-        I, = np.where(self.mean_intensity >= depth)
+        depth = mv * relative_depth + 1 * (1-relative_depth)
+        I, = np.where(self.mean_intensity <= depth)
 
         vv = self.velocity
         res = 1 - self.intensity
@@ -575,7 +325,7 @@ class SpectralAnalyser:
             base = self.mean_intensity
 
         mv = self.mean_intensity.min()
-        depth = mv + (1 - mv) * relative_depth
+        depth = mv * relative_depth + 1*(1-relative_depth)
         I = np.where(self.mean_intensity <= depth)[0]
 
         # working only with a reduced part of the spectrum
@@ -611,9 +361,6 @@ class SpectralAnalyser:
         return factor * res
 
     def bisector_borders(self):
-        #mv = self.intensity.min(axis=0)
-        #depth = mv + (1 - mv) * depth
-        #I = np.where(self.mean_intensity <= depth)
         intens = self.intensity
         v = self.velocity
 
@@ -642,7 +389,7 @@ class SpectralAnalyser:
         bise = self.bisector_borders()
         min_intens = np.min(self.intensity, axis=1)
 
-        at = min_intens + atdepth * (1-min_intens)  # linear interpolation between min_intens and 1
+        at = min_intens * atdepth + 1*(1-atdepth)  # linear interpolation between min_intens and 1
     
         res = ((r(a) + l(a))/2 for (l,r), a in zip(bise, at))
         return np.fromiter(res, dtype=float)
@@ -707,6 +454,10 @@ class SpectralAnalyser:
         self.vrange = np.full(self._intensity.shape[1], True)
 
         return self
+
+###############
+# old code to be integrated or to be removed
+###################
 
 
 class tobemodified(SpectralAnalyser):
