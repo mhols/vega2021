@@ -19,7 +19,7 @@ def lomb_scargel_vspan(*specs, depth=0.9, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
         data = spec.lomb_scargel_vspan(oms, uu, ul, lu, ll)
         plt.plot(oms/(2*np.pi), data)
         
-def ls_spec_vspan(spec, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
+def ls_spec_vspan(spec, uu=0.3, ul=0.5, lu=0.1, ll=0.25):
     name = 'ls_spec_vspan'
     cpdmin, cpdmax = 0.2, 20
     oms = 2*np.pi * np.linspace(cpdmin, cpdmax, 1024)
