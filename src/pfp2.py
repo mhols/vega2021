@@ -178,7 +178,7 @@ class Pictures(object):
 
     @property
     def vrad_corr(self):
-        if None == self._vrad_corr:
+        if None is self._vrad_corr:
             self._vrad_corr = self.analyzer.rv_corr(relative_depth=self.r_depth)
         return self._vrad_corr
 
@@ -397,6 +397,9 @@ class Pictures(object):
 
     def vrad_corr_vspan(self):
         name = "vrad_corr_vspan"
+
+
+        print(self.vrad_corr)
 
         plt.figure()
         plt.title(name)
