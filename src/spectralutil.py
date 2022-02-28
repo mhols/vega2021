@@ -57,9 +57,9 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
 
     # outlier removal
     I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
-    plt.plot(np.std(diff[I, :], axis=1))
+#    plt.plot(np.std(diff[I, :], axis=1))
 
-    plt.show()
+#    plt.show()
 
     print("reducing from ", time.shape , "to ", len(I), " spectral lines")
 

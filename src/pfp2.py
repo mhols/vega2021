@@ -8,7 +8,7 @@ from matplotlib import gridspec
 import os
 from scipy.signal import spectral
 from scipy.stats import gaussian_kde
-
+from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -400,8 +400,25 @@ class Pictures(object):
         name = "vrad_corr_vspan"
 
 
-        print(self.vrad_corr)
+#        print(self.vrad_corr)
+        x = self.vrad_corr
+        y = self.vspan
+        xy = np.vstack([x,y])
+        z =gaussian_kde(xy)(xy)
 
+# Sort the points by density, so that the densest points are plotted last
+        idx = z.argsort()
+        x, y, z = x[idx], y[idx], z[idx]
+
+#        fig, ax = plt.subplots()
+#        ax.scatter(x, y, c=z, s=20)
+        colours = np.zeros( (len(z),3) )
+        norm = Normalize( vmin=z.min(), vmax=z.max() )
+        colours = [cm.ScalarMappable( norm=norm, cmap='rainbow').to_rgba( val ) for val in z]
+       
+        plt.scatter( x, y, color=colours )
+   
+   
         plt.figure()
         plt.title(name)
         plt.plot(self.vrad_corr, self.vspan, 'o', color='#ED7F10', ms=12, alpha=0.7)
