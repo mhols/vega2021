@@ -191,84 +191,84 @@ class Pictures(object):
 
     @property
     def vrad_bis(self):
-        if None == self._vrad_bis:
+        if None is self._vrad_bis:
             self._vrad_bis = self.analyzer.vrad_bis(extension=self.extension)
         return self._vrad_bis
 
     @property
     def vrad_skew(self):
-        if None == self._vrad_skew:
+        if None is self._vrad_skew:
             self._vrad_skew = self.analyzer.rv_skew(self.r_depth)
         return self._vrad_skew
 
     @property
     def vrad_std(self):
-        if None == self._vrad_std:
+        if None is self._vrad_std:
             self._vrad_std = self.analyzer.rv_std(self.r_depth)
         return self._vrad_std
 
     @property
     def ls_vrad_skew(self):
-        if None == self._ls_vrad_skew:
+        if None is self._ls_vrad_skew:
             mn = np.mean(self.vrad_skew)
             self._ls_vrad_skew = spectral.lombscargle(self.time, self.vrad_skew - mn, self.freq)
         return self._ls_vrad_skew
 
     @property
     def ls_vrad_mean(self):
-        if None == self._ls_vrad_mean:
+        if None is self._ls_vrad_mean:
             mn = np.mean(self.vrad_mean)
             self._ls_vrad_mean = spectral.lombscargle(self.time, self.vrad_mean - mn, self.freq)
         return self._ls_vrad_mean
 
     @property
     def ls_vrad_corr(self):
-        if None == self._ls_vrad_corr:
+        if None is self._ls_vrad_corr:
             mn = np.mean(self.vrad_corr)
             self._ls_vrad_corr = spectral.lombscargle(self.time, self.vrad_corr - mn, self.freq)
         return self._ls_vrad_corr
 
     @property
     def ls_vspan(self):
-        if None == self._ls_vspan:
+        if None is self._ls_vspan:
             mn = np.mean(self.vspan)
             self._ls_vspan = spectral.lombscargle(self.time, self.vspan - mn, self.freq)
         return self._ls_vspan
 
     @property
     def ls_vrad_bis(self):
-        if None == self._ls_vrad_bis:
+        if None is self._ls_vrad_bis:
             mn = np.mean(self.vrad_bis)
             self._ls_vrad_bis = spectral.lombscargle(self.time, self.vrad_bis - mn, self.freq)
         return self._ls_vrad_bis
 
     @property
     def bisector(self):
-        if None == self._bisector:
+        if None is self._bisector:
             self._bisector, self._depth = self.analyzer.bisector (upper=self.d0, lower=self.d1)
         return self._bisector
 
     @property
     def depth(self):
-        if None == self._depth:
+        if None is self._depth:
             self._bisector, self._depth = self.analyzer.bisector (upper=self.d0, lower=self.d1)
         return self._depth
 
     @property
     def window(self):
-        if None == self._window:
+        if None is self._window:
             self._window = spectral.lombscargle(self.time, np.ones(len(self.time)), self.freq)
         return self._window
 
     @property
     def eqwidth(self):
-        if None == self._eqwidth:
+        if None is self._eqwidth:
             self._eqwidth = self.analyzer.eqwidth()
         return self._eqwidth
 
     @property
     def ls_eqwidth(self):
-        if None == self._ls_eqwidth:
+        if None is self._ls_eqwidth:
             mn = np.mean(self.eqwidth)
             self._ls_eqwidth = spectral.lombscargle(self.time, self.eqwidth - mn, self.freq)
         return self._ls_eqwidth
@@ -349,7 +349,7 @@ class Pictures(object):
         plt.ylabel('Profile depth')
         n, d = self.bisector.shape
         di = 0.5 * (self.depth[1] - self.depth[0])
-        for i in xrange(n/100):
+        for i in range(n/100):
             u = np.random.uniform(-di, di, d)
             plt.plot(self.bisector[i*100, :], 1-self.depth + u, ',b')
         m = self.bisector.mean(axis=0)
@@ -384,14 +384,34 @@ class Pictures(object):
 
     def vrad_mean_vspan(self):
         name = "vrad_mean_vspan"
+        
+        x = self.vrad_mean
+        y = self.vspan
+        xy = np.vstack([x,y])
+        z =gaussian_kde(xy)(xy)
 
+# Sort the points by density, so that the densest points are plotted last
+        idx = z.argsort()
+        x, y, z = x[idx], y[idx], z[idx]
+
+#        fig, ax = plt.subplots()
+#        ax.scatter(x, y, c=z, s=20)
+        colours = np.zeros( (len(z),3) )
+        norm = Normalize( vmin=z.min(), vmax=z.max() )
+        colours = [cm.ScalarMappable( norm=norm, cmap='rainbow').to_rgba( val ) for val in z]
+     
         plt.figure()
+        plt.title(name)
+        plt.scatter( x, y, color=colours )
+#
+
+
 #        plt.axis([-13.06,-12.96,0.1,0.6])
         plt.title('Correlation vspan -- radial velocity')
-        plt.plot(self.vrad_mean, self.vspan, 'o')
+#        plt.plot(self.vrad_mean, self.vspan, 'o')
         plt.xlabel('radial velocity (first moment) (km/s)')
         plt.ylabel('vspan (km/s)')
-        plt.xlim(-13.08, -13.01)
+        plt.xlim(-13.1, -13.01)
         plt.ylim(0.2, 0.6)
         plt.savefig(name + self.format)
 
@@ -415,16 +435,17 @@ class Pictures(object):
         colours = np.zeros( (len(z),3) )
         norm = Normalize( vmin=z.min(), vmax=z.max() )
         colours = [cm.ScalarMappable( norm=norm, cmap='rainbow').to_rgba( val ) for val in z]
-       
-        plt.scatter( x, y, color=colours )
-   
-   
+     
         plt.figure()
         plt.title(name)
-        plt.plot(self.vrad_corr, self.vspan, 'o', color='#ED7F10', ms=12, alpha=0.7)
+        plt.scatter( x, y, color=colours )
+##        plt.plot(self.vrad_corr, self.vspan, 'o', color='#ED7F10', ms=12, alpha=0.7)
         plt.xlabel('vrad (m/s)')
         plt.ylabel('vspan (m/s)')
         plt.title('vspan as a function of radial velocity')
+        plt.xlim(-0.17, 0.17)
+        plt.ylim(0.15, 0.55)
+
         plt.savefig(name + self.format)
 
     def vrad_mean_skew(self):
@@ -740,8 +761,8 @@ class Pictures(object):
         maxa = np.max(data)
         box = [0,15,0,1]
         self._plt_ls(data, box=box)
-
-        a = plt.axes([.4, .4, .4, .4], facecolor='white')
+#[left, bottom, width, height]
+        a = plt.axes([.65, .6, .2, .2], facecolor='white')
         plt.title('window function')
         wf = self.window
         wf /= wf.max()
@@ -757,7 +778,7 @@ class Pictures(object):
         plt.ylabel('Relative power spectral density')
 #        self._plt_ls_vr(1000*self.ls_vrad_mean)
 
-        box = [15,50,0,0.04]
+        box = [15,50,0,1.0]
         self._plt_ls(data,box=box, bars=False)
         plt.savefig(name + "_2"+self.format)
 
@@ -981,7 +1002,7 @@ class Pictures(object):
         plt.ylabel('quantile spread in arbitrary units')
         plt.yticks([])
         plt.vlines(self.rotperiod, [0], [1], colors=['red'])
-        plt.ylim(0.85*res.max(), 1.1*res.max())
+        plt.ylim(0.6*res.max(), 1.2*res.max())
         plt.yticks([0.9*res.max(), 1.0*res.max()],['0.9','1.0'])
         plt.xlim(p0,p1)
         plt.savefig(name+self.format)
@@ -993,7 +1014,7 @@ if __name__ == '__main__':
     #myPics.ts_eqwidth()
 #    myPics.intens()
 #    myPics.intens_all()
-#    myPics.vrad_mean_vspan()
+    myPics.vrad_mean_vspan()
     myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
@@ -1014,7 +1035,7 @@ if __name__ == '__main__':
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #    myPics.bayes_freq_vrad_mean()
 #    myPics.moving_peaks_signoise()
-#    myPics.estrotentropy()
+    myPics.estrotentropy()
 
     #myPics.saveData("time_vrad_mean.dat", [6142.+myPics.time, myPics.vrad_mean])  # first column
     #myPics.saveData("time_vrad_corr.dat", [myPics.time, myPics.vrad_corr])  # first column
