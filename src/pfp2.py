@@ -349,12 +349,12 @@ class Pictures(object):
         plt.ylabel('Profile depth')
         n, d = self.bisector.shape
         di = 0.5 * (self.depth[1] - self.depth[0])
-#        for i in range(n/100):
-#            u = np.random.uniform(-di, di, d)
-#            plt.plot(self.bisector[i*100, :], 1-self.depth + u, ',b')
-        for i in range(n):
+        for i in range(int(n/100)):
             u = np.random.uniform(-di, di, d)
-            plt.plot(self.bisector[i, :], 1-self.depth + u, ',b')
+            plt.plot(self.bisector[i*100, :], 1-self.depth + u, ',b')
+#        for i in range(n):
+#            u = np.random.uniform(-di, di, d)
+#            plt.plot(self.bisector[i, :], 1-self.depth + u, ',b')
 
         m = self.bisector.mean(axis=0)
         s = self.bisector.std(axis=0)
@@ -388,7 +388,7 @@ class Pictures(object):
 
     def vrad_mean_vspan(self):
         name = "vrad_mean_vspan"
-        
+
         x = self.vrad_mean
         y = self.vspan
         xy = np.vstack([x,y])
@@ -403,7 +403,7 @@ class Pictures(object):
         colours = np.zeros( (len(z),3) )
         norm = Normalize( vmin=z.min(), vmax=z.max() )
         colours = [cm.ScalarMappable( norm=norm, cmap='rainbow').to_rgba( val ) for val in z]
-     
+
         plt.figure()
         plt.title(name)
         plt.scatter( x, y, color=colours )
@@ -439,7 +439,7 @@ class Pictures(object):
         colours = np.zeros( (len(z),3) )
         norm = Normalize( vmin=z.min(), vmax=z.max() )
         colours = [cm.ScalarMappable( norm=norm, cmap='rainbow').to_rgba( val ) for val in z]
-     
+
         plt.figure()
         plt.title(name)
         plt.scatter( x, y, color=colours )
@@ -911,7 +911,7 @@ class Pictures(object):
         eqwidth = self.analyzer.eqwidth()
         signois = self.analyzer.meansignoise()
 
-        
+
 #       for na, nightlist in zip(['s1','s2','s3','s4','s5','s6'], [[0], [1], [2], [3], [4], [5]]):
 #        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7'], [[0], [1], [2], [3], [4], [5], [6]]):
 
