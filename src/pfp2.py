@@ -349,9 +349,13 @@ class Pictures(object):
         plt.ylabel('Profile depth')
         n, d = self.bisector.shape
         di = 0.5 * (self.depth[1] - self.depth[0])
-        for i in range(n/100):
+#        for i in range(n/100):
+#            u = np.random.uniform(-di, di, d)
+#            plt.plot(self.bisector[i*100, :], 1-self.depth + u, ',b')
+        for i in range(n):
             u = np.random.uniform(-di, di, d)
-            plt.plot(self.bisector[i*100, :], 1-self.depth + u, ',b')
+            plt.plot(self.bisector[i, :], 1-self.depth + u, ',b')
+
         m = self.bisector.mean(axis=0)
         s = self.bisector.std(axis=0)
         plt.plot(m, 1-self.depth, '-k')
@@ -1029,13 +1033,13 @@ if __name__ == '__main__':
 #    myPics.ls_spec_vrad_bis()
     myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
-#    myPics.bisector_time()
+    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #    myPics.bayes_freq_vrad_mean()
 #    myPics.moving_peaks_signoise()
-    myPics.estrotentropy()
+###    myPics.estrotentropy()
 
     #myPics.saveData("time_vrad_mean.dat", [6142.+myPics.time, myPics.vrad_mean])  # first column
     #myPics.saveData("time_vrad_corr.dat", [myPics.time, myPics.vrad_corr])  # first column
