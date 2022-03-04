@@ -140,6 +140,18 @@ def bisector_test(*specs):
             plt.plot((l(at)+r(at))/2, at)
             plt.plot(v, inte[i])
 
+
+def intens_bubble(*specs):
+    for spec in specs:
+        intens = spec.intensity
+        #v = spec.velocity
+        plt.figure()
+        plt.title(spec.name)
+        for inte in intens:
+            plt.plot(inte)
+
+
+
 """
 def bisector_time():
     name = "bisector_time"
@@ -192,5 +204,6 @@ if __name__ == '__main__':
     #radial_velocity_bisector(narval, sophie2018, sophie2012, atdepth=0.5)
 
 
-    bisector_test(sophie2012, sophie2018, narval)
+    # bisector_test(sophie2012, sophie2018, narval)
+    intens_bubble(sophie2012, sophie2018, narval)
     plt.show()
