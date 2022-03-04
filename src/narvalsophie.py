@@ -125,18 +125,19 @@ def lomb_scargel_vspan(*specs, depth=0.9, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
         plt.plot(oms/(2*np.pi), data)
 
 
-def bisector_test(spec):
-    bise = spec.bisector_borders()
-    atdepth = np.linspace (0.01, 0.9, 64)
-    min_intens = np.min(spec.intensity, axis=1)
-    inte = spec.intensity
-    v = spec.velocity
-    plt.figure()
-    for (i, mini) in enumerate(min_intens):
-        at = mini + atdepth * (1-mini)  # linear interpolation 
-        l, r = bise[i]
-        plt.plot((l(at)+r(at))/2, at)
-        plt.plot(v, inte[i])
+def bisector_test(*specs):
+    for spec in specs:
+        bise = spec.bisector_borders()
+        atdepth = np.linspace (0.01, 0.9, 64)
+        min_intens = np.min(spec.intensity, axis=1)
+        inte = spec.intensity
+        v = spec.velocity
+        plt.figure()
+        for (i, mini) in enumerate(min_intens):
+            at = mini + atdepth * (1-mini)  # linear interpolation 
+            l, r = bise[i]
+            plt.plot((l(at)+r(at))/2, at)
+            plt.plot(v, inte[i])
 
 """
 def bisector_time():
@@ -190,5 +191,5 @@ if __name__ == '__main__':
     #radial_velocity_bisector(narval, sophie2018, sophie2012, atdepth=0.5)
 
 
-    bisector_test(sophie2012)
+    bisector_test(sophie2012, sophie2018)
     plt.show()
