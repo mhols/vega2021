@@ -133,8 +133,7 @@ def bisector_test(spec):
     for (i, mini) in enumerate(min_intens):
         at = mini + atdepth * (1-mini)  # linear interpolation 
         l, r = bise[i]
-        plt.plot(at, l(at))
-        plt.plot(at, r(at))
+        plt.plot(at, (l(at)+r(at)/2))
 
 """
 def bisector_time():
