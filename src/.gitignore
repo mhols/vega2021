@@ -125,6 +125,10 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 
+
+*.dat
+*.json
+
 *.pdf
 dmypy.json
 __pycache__
