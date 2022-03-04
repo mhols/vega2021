@@ -127,3 +127,4 @@ venv.bak/
 
 *.pdf
 dmypy.json
+__pycache__
