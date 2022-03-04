@@ -12,7 +12,7 @@ from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-from spectralutil import *
+from spectralutil_old import *
 
 
 PROGDIR = os.path.dirname(__file__)
