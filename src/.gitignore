@@ -128,7 +128,7 @@ venv.bak/
 
 *.dat
 *.json
-
+.DS_Store
 *.pdf
 dmypy.json
 __pycache__
