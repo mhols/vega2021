@@ -148,7 +148,8 @@ def intens_bubble(*specs):
         plt.figure()
         plt.title(spec.name)
         for inte in intens:
-            plt.plot(inte)
+            mini = np.min(inte)
+            plt.plot((inte-mini)/(1-mini))
 
 
 
