@@ -191,5 +191,5 @@ if __name__ == '__main__':
     #radial_velocity_bisector(narval, sophie2018, sophie2012, atdepth=0.5)
 
 
-    bisector_test(sophie2012, sophie2018)
+    bisector_test(sophie2012, sophie2018, narval)
     plt.show()
