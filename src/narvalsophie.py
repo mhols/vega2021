@@ -1,4 +1,5 @@
 from scipy.interpolate.fitpack2 import UnivariateSpline
+from matplotlib import gridspec
 import spectralutil as sp
 import matplotlib
 import matplotlib.pyplot as plt
@@ -123,6 +124,38 @@ def lomb_scargel_vspan(*specs, depth=0.9, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
         data = spec.lomb_scargel_vspan(oms, uu, ul, lu, ll)
         plt.plot(oms/(2*np.pi), data)
 
+def bisector_time():
+    name = "bisector_time"
+    plt.figure()
+    gs=gridspec.GridSpec(1, 2, width_ratios=[3, 1])
+    plt.subplot(gs[0])
+    plt.axis([-14,-12.75,0.,1.])
+    plt.title('bisector variations')
+    plt.xlabel('velocity (km/s)')
+    plt.ylabel('Profile depth')
+    n, d = bisector.shape
+    di = 0.5 * (self.depth[1] - self.depth[0])
+    for i in range(int(n/100)):
+        u = np.random.uniform(-di, di, d)
+        plt.plot(self.bisector[i*100, :], 1-self.depth + u, ',b')
+#        for i in range(n):
+#            u = np.random.uniform(-di, di, d)
+#            plt.plot(self.bisector[i, :], 1-self.depth + u, ',b')
+
+    m = self.bisector.mean(axis=0)
+    s = self.bisector.std(axis=0)
+    plt.plot(m, 1-self.depth, '-k')
+    plt.plot(m + 1.96 * s, 1-self.depth, '-g')
+    plt.plot(m - 1.96 * s, 1-self.depth, '-g')
+
+    plt.subplot(gs[1])
+    plt.title('std of bisector')
+    plt.axis([0, 0.15, 0, 1])
+    plt.plot(s, 1-self.depth, '-g')
+    plt.yticks([])
+    plt.xticks([])
+    plt.xticks([0,0.1],['0','0.1'])
+    plt.savefig(name + self.format)
 
 if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
