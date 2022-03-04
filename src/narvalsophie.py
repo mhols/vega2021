@@ -133,6 +133,7 @@ def bisector_test(*specs):
         inte = spec.intensity
         v = spec.velocity
         plt.figure()
+        plt.title(spec.name)
         for (i, mini) in enumerate(min_intens):
             at = mini + atdepth * (1-mini)  # linear interpolation 
             l, r = bise[i]
