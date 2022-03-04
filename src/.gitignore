@@ -125,7 +125,7 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 
-
+*.data
 *.dat
 *.json
 .DS_Store
