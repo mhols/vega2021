@@ -124,6 +124,18 @@ def lomb_scargel_vspan(*specs, depth=0.9, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
         data = spec.lomb_scargel_vspan(oms, uu, ul, lu, ll)
         plt.plot(oms/(2*np.pi), data)
 
+
+def bisector_test(spec):
+    bise = spec.bisector_borders()
+    atdepth = np.linspace (0.1, 0.9, 64)
+    min_intens = np.min(spec.intensity, axis=1)
+    at = min_intens[0] + atdepth * (1-min_intens[0])  # linear interpolation 
+    plt.figure()
+    l, r = bise[0]
+    plt.plot(at, l(at))
+    plt.plot(at, r(at))
+
+"""
 def bisector_time():
     name = "bisector_time"
     plt.figure()
@@ -156,6 +168,7 @@ def bisector_time():
     plt.xticks([])
     plt.xticks([0,0.1],['0','0.1'])
     plt.savefig(name + self.format)
+"""
 
 if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
@@ -164,8 +177,8 @@ if __name__ == '__main__':
     sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json')
     narval = sp.SpectralAnalyser("narval_reduced.json")
 
-    for f in np.linspace(0.9, 1.1, 21):
-        binned_spectrum(sophie2012, sophie2018, period=f*sp.VEGAPERIOD)
+    #for f in np.linspace(0.9, 1.1, 21):
+    #    binned_spectrum(sophie2012, sophie2018, period=f*sp.VEGAPERIOD)
 
     #lomb_scargel_vspan(sophie2012, sophie2018, narval, uu=0.5, ul=0.66, lu=0.75, ll=0.9)
     #lomb_scargel_vspan_old(sophie2012, sophie2018, narval, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
@@ -173,4 +186,6 @@ if __name__ == '__main__':
     #radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
     #radial_velocity_bisector(narval, sophie2018, sophie2012, atdepth=0.5)
 
+
+    bisector_test(sophie2018)
     plt.show()
