@@ -1,3 +1,4 @@
 *.pdf
 src/*.pdf
 src/__pycache__/*.py
+src/__pycache__/*.pyc
