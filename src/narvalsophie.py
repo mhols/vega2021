@@ -148,14 +148,15 @@ def intens_bubble(*specs):
         plt.figure()
         plt.plot(v, intens.T)
         #v = spec.velocity
-        atdepth = np.linspace (0.1, 0.8, 64)
+        atdepth = np.linspace (0.4, 0.7, 64)
         vm = spec.rv_bis_range_rel_depth(atdepth)
-        I = np.arange(61,66)
-        intens = 1-intens[:, I]
+        I = np.arange(61,68)
+        intens = intens[:, I]
         v = v[I]
-        vb = np.sum(intens*v[np.newaxis, :], axis=1)/np.sum(intens, axis=1)
         plt.figure()
         plt.plot(intens.T)
+        intens = 1-intens
+        vb = np.sum(intens*v[np.newaxis, :], axis=1)/np.sum(intens, axis=1)
         plt.figure()
         plt.title('bumb-v '+ spec.name)
         plt.plot(spec.time, vb, '.')
