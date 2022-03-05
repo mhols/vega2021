@@ -647,6 +647,18 @@ class SpectralAnalyser:
         res = ((r(a) + l(a))/2 for (l,r), a in zip(bise, at))
         return np.fromiter(res, dtype=float)
 
+    def rv_bis_range_rel_depth(self, atdepth, **kwargs):
+        """
+        at: 0 -> at minimum  1-> at 1
+        """
+        bise = self.bisector_borders()
+        min_intens = np.min(self.intensity, axis=1)
+
+        at = min_intens[:, np.newaxis] + atdepth[np.newaxis,:] * (1-min_intens[:, np.newaxis])  # linear interpolation between min_intens and 1
+    
+        res = (((r(a) + l(a))/2).mean() for (l,r), a in zip(bise, at))
+        return np.fromiter(res, dtype=float)
+
     def vspan(self, uu, ul, lu, ll, nn=20):
         """
         vspan based on upper interval [uu, ul] and lower interval [lu, ll]

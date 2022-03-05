@@ -144,13 +144,26 @@ def bisector_test(*specs):
 def intens_bubble(*specs):
     for spec in specs:
         intens = spec.intensity
+        v = spec.velocity
+        plt.figure()
+        plt.plot(v, intens.T)
         #v = spec.velocity
+        atdepth = np.linspace (0.1, 0.8, 64)
+        vm = spec.rv_bis_range_rel_depth(atdepth)
+        I = np.arange(61,66)
+        intens = 1-intens[:, I]
+        v = v[I]
+        vb = np.sum(intens*v[np.newaxis, :], axis=1)/np.sum(intens, axis=1)
+        plt.figure()
+        plt.plot(intens.T)
+        plt.figure()
+        plt.title('bumb-v '+ spec.name)
+        plt.plot(spec.time, vb, '.')
         plt.figure()
         plt.title(spec.name)
-        for inte in intens:
-            mini = np.min(inte)
-            plt.plot((inte-mini)/(1-mini))
-
+        for i in range(spec.number_of_nights()):
+            mask = spec.mask_of_night(i)
+            plt.plot(vm[mask].mean(), vb[mask].mean(), 'o')
 
 
 """
@@ -206,5 +219,5 @@ if __name__ == '__main__':
 
 
     # bisector_test(sophie2012, sophie2018, narval)
-    intens_bubble(sophie2012, sophie2018, narval)
+    intens_bubble(sophie2018)
     plt.show()
