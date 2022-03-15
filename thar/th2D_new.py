@@ -96,7 +96,7 @@ def _gauss(x, A, mu, sigma, y_offset):
 
 
 def gauss(x, A, mu, sigma, y_offset):
-    return 0.5 * np.sqrt(np.pi) * (erf((x+0.5-mu)/(np.sqrt(2)*sigma)) - erf((x-0.5-mu)/(np.sqrt(2)*sigma)))
+    return y_offset + 0.5 * np.sqrt(np.pi) * (erf((x+0.5-mu)/(np.sqrt(2)*sigma)) - erf((x-0.5-mu)/(np.sqrt(2)*sigma)))
 
 
 def smooth(y, box_pts):
