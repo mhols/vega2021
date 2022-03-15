@@ -4,6 +4,7 @@ import spectralutil as sp
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.polynomial import polynomial as Poly
 import sys
 
 
@@ -156,15 +157,26 @@ def intens_bubble(*specs):
         plt.figure()
         plt.plot(intens.T)
         intens = 1-intens
-        vb = np.sum(intens*v[np.newaxis, :], axis=1)/np.sum(intens, axis=1)
+        p = Poly.polyfit(v, intens.T, 2)
+        vb = -1*p[1]/(2*p[2])
+        # vb = np.sum(intens*v[np.newaxis, :], axis=1)/np.sum(intens, axis=1)
+        plt.figure()
+        plt.title('bulk-v '+ spec.name)
+        plt.plot(spec.time, vm, '.')
         plt.figure()
         plt.title('bumb-v '+ spec.name)
         plt.plot(spec.time, vb, '.')
+
         plt.figure()
         plt.title(spec.name)
         for i in range(spec.number_of_nights()):
             mask = spec.mask_of_night(i)
             plt.plot(vm[mask].mean(), vb[mask].mean(), 'o')
+        plt.figure()
+        plt.title(spec.name)
+        for i in range(spec.number_of_nights()):
+            mask = spec.mask_of_night(i)
+            plt.plot(vm[mask], vb[mask], 'o')
 
 
 """

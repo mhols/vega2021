@@ -20,7 +20,8 @@ import sys
 import scipy
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import interp1d
-from scipy import exp
+from scipy.special import erf
+from numpy import exp
 from scipy.signal import savgol_filter
 from scipy.signal import correlate
 from scipy.optimize import curve_fit
@@ -89,9 +90,14 @@ intens2=a[1].data['Beam2']
 
 orderlim=a[2].data['Orderlimit']
 
-def gauss(x, A, mu, sigma, y_offset):
+def _gauss(x, A, mu, sigma, y_offset):
 # A, sigma, mu, y_offset = p
    return A*np.exp(-(x-mu)**2/(2.*sigma**2)) + y_offset
+
+
+def gauss(x, A, mu, sigma, y_offset):
+    return 0.5 * np.sqrt(np.pi) * (erf((x+1-mu)/(np.sqrt(2)*sigma)) - erf((x-mu)/(np.sqrt(2)*sigma)))
+
 
 def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
