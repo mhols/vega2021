@@ -31,11 +31,12 @@ f=open('ThAr_Line_Cal_v2.pkl','rb')
 b=pickle.load(f,encoding='bytes')
 # liste de raies utilises par Arturo
 thararturo = np.array(b[b'Lines Atlas'])
-
-
-
 clum=3e5
+
 #lecture du fichier ascii du spectre ThAr de reference (UVES)
+#ce spectre contient une premiere colonne lambda, une seconde intensite,...
+#213358 lignes
+
 refname = 'thar_spec_MM201006.dat'
 #thar
 #213358 4
@@ -47,6 +48,7 @@ npt=num_lines-2
 linecount = 0
 refwave = zeros (npt, dtype =  float)
 refintens = zeros (npt, dtype =  float)
+
 
 fr = open(refname, 'r')
 linefr = fr.readline()
@@ -123,9 +125,9 @@ def plot_xcorr(x, y):
 outtableau1 = open("ThAr2D_voie1.dat","w")
 outtableau2 = open("ThAr2D_voie2.dat","w")
 
-#montrer = 'montremoi1'
+montrer = 'montremoi1'
 
-montrer = 'non'
+#montrer = 'non'
 
 # orderlim va de 0 a 152100, la 41eme valeur est a 0. Il y a donc 39 ordres en tout
 # in range 38,39 veut dire que tout ce qui est en dessous de 39, a partir de 0, donc 38
@@ -168,9 +170,9 @@ ordernum = zeros (orderlim.size, dtype = float)
 centrallam = zeros (orderlim.size, dtype = float)
 tordernum = zeros (orderlim.size, dtype = float)
 
-#for j in range (3,15):
+for j in range (10,11):
 #for j in range (31,orderlim.size-2):
-for j in range (2,orderlim.size-2):
+# j in range (2,orderlim.size-2):
 
     ordernum[j] = j
 # vrai numero d'ordre
