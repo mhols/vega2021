@@ -83,14 +83,14 @@ def play_2(lo, ga):
     ntrial = 1000  # number of random samples
 
     # prepare a random collection of parameters
-    A = 100
+    As = np.random.uniform(1000, 50000, size=ntrial)
     mus = np.random.uniform(low=nbins/2-1, high=nbins/2+1, size=ntrial)
-    sigmas = np.random.uniform(low=0.5, high=3, size=ntrial)
-    y_offsets= np.random.uniform(low=0.001, high=0.1, size=ntrial)*A
+    sigmas = np.random.uniform(low=1, high=3, size=ntrial)
+    y_offsets= np.random.uniform(low=0.001, high=0.1, size=ntrial)*As
 
     res = []  # to collect the simulation results
 
-    for mu, sigma, y_offset in zip(mus, sigmas, y_offsets):
+    for A, mu, sigma, y_offset in zip(As, mus, sigmas, y_offsets):
 
         #generating data
         n = np.arange(nbins)
@@ -101,13 +101,20 @@ def play_2(lo, ga):
     res = np.array(res)  # transforming into numpy array for better indexing
     Ae, mue, sigmae, y_offsete = res.T  # the columns are the estimates of the params
 
-    reduced_error = Ae**0.5 * (mue-mus)/sigmae**1.5
+
+    # this random variable seems to have a distribution which does
+    # more or less not depend on the parameters
+    reduced_error = Ae**(2/5) * (mue-mus)/sigmae**1.5
 
     print (np.mean(reduced_error), np.std(reduced_error))
 
     plt.figure()
     plt.title('reduced misfit as function of estimated sigma')
     plt.plot(sigmas, reduced_error, 'o')
+
+    plt.figure()
+    plt.title('reduced misfit as function of estimated A')
+    plt.plot(As, reduced_error, 'o')
 
     plt.figure()
     plt.plot(sigmas, sigmae-sigmas, 'ro')
