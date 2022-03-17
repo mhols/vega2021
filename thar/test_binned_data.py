@@ -16,7 +16,7 @@ def loss_1(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
     i = func(n, *params)
-    return np.sqrt(i)*(1-intens/i)
+    return (i-intens)/np.sqrt(i)
 
 def loss_2(params, *args):
     intens, func = args
@@ -28,7 +28,7 @@ def loss_3(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
     i = func(n, *params)
-    return np.sqrt(intens)*(1-i/intens)
+    return (i-intens)/np.sqrt(intens)
 
 def estimate_location(intens, fun, g):
 
@@ -46,27 +46,65 @@ def estimate_location(intens, fun, g):
     res = sop.least_squares(fun, params0, method='dogbox', bounds=bounds, ftol=1e-8, args=(intens, g))
     return res.x
 
-nbins = 7
+def play_1():
+    nbins = 9
 
-res1=[]
-res2=[]
+    res1=[]
+    res2=[]
+    res3=[]
 
-mus = np.linspace(1.8, 3.2, 50)
-for mu in mus:
-    y_offset = 0.05
-    A = 1
-    sigma = 0.9
+    mus = np.linspace(1.8, 3.2, 50)
+    for mu in mus:
+        A = 1000
+        y_offset = 0.01*A
+        sigma = 0.7
 
-    #generating data
-    n = np.arange(nbins)
-    ig = igauss(n, A, mu, sigma, y_offset)
-    ig += 0.001*np.random.normal(nbins) * np.sqrt(ig)
+        #generating data
+        n = np.arange(nbins)
+        ig = igauss(n, A, mu, sigma, y_offset)
+        ig += np.random.normal(nbins) * np.sqrt(ig)
+
+        res1.append(estimate_location(ig, loss_2, gauss)[1])
+        res2.append(estimate_location(ig, loss_1, igauss)[1])
+        res3.append(estimate_location(ig, loss_3, igauss)[1])
+    plt.plot(mus, res1-mus, label='g' )
+    plt.plot(mus, res2-mus, label='ig')
+    plt.plot(mus, res3-mus, label='iig')
+    plt.legend()
+    plt.show()
 
 
-    res1.append(estimate_location(ig, loss_2, gauss)[1])
-    res2.append(estimate_location(ig, loss_3, igauss)[1])
+def play_2(lo, ga):
+    """
+    lo: the loss function be used
+    ga: the gaussian model to be used
+    """
+    nbins = 9  # number of bins
+    ntrial = 10000  # number of random samples
 
-plt.plot(mus, res1-mus, label='g' )
-plt.plot(mus, res2-mus, label='ig')
-plt.legend()
-plt.show()
+    # prepare a random collection of parameters
+    A = 10000
+    mus = np.random.uniform(low=nbins/2-2, high=nbins/2+2, size=ntrial)
+    sigmas = np.random.uniform(low=0.5, high=4, size=ntrial)
+    y_offsets= np.random.uniform(low=0.001, high=0.1, size=ntrial)*A
+
+    res = []  # to collect the simulation results
+
+    for mu, sigma, y_offset in zip(mus, sigmas, y_offsets):
+
+        #generating data
+        n = np.arange(nbins)
+        ig = igauss(n, A, mu, sigma, y_offset)
+        ig += np.random.normal(size=nbins) * np.sqrt(ig)   #  poor man's Poisson error
+
+        res.append(estimate_location(ig, lo, ga))
+    res = np.array(res)
+    Ae, mue, sigmae, y_offsete = res.T
+
+    plt.figure()
+    plt.title('reduced misfit as function of estimated sigma')
+    plt.plot(sigmae, (mue-mus)/sigmae**1.5, 'o')
+
+    plt.show()
+
+play_2(loss_2, gauss)
