@@ -64,7 +64,7 @@ for mu in mus:
 
 
     res1.append(estimate_location(ig, loss_2, gauss)[1])
-    res2.append(estimate_location(ig, loss_3, igauss)[1])
+    res2.append(estimate_location(ig, loss_1, igauss)[1])
 
 plt.plot(mus, res1-mus, label='g' )
 plt.plot(mus, res2-mus, label='ig')
