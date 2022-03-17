@@ -40,7 +40,7 @@ def estimate_location(intens, fun, g):
     y_offset = np.min(intens)
 
     params0 = np.array([A, mu, sigma, y_offset/2])
-    bounds = (np.array([0, mu-3, sigma/3, 0]), np.array([1.5*A, mu+3, 3*sigma, y_offset]))
+    bounds = (np.array([A-np.sqrt(A), mu-2, sigma/2, 0]), np.array([A+np.sqrt(A), mu+2, 2*sigma, y_offset]))
 
 
     res = sop.least_squares(fun, params0, method='dogbox', bounds=bounds, ftol=1e-8, args=(intens, g))
@@ -79,13 +79,13 @@ def play_2(lo, ga):
     lo: the loss function be used
     ga: the gaussian model to be used
     """
-    nbins = 9  # number of bins
-    ntrial = 10000  # number of random samples
+    nbins =  11 # number of bins
+    ntrial = 1000  # number of random samples
 
     # prepare a random collection of parameters
-    A = 10000
-    mus = np.random.uniform(low=nbins/2-2, high=nbins/2+2, size=ntrial)
-    sigmas = np.random.uniform(low=0.5, high=4, size=ntrial)
+    A = 100
+    mus = np.random.uniform(low=nbins/2-1, high=nbins/2+1, size=ntrial)
+    sigmas = np.random.uniform(low=0.5, high=3, size=ntrial)
     y_offsets= np.random.uniform(low=0.001, high=0.1, size=ntrial)*A
 
     res = []  # to collect the simulation results
@@ -96,15 +96,21 @@ def play_2(lo, ga):
         n = np.arange(nbins)
         ig = igauss(n, A, mu, sigma, y_offset)
         ig += np.random.normal(size=nbins) * np.sqrt(ig)   #  poor man's Poisson error
-
+        ig = np.abs(ig)
         res.append(estimate_location(ig, lo, ga))
-    res = np.array(res)
-    Ae, mue, sigmae, y_offsete = res.T
+    res = np.array(res)  # transforming into numpy array for better indexing
+    Ae, mue, sigmae, y_offsete = res.T  # the columns are the estimates of the params
+
+    reduced_error = Ae**0.5 * (mue-mus)/sigmae**1.5
+
+    print (np.mean(reduced_error), np.std(reduced_error))
 
     plt.figure()
     plt.title('reduced misfit as function of estimated sigma')
-    plt.plot(sigmae, (mue-mus)/sigmae**1.5, 'o')
+    plt.plot(sigmas, reduced_error, 'o')
 
+    plt.figure()
+    plt.plot(sigmas, sigmae-sigmas, 'ro')
     plt.show()
 
-play_2(loss_2, gauss)
+play_2(loss_1, gauss)
