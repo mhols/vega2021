@@ -92,13 +92,13 @@ intens2=a[1].data['Beam2']
 
 orderlim=a[2].data['Orderlimit']
 
-def _gauss(x, A, mu, sigma, y_offset):
+def gauss(x, A, mu, sigma, y_offset):
 # A, sigma, mu, y_offset = p
    return A*np.exp(-(x-mu)**2/(2.*sigma**2)) + y_offset
 
 
-def gauss(x, A, mu, sigma, y_offset):
-    return y_offset + 0.5 * np.sqrt(np.pi) * (erf((x+0.5-mu)/(np.sqrt(2)*sigma)) - erf((x-0.5-mu)/(np.sqrt(2)*sigma)))
+def igauss(x, A, mu, sigma, y_offset):
+    return y_offset + 0.5 * A * np.sqrt(np.pi) * (erf((x+0.5-mu)/(np.sqrt(2)*sigma)) - erf((x-0.5-mu)/(np.sqrt(2)*sigma)))
 
 
 def smooth(y, box_pts):
@@ -170,7 +170,7 @@ ordernum = zeros (orderlim.size, dtype = float)
 centrallam = zeros (orderlim.size, dtype = float)
 tordernum = zeros (orderlim.size, dtype = float)
 
-for j in range (10,11):
+for j in range (20,21):
 #for j in range (31,orderlim.size-2):
 # j in range (2,orderlim.size-2):
 
