@@ -46,32 +46,6 @@ def estimate_location(intens, fun, g):
     res = sop.least_squares(fun, params0, method='dogbox', bounds=bounds, ftol=1e-8, args=(intens, g))
     return res.x
 
-<<<<<<< HEAD
-nbins = 7
-
-res1=[]
-res2=[]
-
-mus = np.linspace(1.8, 3.2, 50)
-for mu in mus:
-    y_offset = 0.05
-    A = 1
-    sigma = 0.9
-
-    #generating data
-    n = np.arange(nbins)
-    ig = igauss(n, A, mu, sigma, y_offset)
-    ig += 0.001*np.random.normal(nbins) * np.sqrt(ig)
-
-
-    res1.append(estimate_location(ig, loss_2, gauss)[1])
-    res2.append(estimate_location(ig, loss_1, igauss)[1])
-
-plt.plot(mus, res1-mus, label='g' )
-plt.plot(mus, res2-mus, label='ig')
-plt.legend()
-plt.show()
-=======
 def play_1():
     nbins = 9
 
@@ -147,4 +121,3 @@ def play_2(lo, ga):
     plt.show()
 
 play_2(loss_1, gauss)
->>>>>>> 29731424097ff25615c6cfbe64f5316538be45e6
