@@ -92,14 +92,14 @@ intens2=a[1].data['Beam2']
 
 orderlim=a[2].data['Orderlimit']
 
-def _gauss(x, A, mu, sigma, y_offset):
+def gauss(x, A, mu, sigma, y_offset):
 # A, sigma, mu, y_offset = p
    return A*np.exp(-(x-mu)**2/(2.*sigma**2)) + y_offset
 
-
-def gauss(x, A, mu, sigma, y_offset):
+"""
+def _gauss(x, A, mu, sigma, y_offset):
     return y_offset + 0.5 * np.sqrt(np.pi) * (erf((x+0.5-mu)/(np.sqrt(2)*sigma)) - erf((x-0.5-mu)/(np.sqrt(2)*sigma)))
-
+"""
 
 def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
@@ -570,7 +570,7 @@ for j in range (10,11):
         plt.show()
     plt.close()
 
-
+"""
 index=where(tordernum>0.)
 lam=centrallam[index]
 ord=tordernum[index]
@@ -594,6 +594,7 @@ plt.plot(ord,lam*(ord-2))
 
 plt.title("true ordernum identification")
 plt.show()
+"""
 
 outtableau1.close()
 outtableau2.close()
