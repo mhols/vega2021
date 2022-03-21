@@ -83,12 +83,13 @@ def play_2(lo, ga):
     ntrial = 1000  # number of random samples
 
     # prepare a random collection of parameters
-    As = np.random.uniform(1000, 50000, size=ntrial)
+    As = np.random.uniform(1000, 500000, size=ntrial)
     mus = np.random.uniform(low=nbins/2-1, high=nbins/2+1, size=ntrial)
     sigmas = np.random.uniform(low=1, high=3, size=ntrial)
     y_offsets= np.random.uniform(low=0.001, high=0.1, size=ntrial)*As
 
-    res = []  # to collect the simulation results
+    res = []  # to collect the gaussian fit estimates
+    ras = []  # to collect the mean as simple estimator
 
     for A, mu, sigma, y_offset in zip(As, mus, sigmas, y_offsets):
 
@@ -96,28 +97,31 @@ def play_2(lo, ga):
         n = np.arange(nbins)
         ig = igauss(n, A, mu, sigma, y_offset)
         ig += np.random.normal(size=nbins) * np.sqrt(ig)   #  poor man's Poisson error
-        ig = np.abs(ig)
+        ig = np.abs(ig)  # bad backfolding...
         res.append(estimate_location(ig, lo, ga))
+        ras.append(np.sum(ig*(n+0.5))/np.sum(ig))
     res = np.array(res)  # transforming into numpy array for better indexing
+    ras = np.array(ras)
     Ae, mue, sigmae, y_offsete = res.T  # the columns are the estimates of the params
 
 
     # this random variable seems to have a distribution which does
     # more or less not depend on the parameters
-    reduced_error = Ae**(2/5) * (mue-mus)/sigmae**1.5
+    reduced_error = Ae**(1/3) * (mue-mus)/sigmae**2
 
     print (np.mean(reduced_error), np.std(reduced_error))
 
     plt.figure()
-    plt.title('reduced misfit as function of estimated sigma')
+    plt.title('reduced misfit as function of sigma')
     plt.plot(sigmas, reduced_error, 'o')
 
     plt.figure()
-    plt.title('reduced misfit as function of estimated A')
+    plt.title('reduced misfit as function of A')
     plt.plot(As, reduced_error, 'o')
 
     plt.figure()
-    plt.plot(sigmas, sigmae-sigmas, 'ro')
+    plt.plot(mue, ras, 'o')
+
     plt.show()
 
-play_2(loss_1, gauss)
+play_2(loss_1, igauss)
