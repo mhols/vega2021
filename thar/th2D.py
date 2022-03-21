@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import math
 import string
 import sys
+import os
+import json
 import scipy
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import interp1d
@@ -125,6 +127,7 @@ def plot_xcorr(x, y):
 outtableau1 = open("ThAr2D_voie1.dat","w")
 outtableau2 = open("ThAr2D_voie2.dat","w")
 
+
 #montrer = 'montremoi1'
 
 montrer = 'non'
@@ -170,7 +173,11 @@ ordernum = zeros (orderlim.size, dtype = float)
 centrallam = zeros (orderlim.size, dtype = float)
 tordernum = zeros (orderlim.size, dtype = float)
 
-#for j in range (10,11):
+res1=[]
+res2=[]
+
+
+#for j in range (19,20):
 #for j in range (31,orderlim.size-2):
 for j in range (2,orderlim.size-2):
 
@@ -333,10 +340,25 @@ for j in range (2,orderlim.size-2):
             pixelposi1[k] = rgoptp[1]+mean(pixel1)
             print("gaussposi1[k]:", gaussposi1[k])
             print("pixelposi1[k]:", pixelposi1[k])
+            name1 = "ThAr2D_voie_1.dat"
+            name2 = "ThAr2D_voie_2.dat"
 
 # ici on ecrit le tableau de sortie (i, lam_i, true_ordre_i, posi_i,err_posi_i)
-            outtableau1.write("%4d %20.10e %2d %20.10e %20.10e" % (linecount, gaussposi1[k], tordernum[j], pixelposi1[k], erreurposi1[k])+str(pixel1)+str(yyy)+"\n")
-            outtableau1.write(pixel1,yyy)
+#            outtableau1.write("%4d %20.10e %2d %20.10e %20.10e" % (linecount, gaussposi1[k], tordernum[j], pixelposi1[k], erreurposi1[k])+str(pixel1)+str(yyy)+"\n")
+            res1.append({
+                'ThAr_line_number': linecount,
+                'ref_lambda': satlasext[k],
+                'meas_lambda': gaussposi1[k],
+                'true_order_number': tordernum[j],
+                'meas_pixel_position': pixelposi1[k],
+                'fit_error_pixel_position': erreurposi1[k],
+                'pixels_extract': pixel1.tolist(),
+                'flux_values_extract': yyy.tolist()
+            })
+
+
+
+
 # difference satlasext - gaussposi
             diff1[k] = satlasext[k]-gaussposi1[k]
             diff1ms[k] = diff1[k]/satlasext[k]*clum*1000.
@@ -397,7 +419,17 @@ for j in range (2,orderlim.size-2):
             print("gaussposi1[k]:", gaussposi2[k])
             print("pixelposi1[k]:", pixelposi2[k])
             # ici on ecrit le tableau de sortie (i, lam_i, true_ordre_i, posi_i,err_posi_i)
-            outtableau2.write("%15.7f %20.10e %20.10e %20.10e %20.10e\n" % (linecount, gaussposi2[k], tordernum[j], pixelposi2[k], erreurposi2[k])+str(pixel2)+str(yyy)+"\n")
+#        outtableau2.write("%15.7f %20.10e %20.10e %20.10e %20.10e\n" % (linecount, gaussposi2[k], tordernum[j], pixelposi2[k], erreurposi2[k])+str(pixel2)+str(yyy)+"\n")
+            res2.append({
+                'ThAr_line_number': linecount,
+                'ref_lambda': satlasext[k],
+                'meas_lambda': gaussposi2[k],
+                'true_order_number': tordernum[j],
+                'meas_pixel_position': pixelposi2[k],
+                'fit_error_pixel_position': erreurposi2[k],
+                'pixels_extract': pixel2.tolist(),
+                'flux_values_extract': yyy.tolist()
+            })
 # difference satlasext - gaussposi
             diff2[k] = satlasext[k]-gaussposi2[k]
             diff2ms[k] = diff2[k]/satlasext[k]*clum*1000.
@@ -601,3 +633,12 @@ plt.show()
 outtableau1.close()
 outtableau2.close()
 
+with open(name1+".json", 'w') as outfile:
+        json.dump(res1, outfile, indent=2)
+with open(name2+".json", 'w') as outfile:
+        json.dump(res2, outfile, indent=2)
+
+
+
+#                'name1': name1 + '.json',
+#                'description': "reference file voie 1",
