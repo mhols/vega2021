@@ -642,3 +642,9 @@ with open(name2+".json", 'w') as outfile:
 
 #                'name1': name1 + '.json',
 #                'description': "reference file voie 1",
+#with open("ThAr2D_voie_1.dat.json", "r") as read_file:
+#    data = json.load(read_file)
+#data[7]['true_order_number']
+#plt.plot(data[77]['pixels_extract'],data[77]['flux_values_extract'])
+#for line in data:
+#plt.plot(line['pixels_extract'],line['flux_values_extract'])
