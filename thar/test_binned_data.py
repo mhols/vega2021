@@ -1,50 +1,6 @@
-import scipy.special as sps
-import scipy.optimize as sop
 import numpy as np
 import matplotlib.pyplot as plt
-
-
-def gauss(x, A, mu, sigma, y_offset):
-    return y_offset + (A/  (np.sqrt(2*np.pi)*sigma)) * np.exp(-(x-mu)**2/(2*sigma**2))
-
-def igauss(x, A, mu, sigma, y_offset):
-    return y_offset +  0.5 * A * ( 
-        sps.erf((x+0.5-mu)/(np.sqrt(2)*sigma)) 
-        - sps.erf((x-0.5-mu)/(np.sqrt(2)*sigma)))
-
-def loss_1(params, *args):
-    intens, func = args
-    n = np.arange(intens.shape[0])
-    i = func(n, *params)
-    return (i-intens)/np.sqrt(i)
-
-def loss_2(params, *args):
-    intens, func = args
-    n = np.arange(intens.shape[0])
-    i = func(n, *params)
-    return intens-i
-
-def loss_3(params, *args):
-    intens, func = args
-    n = np.arange(intens.shape[0])
-    i = func(n, *params)
-    return (i-intens)/np.sqrt(intens)
-
-def estimate_location(intens, fun, g):
-
-    # first guess of parameters
-    n = np.arange(intens.shape[0])
-    A = np.sum(intens)
-    mu = np.sum( intens * n) / np.sum(intens)
-    sigma = np.sqrt(np.sum(intens * (n-mu)**2) / np.sum(intens))
-    y_offset = np.min(intens)
-
-    params0 = np.array([A, mu, sigma, y_offset/2])
-    bounds = (np.array([A-np.sqrt(A), mu-2, sigma/2, 0]), np.array([A+np.sqrt(A), mu+2, 2*sigma, y_offset]))
-
-
-    res = sop.least_squares(fun, params0, method='dogbox', bounds=bounds, ftol=1e-8, args=(intens, g))
-    return res.x
+from util import *
 
 def play_1():
     nbins = 9
@@ -102,7 +58,7 @@ def play_2(lo, ga):
         ras.append(np.sum(ig*(n+0.5))/np.sum(ig))
     res = np.array(res)  # transforming into numpy array for better indexing
     ras = np.array(ras)
-    Ae, mue, sigmae, y_offsete = res.T  # the columns are the estimates of the params
+    Ae, mue, sigmae, y_offset = res.T  # the columns are the estimates of the params
 
 
     # this random variable seems to have a distribution which does

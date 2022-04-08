@@ -14,7 +14,7 @@ def loss_1(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
     i = func(n, *params)
-    return (i-intens)/np.sqrt(i)
+    return (i-intens)/np.sqrt(np.abs(i)+1e-8)
 
 def loss_2(params, *args):
     intens, func = args

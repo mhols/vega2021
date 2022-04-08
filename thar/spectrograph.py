@@ -7,6 +7,15 @@ import matplotlib.pyplot as plt
 data1=None
 data2=None
 
+class PolySets:
+
+    def __init__(self):
+        pass
+
+    def func(self, i, ol, o):
+        pass
+
+
 def prepare_jsons():
     global data1, data2
     with open("./ThAr2D_voie_1.dat.json", "r") as f:
@@ -22,8 +31,8 @@ def prepare_jsons():
             p = l['pixels_extract'][0] +\
                 estimate_location(
                     np.array(l['flux_values_extract']), 
-                    loss_1, 
-                    gauss
+                    loss_1, # the loss function
+                    gauss   # the flux model
                 )
         except Exception as ex:
             print(ex)
@@ -40,6 +49,14 @@ def prepare_jsons():
         json.dump(res, f)
 
     print ('n negative ', shit)
+
+def estimate_polynome():
+    with open("./ThAr2D_voie_1_new.json", "r") as f:
+        data1 = json.load(f)
+
+    
+
+
 
 def plot_1():
     with open("./ThAr2D_voie_1_new.json", "r") as f:
@@ -77,7 +94,7 @@ def plot_2(n):
     plt.plot(pix, gauss(pix, *params_2), label='gauss')
     plt.legend()
 if __name__=='__main__':
-    #prepare_jsons()
-    #plot_1()
-    plot_2(int(sys.argv[1]))
+    prepare_jsons()
+    plot_1()
+    #plot_2(int(sys.argv[1]))
     plt.show()
