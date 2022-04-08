@@ -10,10 +10,32 @@ data2=None
 class PolySets:
 
     def __init__(self):
-        pass
+        n=5
+        o=7
+        crossmax=6
+
+        res=[]
+
+
+        count = 0
+        for i in range (n+1):
+            for j in range (o+1):
+                count+=1
+                if (i+j <= crossmax) | (i==0) | (j==0):
+                    #print(count,i,j)
+                    res.append((i,j))
+        self._monome = res
+        #print(res)
+    
 
     def func(self, i, ol, o):
-        pass
+        n,m = self._monome[i]
+        return ol**n*o**m
+        
+# hier nur Ableitung nach lambda (ol), da o bekannt sind
+    def dxfunc(self,i, ol, o):
+        n,m = self._monome[i]
+        return n*ol**(n-1)*o**m
 
 
 def prepare_jsons():
@@ -94,7 +116,12 @@ def plot_2(n):
     plt.plot(pix, gauss(pix, *params_2), label='gauss')
     plt.legend()
 if __name__=='__main__':
-    prepare_jsons()
+    """    prepare_jsons()
     plot_1()
     #plot_2(int(sys.argv[1]))
     plt.show()
+    """
+    P = PolySets()
+    x=P.func(5,30*5000.,30)
+    print(x)
+    #P._monome[5]qq
