@@ -240,11 +240,11 @@ class CCD2d:
                 for i in self.data_sigma_clipped.index]
 
     def get_lambda_list(self):
-        res = np.zeros(39*7980)
+        res = np.zeros(39*7800)
         i = 0
         for o in range(21, 60):
             print('working on order ', o)
-            for x in range(7980):
+            for x in range(7800):
                 res[i] = self.bare_x_to_lambda(x, o)
                 i +=1
         np.savetxt(self.kwargs['file_lambda_list'], res)
