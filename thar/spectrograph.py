@@ -247,7 +247,7 @@ class CCD2d:
             for x in range(7980):
                 res[i] = self.bare_x_to_lambda(x, o)
                 i +=1
-        np.savetxt(res, self.kwargs['file_lambda_list'])
+        np.savetxt(self.kwargs['file_lambda_list'], res)
 
 def get_orders(data, **kwargs):
     orders = list(set(data['true_order_number']))
