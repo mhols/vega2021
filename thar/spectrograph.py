@@ -17,7 +17,7 @@ default_kwargs = {
     'orders': np.arange(23, 59+1),
     'order_n': 6,
     'order_o': 7,
-    'crossmax': 7,
+    'crossmax': 10,
     'n_sigma_clip' : 5,
     'file_lambda_list': 'arturo.dat',
 }
