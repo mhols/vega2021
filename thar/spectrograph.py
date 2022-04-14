@@ -325,7 +325,7 @@ def pilote_1(**kwargs):
     CCD.get_lambda_list()
     
 if __name__=='__main__':
-    prepare_jsons()
+    #prepare_jsons()
     """plot_1()
     #plot_2(int(sys.argv[1]))
     plt.show()
