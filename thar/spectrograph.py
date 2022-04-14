@@ -25,7 +25,7 @@ default_kwargs = {
 
 def prepare_jsons():
     global data1, data2
-    with open("./ThAr2D_voie_3.dat.json", "r") as f:
+    with open("./ThAr2D_voie_1.dat.json", "r") as f:
         data = json.load(f)
 
     res = []
@@ -51,7 +51,7 @@ def prepare_jsons():
         l['sigma_new_mean'] = sigma
         res.append(l)
 
-    with open('ThAr2D_voie_3_new.json', 'w') as f:
+    with open('ThAr2D_voie_1_new.json', 'w') as f:
         json.dump(res, f)
 
     print ('n negative ', shit)
@@ -325,7 +325,7 @@ def pilote_1(**kwargs):
     CCD.get_lambda_list()
     
 if __name__=='__main__':
-    #prepare_jsons()
+    prepare_jsons()
     """plot_1()
     #plot_2(int(sys.argv[1]))
     plt.show()
