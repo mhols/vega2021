@@ -5,8 +5,10 @@ import pandas as pd
 import numpy as np
 from scipy.optimize import bisect
 from numpy.polynomial import Polynomial
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-
+matplotlib.rcParams['figure.dpi'] = 200 
 
 ## put the parameters of the probram here...
 default_kwargs = {
@@ -34,7 +36,7 @@ def prepare_jsons():
         try:
             dp, sigma = bootstrap_estimate_location(
                 np.array(l['flux_values_extract']), 
-                loss_2, # the loss function loss_2 L2
+                loss_3, # the loss function loss_2 L2
                 gauss   # the flux model
                 )
             p = l['pixels_extract'][0] + dp
@@ -163,23 +165,28 @@ class CCD2d:
     """
     resolution of ccd imaging
     """
-    def __init__(self, **kwargs):
+    def __init__(self, data=None, **kwargs):
         self.kwargs = kwargs  # saving for later use
         self.P = PolySets(**kwargs)  # the polynomials
-        data = pd.DataFrame(pd.read_json(kwargs['datafile']))
+        if data is None:
+            data = pd.DataFrame(pd.read_json(kwargs['datafile']))
         epsilon = kwargs.get('epsilon_sigma_bootstrap', 1.0)
         data = data[data['sigma_new_mean'] < epsilon]
         self.data = data
 
         # sigma clipping
+        self.P.estimate_polynome(self.data, **kwargs)
+
+    def sigma_clipped(self, **kwargs):
+        self.kwargs.update(kwargs)
+        # sigma clipping
+        data = sigma_clipping(self.data,
+                          epsilon=self.kwargs['epsilon_sigma_clipp'],
+                          fit=fit_polynome_direct_order_by_order, **self.kwargs)
         data = sigma_clipping(data,
-                          epsilon= get_kwarg(kwargs, 'epsilon_sigma_clipp', 3),
-                          fit=fit_polynome_direct_order_by_order, **kwargs)
-        data = sigma_clipping(data,
-                          epsilon= get_kwarg(kwargs, 'epsilon_sigma_clipp_2d', 3),
-                          fit=fit_2d_polynome, **kwargs)
-        self.data_sigma_clipped = data
-        self.P.estimate_polynome(self.data_sigma_clipped, **kwargs)
+                          epsilon=self.kwargs['epsilon_sigma_clipp_2d'],
+                          fit=fit_2d_polynome, **self.kwargs)
+        return CCD2d(data, **self.kwargs)
 
     def bare_x_to_lambda(self, x, o):
         """
@@ -202,19 +209,19 @@ class CCD2d:
 
     @property
     def x(self):
-        return self.data_sigma_clipped['new_mean_pixel_pos']
+        return self.data['new_mean_pixel_pos']
 
     @property
     def sigma(self):
-        return self.data_sigma_clipped['sigma_new_mean']
+        return self.data['sigma_new_mean']
 
     @property
     def l(self):
-        return self.data_sigma_clipped['ref_lambda']
+        return self.data['ref_lambda']
 
     @property
     def o(self):
-        return self.data_sigma_clipped['true_order_number']
+        return self.data['true_order_number']
 
     def lambda_to_x(self, l, o):
         return self.P(o*l, o)
@@ -258,7 +265,7 @@ def get_orders(data, **kwargs):
 def plot_4(**kwargs):
     data = load_data1(**kwargs)
     data = sigma_clipping(data,
-                          epsilon=get_kwarg(kwargs, 'epsilon_sigma_clipp', 3),
+        epsilon=get_kwarg(kwargs, 'epsilon_sigma_clipp', 3),
                           fit=fit_polynome_direct_order_by_order, **kwargs)
 
     o0 = 45                       # reference order for plotting
@@ -285,8 +292,8 @@ def plot_4(**kwargs):
 def plot_5(**kwargs):
     # data = load_data1(**kwargs)
 
-    CCD = CCD2d(**kwargs)
-    data = CCD.data_sigma_clipped
+    CCD = CCD2d(**kwargs).sigma_clipped()
+    data = CCD.data
     orders = get_orders(data, **kwargs)
 
     l = data['ref_lambda']
@@ -321,11 +328,11 @@ def plot_5(**kwargs):
     print( CCD.rms() )
 
 def pilote_1(**kwargs):
-    CCD = CCD2d(**kwargs)
+    CCD = CCD2d(**kwargs).sigma_clipped()
     CCD.get_lambda_list()
     
 if __name__=='__main__':
-    #prepare_jsons()
+    prepare_jsons()
     """plot_1()
     #plot_2(int(sys.argv[1]))
     plt.show()
@@ -347,8 +354,8 @@ if __name__=='__main__':
         'n_sigma_clip' : 5,
     })
     # plot_4(**kwargs)
-    # plot_5(**kwargs)
-    pilote_1(**kwargs)
+    plot_5(**kwargs)
+    # pilote_1(**kwargs)
 
-    # plt.show()
+    plt.show()
 

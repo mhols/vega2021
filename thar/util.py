@@ -18,14 +18,17 @@ def gauss(x, A, mu, sigma, y_offset):
 
 def igauss(x, A, mu, sigma, y_offset):
     return y_offset +  0.5 * A * (
-        sps.erf((x+0.5-mu)/(np.sqrt(2)*sigma))
-        - sps.erf((x-0.5-mu)/(np.sqrt(2)*sigma)))
+        sps.erf((x + 0.5 - mu)/(np.sqrt(2)*sigma))
+        - sps.erf((x -0.5 -mu)/(np.sqrt(2)*sigma)))
+
+def cauchy(x, A, mu, sigma, y_offset):
+    return y_offset + A*sigma/(sigma**2 + (x-mu)**2)
 
 def loss_1(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
     i = func(n, *params)
-    return (i-intens)/np.sqrt(np.abs(i)+1e-8)
+    return np.abs(i-intens)/np.sqrt(np.abs(i)+1e-8)
 
 def loss_2(params, *args):
     intens, func = args
@@ -39,26 +42,51 @@ def loss_3(params, *args):
     i = func(n, *params)
     return (i-intens)/np.sqrt(intens)
 
+
+def mean_histogram_estimator(intens):
+    """
+    removing baseline followed by histogram mean
+    """
+    lag = 2 # for continuum estimation
+    cont = (np.mean(intens[:lag])+np.mean(intens[-lag:]))/2
+    cont = 0 #0.5*(intens[0]+intens[-1])
+    intens = intens - max(0.0, np.min(intens))
+    n = np.arange(intens.shape[0])
+    intens = np.abs(intens)
+    return np.sum(n*intens) / np.sum(intens)
+
 def estimate_location(intens, fun, g):
 
-    # check positivity
-    intens = intens - min(0, np.min(intens))
+    # backproject on positivity
+    intens = intens - max(0, np.min(intens))
     # first guess of parameters
     n = np.arange(intens.shape[0])
     A = np.sum(np.abs(intens))
-    mu = np.sum(np.abs(intens) * n) / np.sum(np.abs(intens))
-    sigma = np.sqrt(np.sum(np.abs(intens) * (n-mu)**2)) / np.sum(np.abs(intens))
-    y_min = np.min(intens)
-    y_max = np.min(intens)
+    Amin = max(0, A-4*np.sqrt(A))
+    Amax = A+4*np.sqrt(A)
 
-    params0 = np.array([A, mu, sigma, 0])
-    bounds = (np.array([max(0, A-5*np.sqrt(A)), 0, sigma/10, -y_min-1]), 
-              np.array([A+4*np.sqrt(A),         len(intens)-1, 4*sigma,  y_max]))
+    mu = len(intens)/2
+    mumin = 0
+    mumax = len(intens)+1
+
+    sigma = len(intens)
+    sigmamax = 4*sigma
+    sigmamin = 0.1
+
+    y_offset_min = 0
+    y_offset_max = 10 + max(0, np.min(intens))
+    y_offset = (y_offset_min+y_offset_max)/2
+
+    params0 = np.array([A, mu, sigma, y_offset])
+
+    bounds = (np.array([Amin, mumin, sigmamin, y_offset_min]),
+              np.array([Amax, mumax, sigmamax, y_offset_max]))
+
     res = sop.least_squares(
         fun, 
         params0, 
         bounds=bounds, 
-        method='dogbox', 
+        #method='dogbox', 
         args=(intens, g))
     return res.x
 
