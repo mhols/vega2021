@@ -8,7 +8,7 @@ from numpy.polynomial import Polynomial
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-matplotlib.rcParams['figure.dpi'] = 200 
+matplotlib.rcParams['figure.dpi'] = 200
 
 ## put the parameters of the probram here...
 default_kwargs = {
