@@ -8,6 +8,7 @@ from numpy.polynomial import Polynomial
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+from matplotlib import cm
 matplotlib.rcParams['figure.dpi'] = 200
 
 ## put the parameters of the probram here...
@@ -25,38 +26,6 @@ default_kwargs = {
 }
 
 
-def prepare_jsons():
-    global data1, data2
-    with open("./ThAr2D_voie_1.dat.json", "r") as f:
-        data = json.load(f)
-
-    res = []
-    shit = 0
-    for l in data:
-        try:
-            dp, sigma = bootstrap_estimate_location(
-                np.array(l['flux_values_extract']), 
-                loss_1, # the loss function loss_2 L2
-                gauss   # the flux model
-                )
-            p = l['pixels_extract'][0] + dp
-
-        except Exception as ex:
-            print(l, ex)
-            shit += 1
-            plt.figure()
-            plt.plot(l['flux_values_extract'])
-            plt.show()
-            continue
-
-        l['new_mean_pixel_pos'] = p
-        l['sigma_new_mean'] = sigma
-        res.append(l)
-
-    with open('ThAr2D_voie_1_new.json', 'w') as f:
-        json.dump(res, f)
-
-    print ('n negative ', shit)
 
 def link_ol(ol):
     return ol/1000
@@ -99,6 +68,68 @@ def load_data1(**kwargs):
     data1 = data1[data1['sigma_new_mean'] < epsilon]
 
     return data1
+
+class SpectralInterpolator:
+    """
+    an abstract baseclass for possible interpolation schemes
+    """
+    def __init__(self, 
+                 mean_coefficients_fixed, 
+                 mean_coefficients_random,
+                 covariance_fixed,
+                 covariance_random,
+                 prior_mean,
+                 prior_covar,
+                 x, dx, ol, o):
+        if np.any([mean_coefficients_fixed is None, 
+                   mean_coefficients_random is None,
+                   covariance_fixed is None,
+                   covariance_random is None]):
+            self.estimate_model(x, dx, ol, o)
+
+    def estimate_model(self, x, dx, ol, o):
+        self.F = np.column_stack([
+            self._eval_basis_functions_fixed_effects(ool, oo) 
+             for ool, oo in zip(ol, o)
+        ])
+        self.R = np.column_stack([
+            self._eval_basis_functions_random_effects(ool, oo) 
+             for ool, oo in zip(ol, o)
+        ])
+        Sigma = np.diag(dx**2) + np.dot(self.R.T, np.dot(prior_covar, self.R))
+        L = np.linalg.cholesky(Sigma)
+        FF = np.solve(L.T, self.F)
+        xx = np.solve(L.T, x)
+        self.coeff_fixed = np.linalg.lstsq(FF, xx)
+
+
+
+    def x_at_ol_o(ol, o):
+        pass
+
+    def ol_at_x_o(x, o):
+        pass
+
+    def std_at_x_o(x, o):
+        pass
+
+    def std_rv_at_x_o(dx, x, o):
+        pass
+
+    def _eval_basis_functions_fixed_effects(ol, o):
+        pass
+
+    def _eval_basis_functions_random_effects(ol, o):
+        pass
+
+class ChebyshevInterpolator(SpectralInterpolator):
+
+    def __init__(self, loc):
+        """
+        :loc: list of tuples of combined orders (ol, o)
+        """
+
+
 
 class PolySets:
     """
@@ -170,12 +201,69 @@ class CCD2d:
         self.P = PolySets(**kwargs)  # the polynomials
         if data is None:
             data = pd.DataFrame(pd.read_json(kwargs['datafile']))
-        epsilon = kwargs.get('epsilon_sigma_bootstrap', 1.0)
-        data = data[data['sigma_new_mean'] < epsilon]
         self.data = data
+        self._orders = list(set(self.data['true_order_number']))
 
-        # sigma clipping
-        self.P.estimate_polynome(self.data, **kwargs)
+        if self.kwargs['bootstrap_data']:
+            self.bootstrap_data()
+
+        # basic outlier removal / quality filter
+        self.outlier_removal_1()
+
+    def bootstrap_data(self):
+        res = []
+        new_mean_pixel_pos = []
+        sigma_new_mean = []
+        shit = 0
+        for i, line in self.data.iterrows():
+            position = np.nan
+            sigma = np.nan
+            try:
+                delta_p, sigma = bootstrap_estimate_location(
+                    np.array(line['flux_values_extract']),
+                    **self.kwargs
+                    )
+                position = line['pixels_extract'][0] + delta_p
+
+            except Exception as ex:
+                print(i, line, ex)
+                shit += 1
+                #plt.figure()
+                #plt.plot(l['flux_values_extract'])
+                #plt.show()
+                #continue
+            new_mean_pixel_pos.append(position)
+            sigma_new_mean.append(sigma)
+            #l['new_mean_pixel_pos'] = p
+            #l['sigma_new_mean'] = sigma
+            #res.append(l)
+        # self.data = pd.DataFrame(res)
+        self.data['new_mean_pixel_pos'] = pd.Series(new_mean_pixel_pos)
+        self.data['sigma_new_mean'] = pd.Series(sigma_new_mean)
+
+        if self.kwargs['save_bootstraped_data']:
+            self.data.to_json(self.kwargs['bootstraped_file'])
+
+        print ('n negative ', shit)
+
+    def fit_polynomial(self, nol, no):
+        """
+        computes a polynomial proxy
+        """
+        pass
+
+    def color_of_order(self, o):
+        cmap = cm.get_cmap(self.kwargs['palette_order'])
+        colors = cmap(np.linspace(0,1, len(self._orders)))
+        return colors[o-self._orders[0]]
+
+    def outlier_removal_1(self):
+        """
+        removing outliers based on bootstrap uncertainty 
+        of histotram expectation
+        """
+        epsilon = self.kwargs['epsilon_sigma_bootstrap']
+        self.data = self.data[self.data['sigma_new_mean'] < epsilon]
 
     def sigma_clipped(self, **kwargs):
         self.kwargs.update(kwargs)

@@ -90,22 +90,27 @@ def estimate_location(intens, fun, g):
         args=(intens, g))
     return res.x
 
-def bootstrap_estimate_location(intens, fun, g, size=50):
+function_map = {
+    'gauss': gauss,
+    'igauss': igauss,
+    'cauchy': cauchy,
+    'loss_1': loss_1,
+    'loss_2': loss_2,
+    'loss_3': loss_3,
+}
+
+
+def bootstrap_estimate_location(intens, **kwargs):
+    g = function_map[kwargs['profile']]
+    size = kwargs['n_bootstrap']
+    fun = function_map[kwargs['loss_function']]
     intens = intens - min(0, np.min(intens))
     p = intens / np.sum(intens)
 
     n = int(np.sum(intens))
     intens = np.random.multinomial(n, p, size)
-    import matplotlib.pyplot as plt
     res = [ estimate_location(inte, fun, g)[1] for inte in intens]
-    """plt.figure()
-    for inte in intens:
-        plt.plot(inte)
-    plt.show()
 
-    plt.plot(res)
-    plt.show()
-    """
     return np.mean(res), np.std(res)
 
 def sigma_clipping(
