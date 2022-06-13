@@ -147,7 +147,7 @@ class PolySets:
         res=[]
         for i in range (self.n+1):
             for j in range (self.o+1):
-                if (i+j <= self.crossmax) | (i==0) | (j==0):
+                if (i + j <= self.crossmax) | (i==0) | (j==0):
                     res.append((i,j))
         self._monome = res
 
@@ -209,6 +209,26 @@ class CCD2d:
 
         # basic outlier removal / quality filter
         self.outlier_removal_1()
+
+        # create fixed effects
+  
+    def generate_fixed_effects(self):
+        Nlo = self.kwargs['Nlo']
+        No = len(self.get_orders())
+        N = max(Nlo, No)
+        ol_range = ((self.o * self.l).min(), (self.o * self.l).max())
+        o_range = (self.get_orders().min(), self.get_orders().max())
+        I = np.identity(No + 1)
+        Cheb_o = [np.polynomial.chebyshev.Chebyshev(c, window=[-1,1], domain=o_range) for c in I]
+        lo_range = (self.get_orders().min(), self.get_orders().max())
+        I = np.identity(Nlo + 1)
+        Cheb_o = [np.polynomial.chebyshev.Chebyshev(c, window=[-1,1], domain=lo_range) for c in I]
+
+        
+        #self._fixed_effects = [lambda ol, o: T1(ol)*T2(o) for ()]
+   
+
+
 
     def bootstrap_data(self):
         res = []
@@ -420,7 +440,27 @@ def pilote_1(**kwargs):
     CCD.get_lambda_list()
     
 if __name__=='__main__':
-    prepare_jsons()
+
+    kwargs = {
+    "datafile": "ThAr2D_voie_3_new.json",
+    'bootstrap_data': False,
+    'n_bootstrap': 100,                             # number of bootstrap experiments
+    'profile': 'gauss',
+    'loss_function': 'loss_1',                     # weighted L2-loss
+    'save_bootstraped_data': False,
+    'bootstraped_file': 'ThAr2D_voie_3_new.json',
+    'epsilon_sigma_bootstrap': 2.0,         # locations with larger uncertainty are removed
+    'epsilon_sigma_clipp': 8,
+    'epsilon_sigma_clipp_2d' : 5,
+    'orders': np.arange(23, 59+1),          # orders to use, set None if taken from data
+    'palette_order': 'rainbow',
+    'order_n': 6,
+    'order_o': 7,
+    'n_sigma_clip' : 5,
+    'file_lambda_list': 'lambda_thar_voie_3.dat',
+    }
+    data = CCD2d(**kwargs)
+    data.get_lambda_list()
     sys.exit(0)
     """plot_1()
     #plot_2(int(sys.argv[1]))
