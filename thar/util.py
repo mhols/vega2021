@@ -125,14 +125,11 @@ def sigma_clipping(
     n: number of iterations (<=0 or None means iterate until no change)
     """
     i = 0
-    lenold = 0
     n = kwargs.get('n_sigma_clip', 5)
     while i < n:
         I = fit(data)<=epsilon
-        print(i, len(data), len(I))
-        data = data[I]
-        if len(I)==lenold:
+        if np.all(I):
             break
+        data = data[I]
         i+=1
-        lenold = len(I)
     return data

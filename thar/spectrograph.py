@@ -3,7 +3,9 @@ from util import *
 import sys
 import pandas as pd
 import numpy as np
+import scipy as sp
 from scipy.optimize import bisect
+from scipy.interpolate import interp1d
 from numpy.polynomial import Polynomial
 import matplotlib
 matplotlib.use('TkAgg')
@@ -11,198 +13,17 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 matplotlib.rcParams['figure.dpi'] = 200
 
-## put the parameters of the probram here...
-default_kwargs = {
-    "datafile": "ThAr2D_voie_1_new.json",
-    'epsilon_sigma_bootstrap': 2.0,
-    'epsilon_sigma_clipp': 8,
-    'epsilon_sigma_clipp_2d' : 5,
-    'orders': np.arange(23, 59+1),
-    'order_n': 6,
-    'order_o': 7,
-    'crossmax': 10,
-    'n_sigma_clip' : 5,
-    'file_lambda_list': 'arturo.dat',
-}
-
-
-
-def link_ol(ol):
-    return ol/1000
-
-def fit_polynome_direct_order_by_order(data, **kwargs):
-    orders = get_orders(data, **kwargs)
-    porder_ol = get_kwarg(kwargs, 'porder_ol', 6)
-
-    eps = pd.Series(index=data.index, dtype=float)
-    for o in orders:
-        I = data['true_order_number']==o
-        s = data[I]['sigma_new_mean'].to_numpy()
-        l = data[I]['ref_lambda'].to_numpy()
-        x = data[I]['new_mean_pixel_pos'].to_numpy()
-        p = np.polyfit(link_ol(o*l), x, porder_ol, w=1./s)
-        eps[I] = np.abs((np.polyval(p, link_ol(o*l)) - x))/s
-    return eps
-
-def fit_2d_polynome(data, **kwargs):
-    """
-    two d polynomial fit
-    """
-    P = PolySets()
-    P.estimate_polynome(data)
-    print(P.coeffs)
-    o = data['true_order_number']
-    l = data['ref_lambda']
-    x = data['new_mean_pixel_pos']
-    s = data['sigma_new_mean']
-
-    eps = np.abs((P(o*l, o) - x))/s
-    return eps
-
-def load_data1(**kwargs):
-    """
-    returns data1 with simple quality filter (sigma < epsilon)
-    """
-    data1 = pd.DataFrame(pd.read_json(kwargs['datafile']))
-    epsilon = kwargs['epsilon_sigma_bootstrap']
-    data1 = data1[data1['sigma_new_mean'] < epsilon]
-
-    return data1
-
-class SpectralInterpolator:
-    """
-    an abstract baseclass for possible interpolation schemes
-    """
-    def __init__(self, 
-                 mean_coefficients_fixed, 
-                 mean_coefficients_random,
-                 covariance_fixed,
-                 covariance_random,
-                 prior_mean,
-                 prior_covar,
-                 x, dx, ol, o):
-        if np.any([mean_coefficients_fixed is None, 
-                   mean_coefficients_random is None,
-                   covariance_fixed is None,
-                   covariance_random is None]):
-            self.estimate_model(x, dx, ol, o)
-
-    def estimate_model(self, x, dx, ol, o):
-        self.F = np.column_stack([
-            self._eval_basis_functions_fixed_effects(ool, oo) 
-             for ool, oo in zip(ol, o)
-        ])
-        self.R = np.column_stack([
-            self._eval_basis_functions_random_effects(ool, oo) 
-             for ool, oo in zip(ol, o)
-        ])
-        Sigma = np.diag(dx**2) + np.dot(self.R.T, np.dot(prior_covar, self.R))
-        L = np.linalg.cholesky(Sigma)
-        FF = np.solve(L.T, self.F)
-        xx = np.solve(L.T, x)
-        self.coeff_fixed = np.linalg.lstsq(FF, xx)
-
-
-
-    def x_at_ol_o(ol, o):
-        pass
-
-    def ol_at_x_o(x, o):
-        pass
-
-    def std_at_x_o(x, o):
-        pass
-
-    def std_rv_at_x_o(dx, x, o):
-        pass
-
-    def _eval_basis_functions_fixed_effects(ol, o):
-        pass
-
-    def _eval_basis_functions_random_effects(ol, o):
-        pass
-
-class ChebyshevInterpolator(SpectralInterpolator):
-
-    def __init__(self, loc):
-        """
-        :loc: list of tuples of combined orders (ol, o)
-        """
-
-
-
-class PolySets:
-    """
-    two 2 polynomial interpolation class
-    highly NON optimized.....
-    """
-    def __init__(self, **kwargs):
-        self._2dpoly(**kwargs)
-
-    def _2dpoly(self, **kwargs):
-        self.n=get_kwarg(kwargs, 'order_n',  6)
-        self.o=get_kwarg(kwargs, 'order_o', 7)
-        self.crossmax=get_kwarg(kwargs, 'crossmax', 6)
-
-        res=[]
-        for i in range (self.n+1):
-            for j in range (self.o+1):
-                if (i + j <= self.crossmax) | (i==0) | (j==0):
-                    res.append((i,j))
-        self._monome = res
-
-    def nfunc(self):
-        return len(self._monome)
-
-    def func(self, i, ol, o):
-        n,m = self._monome[i]
-        return ol**n*o**m
-
-    def dxfunc(self,i, ol, o):
-        """
-        hier nur Ableitung nach lambda (ol), da o bekannt sind
-        """
-        n,m = self._monome[i]
-        return n*ol**(n-1)*o**m
-
-    def estimate_polynome(self, data, **kwargs):
-
-        n_data = data.shape[0]
-        n_poly = self.nfunc()
-
-        F = np.zeros((n_data, n_poly))
-        i=0
-        for k, row in data.iterrows():
-            for j in range(n_poly):
-                o = row['true_order_number']
-                l = row['ref_lambda']
-                F[i,j] = self.func(j,link_ol(o*l), o)
-            i+=1
-        x = data['meas_pixel_position']
-        w = 1./ data['sigma_new_mean']
-        Fw = F * np.sqrt(w)[:, np.newaxis]
-        xw = x * np.sqrt(w)
-        self.coeffs = np.linalg.lstsq(Fw, xw)[0]
-
-    def __call__(self, ol, o):
-        """
-        evaluation at (ol, o)
-        """
-        return sum (
-            [self.coeffs[i]*self.func(i, link_ol(ol), o) for i in range(self.nfunc())]
-        )
 
 class CCD2d:
     """
-    resolution of ccd imaging
+    #  resolution of ccd imaging
     """
     def __init__(self, data=None, **kwargs):
         self.kwargs = kwargs  # saving for later use
-        self.P = PolySets(**kwargs)  # the polynomials
         if data is None:
             data = pd.DataFrame(pd.read_json(kwargs['datafile']))
         self.data = data
-        self._orders = list(set(self.data['true_order_number']))
+        # self._orders = list(set(self.data['true_order_number']))
 
         if self.kwargs['bootstrap_data']:
             self.bootstrap_data()
@@ -211,7 +32,8 @@ class CCD2d:
         self.outlier_removal_1()
 
         # create fixed effects
-  
+        self.polynomial_fit = {}
+
     def generate_fixed_effects(self):
         Nlo = self.kwargs['Nlo']
         No = len(self.get_orders())
@@ -227,8 +49,6 @@ class CCD2d:
         
         #self._fixed_effects = [lambda ol, o: T1(ol)*T2(o) for ()]
    
-
-
 
     def bootstrap_data(self):
         res = []
@@ -266,16 +86,11 @@ class CCD2d:
 
         print ('n negative ', shit)
 
-    def fit_polynomial(self, nol, no):
-        """
-        computes a polynomial proxy
-        """
-        pass
 
     def color_of_order(self, o):
         cmap = cm.get_cmap(self.kwargs['palette_order'])
-        colors = cmap(np.linspace(0,1, len(self._orders)))
-        return colors[o-self._orders[0]]
+        colors = cmap(np.linspace(0,1, len(self.get_orders())))
+        return colors[o-self.get_orders()[0]]
 
     def outlier_removal_1(self):
         """
@@ -283,18 +98,46 @@ class CCD2d:
         of histotram expectation
         """
         epsilon = self.kwargs['epsilon_sigma_bootstrap']
-        self.data = self.data[self.data['sigma_new_mean'] < epsilon]
+        self.data = self.data[self.data['sigma_new_mean'] < epsilon].copy().reset_index(drop=True)
 
-    def sigma_clipped(self, **kwargs):
-        self.kwargs.update(kwargs)
+
+    def eval_polynomial(self, ol, o):
+        return np.array([ self.polynomial_fit[oo](ooll) for oo, ooll in zip(o, ol)])
+
+    def sigma_clipping(self):
         # sigma clipping
-        data = sigma_clipping(self.data,
-                          epsilon=self.kwargs['epsilon_sigma_clipp'],
-                          fit=fit_polynome_direct_order_by_order, **self.kwargs)
-        data = sigma_clipping(data,
-                          epsilon=self.kwargs['epsilon_sigma_clipp_2d'],
-                          fit=fit_2d_polynome, **self.kwargs)
-        return CCD2d(data, **self.kwargs)
+
+        epsilon=self.kwargs['epsilon_sigma_clipp']
+        thd = epsilon
+        for i in range(self.kwargs['n_sigma_clip']):
+            self.fit_polynomial_order_by_order()
+            res = self.eval_polynomial(self.o*self.l, self.o) - self.x
+
+            if self.kwargs['clipp_method'] == 'pixerror':
+                thd = 1 * epsilon
+            elif self.kwargs['clipp_method'] == 'rel_std':
+                thd = self.sigma * epsilon
+            else:
+                thd = epsilon * np.std(res)
+            I = np.abs(res)<=thd
+            if np.all(I):
+                break
+            self.data = self.data[I].copy().reset_index(drop=True)
+
+        epsilon=self.kwargs['epsilon_sigma_clipp_2d']
+        for i in range(self.kwargs['n_sigma_clip']):
+            self.fit_2d_polynomial()
+            res = self.eval_polynomial(self.ol, self.o) - self.x
+            if self.kwargs['clipp_method'] == 'pixerror':
+                thd = 1 * epsilon
+            elif self.kwargs['clipp_method'] == 'rel_std':
+                thd = self.sigma * epsilon
+            else:
+                thd = epsilon * np.std(res)
+            I = np.abs(res)<=thd
+            if np.all(I):
+                break
+            self.data = self.data[I].copy().reset_index(drop=True)
 
     def bare_x_to_lambda(self, x, o):
         """
@@ -315,6 +158,20 @@ class CCD2d:
 
         return lam
 
+    def lambda_at_x_o(self, x, o):
+        nn = 10001
+        olams = np.linspace(self.ol.min()/1.05, self.ol.max()*1.05, nn, endpoint=True)
+        p = interp1d(
+            self.polynomial_fit[o] (olams), 
+            olams)
+        return p(x)/o
+
+    def lambda_map_at_o(self, o):
+        nn = 10001
+        olams = np.linspace(self.ol.min()/1.05, self.ol.max()*1.05, nn, endpoint=True)
+        p = interp1d(self.polynomial_fit[o] (olams), olams/o)
+        return p
+
     @property
     def x(self):
         return self.data['new_mean_pixel_pos']
@@ -322,6 +179,7 @@ class CCD2d:
     @property
     def sigma(self):
         return self.data['sigma_new_mean']
+
 
     @property
     def l(self):
@@ -331,8 +189,9 @@ class CCD2d:
     def o(self):
         return self.data['true_order_number']
 
-    def lambda_to_x(self, l, o):
-        return self.P(o*l, o)
+    @property
+    def ol(self):
+        return self.o * self.l
 
     def index_order(self, o):
         return self.data['true_order_number']==o
@@ -342,103 +201,129 @@ class CCD2d:
         orders = get_kwarg(self.kwargs, 'orders', orders)
         return orders
 
-    def polynomes_order_per_order(self):
-        n = get_kwarg(self.kwargs, 'n_poly', 6)
+    def fit_global_polynomial(self, **kwargs):
+        n = kwargs.get('order_ol', self.kwargs['order_ol'])
         res = {}
+        ol = self.o * self.l
+        domain = [ol.min(), ol.max()]
+        p = np.polynomial.chebyshev.Chebyshev.fit(ol, self.x, 
+                                                domain=domain, 
+                                                deg=n, 
+                                                w = 1/self.sigma)
+
+        self.polynomial_fit = { o: p for o in self.get_orders()}
+
+        return p
+
+    def fit_polynomial_order_by_order(self, **kwargs):
+        n = kwargs.get('order_ol', self.kwargs['order_ol'])
+        res = {}
+        ol = self.o * self.l
+        domain = [ol.min(), ol.max()]
         for o in self.get_orders():
             I = self.index_order(o)
-            res[o] = np.polyfit(self.l[I]*o, self.x[I], w = 1/self.sigma[I])
+            res[o] = np.polynomial.chebyshev.Chebyshev.fit(self.l[I]*o, self.x[I], 
+                                                           domain=domain, 
+                                                           deg=n, 
+                                                           w = 1/self.sigma[I])
+        self.polynomial_fit = res
         return res
 
-    def rms(self):
-        return [ 3e8 * (self.bare_x_to_lambda(self.x[i],self.o[i])/self.l[i]-1)
-                for i in self.data_sigma_clipped.index]
+    def fit_2d_polynomial(self):
+        """
+        # computes a polynomial proxy
+        """
+
+        olrange = [(self.o * self.l).min(), (self.o*self.l).max()]
+        orange = [self.o.min(), self.o.max()]
+
+        Nol = self.kwargs['order_ol']+1
+        No  = self.kwargs['order_o'] +1
+
+        nolko = [(n, k) for n in range(Nol) for k in range(No)]
+
+        Tshebol = [np.polynomial.chebyshev.Chebyshev.basis(
+                    window=[-1,1], 
+                    domain=olrange, 
+                    deg=n) for n in range(Nol)]
+
+        Tshebo = [np.polynomial.chebyshev.Chebyshev.basis(
+                    window=[-1,1], 
+                    domain=orange,
+                    deg=n) for n in range(No)]
+
+        G = np.zeros((self.ndata(), len(nolko)))
+        for i in range(self.ndata()):
+            for j in range(len(nolko)):
+                nol, no = nolko[j]
+                G[i,j] = Tshebol[nol](self.o[i]*self.l[i]) * Tshebo[no](self.o[i])
+
+        sigma_min = self.kwargs['sigma_min']
+        G = (1./np.sqrt(self.sigma**2+sigma_min**2))[:, np.newaxis] * G
+        coeffs = np.linalg.lstsq(G, (1./self.sigma) * self.x )[0]
+
+        self.polynomial_fit = {o : 
+                               sum([ coeffs[i] * Tshebol[nol] * Tshebo[no](o) for i, (nol, no) in enumerate(nolko)]) 
+                               for o in self.get_orders() }
+       
+        return self.polynomial_fit
+
+    def ndata(self):
+        return len(self.o)
 
     def get_lambda_list(self):
-        res = np.zeros(39*7800)
+        res = np.zeros(len(self.get_orders())*7800)
         i = 0
-        for o in range(21, 60):
-            print('working on order ', o)
-            for x in range(7800):
-                res[i] = self.bare_x_to_lambda(x, o)
-                i +=1
+        x = np.arange(7800)
+        for i, o in enumerate(self.get_orders()):
+            res[i*7800:(i+1)*7800] = self.lambda_at_x_o(x, o)
         np.savetxt(self.kwargs['file_lambda_list'], res)
+        return res
 
-def get_orders(data, **kwargs):
-    orders = list(set(data['true_order_number']))
-    orders = get_kwarg(kwargs, 'orders', orders)
-    return orders
-
-
-def plot_4(**kwargs):
-    data = load_data1(**kwargs)
-    data = sigma_clipping(data,
-        epsilon=get_kwarg(kwargs, 'epsilon_sigma_clipp', 3),
-                          fit=fit_polynome_direct_order_by_order, **kwargs)
-
-    o0 = 45                       # reference order for plotting
-    orders = get_orders(data, **kwargs)
-
-    # reference polynomial
-    ol = data['true_order_number'] * data['ref_lambda']
-    x = data['new_mean_pixel_pos']
-    I = data['true_order_number']==o0
-    s = data['sigma_new_mean']
-    p0 = np.polyfit(link_ol(ol[I]), x[I], 4, w=1./s[I])
-
-    plt.figure()
-
-    for o in orders:
-        I = data['true_order_number']==o
-        ol_continuum =np.linspace(ol[I].min(), ol[I].max(), 1024) 
-        p = np.polyfit(link_ol(ol[I]), x[I], 4, w=1./s[I])
-        plt.plot(ol_continuum, 
-                 np.polyval(p-p0, link_ol(ol_continuum)))
-        plt.plot(ol[I], x[I] - np.polyval(p0, link_ol(ol[I])), 'o', label=o)
-    plt.legend()
-
-def plot_5(**kwargs):
-    # data = load_data1(**kwargs)
-
-    CCD = CCD2d(**kwargs).sigma_clipped()
-    data = CCD.data
-    orders = get_orders(data, **kwargs)
-
-    l = data['ref_lambda']
-    ol = l * data['true_order_number']
-    x = data['new_mean_pixel_pos']
+    def get_lambda_map(self):
+        tmp = self.get_lambda_list()
+        return {o: tmp[i*7800:(i+1)*7800] for i, o in enumerate(self.get_orders())}
 
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+class FP:
+    """
+    Fabry-Perrot modeling
+    """
+    def __init__(self, **kwargs):
+        self.fpdata = json.load(open(kwargs['fp_file'],'r'))
+        self.ccd = kwargs.get('ccd2d', CCD2d(**kwargs))
+        self.ccd.sigma_clipping()
 
-    for o in orders:
-        I = data['true_order_number']==o
-        l_continuum =np.linspace(ol.min(), ol.max(), 1024)
-        line, = ax.plot(l_continuum/o, CCD.lambda_to_x(l_continuum/o, o))
-        ax.plot(l[I], x[I], 'o', label=o, color = line.get_color())
-    plt.legend()
+        self.data = pd.concat([ pd.DataFrame({
+            'true_order_number': int(r['true_order_number']),
+            'wave3': pd.Series(r['wave3']),
+            'flux3': pd.Series(r['flux3'])
+            }) for r in self.fpdata if len(r)>0]
+        )
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    p0 = np.polyfit(ol,x,4)
+    def flux_at_order(self, o):
+        return self.data[self.data['true_order_number']==o]['flux3'].values
 
-    for o in orders:
-        I = data['true_order_number']==o
-        l_continuum =np.linspace(l[I].min(), l[I].max(), 1024)
-        line, = ax.plot(o*l_continuum, CCD.lambda_to_x(l_continuum, o)- np.polyval(p0, o*l_continuum))
-        plt.plot(o*l[I], x[I]-np.polyval(p0, o*l[I]), 'o', label=o, color=line.get_color())
-    plt.legend()
+    def lam_at_order(self, o):
+        p = self.ccd.lambda_map_at_o(o)
+        return p(self.data[self.data['true_order_number']==o]['wave3'].values)
 
-    o = 25
-    lam =CCD.bare_x_to_lambda(4000, o)
-    print( 'lam...', lam, CCD.lambda_to_x(lam, o))
-    print( CCD.rms() )
+    def t_at_order(self, o):
+        return 1./ self.lam_at_order(o)
 
-def pilote_1(**kwargs):
-    CCD = CCD2d(**kwargs).sigma_clipped()
-    CCD.get_lambda_list()
-    
+    def extract_fp_peaks_at_order(self, o):
+        t = self.t_at_order(o)
+        f = self.flux_at_order(o)
+
+        tf = pd.DataFrame({'t': t, 'f':f})
+        tf.sort_values('t', inplace=True)
+        tf.reset_index(inplace=True)
+        tf['d1'] = tf['f'].diff()
+        f = tf['f'].values
+        tf['locmax'] = np.NaN
+        tf['locmax'][1:-1]= (f[1:-1]-f[:-2])*(f[2:]-f[1:-1])<0
+        return tf
+
 if __name__=='__main__':
 
     kwargs = {
@@ -462,29 +347,4 @@ if __name__=='__main__':
     data = CCD2d(**kwargs)
     data.get_lambda_list()
     sys.exit(0)
-    """plot_1()
-    #plot_2(int(sys.argv[1]))
-    plt.show()
-    """
-
-    #coeff, res = estimate_polynome()
-    # print (np.std(res))
-    # print (np.mean(res))
-    kwargs = default_kwargs
-    kwargs.update({
-        "datafile": "ThAr2D_voie_1_new.json",
-        'epsilon_sigma_bootstrap': 2.0,
-        'epsilon_sigma_clipp': 8,
-        'epsilon_sigma_clipp_2d' : 5,
-        'orders': np.arange(26, 54),
-        'order_n': 6,
-        'order_o': 7,
-        'crossmax': 7,
-        'n_sigma_clip' : 5,
-    })
-    # plot_4(**kwargs)
-    plot_5(**kwargs)
-    # pilote_1(**kwargs)
-
-    plt.show()
 
