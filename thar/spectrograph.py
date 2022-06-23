@@ -327,24 +327,27 @@ class FP:
 if __name__=='__main__':
 
     kwargs = {
-    "datafile": "ThAr2D_voie_3_new.json",
-    'bootstrap_data': False,
+    "datafile": "ThAr2D_voie_3.dat.json",
+    'bootstrap_data': True,
     'n_bootstrap': 100,                             # number of bootstrap experiments
     'profile': 'gauss',
     'loss_function': 'loss_1',                     # weighted L2-loss
-    'save_bootstraped_data': False,
+    'save_bootstraped_data': True,
     'bootstraped_file': 'ThAr2D_voie_3_new.json',
-    'epsilon_sigma_bootstrap': 2.0,         # locations with larger uncertainty are removed
-    'epsilon_sigma_clipp': 8,
-    'epsilon_sigma_clipp_2d' : 5,
+    'epsilon_sigma_bootstrap': 3,         # locations with larger uncertainty are removed
+    'epsilon_sigma_clipp': 3,
+    'epsilon_sigma_clipp_2d' : 2,
+    'clipp_method' : 'rel_std',             # 'rel_std' or 'pixerror' or 'est_std'
     'orders': np.arange(23, 59+1),          # orders to use, set None if taken from data
-    'palette_order': 'rainbow',
-    'order_n': 6,
+    'palette_order': 'gist_rainbow',
+    'order_ol': 6,
     'order_o': 7,
-    'n_sigma_clip' : 5,
-    'file_lambda_list': 'lambda_thar_voie_3.dat',
+    'n_sigma_clip' : 100,
+    'sigma_min' : 0.,                    # minimial sigma to avoid overfitting
+    'file_lambda_list': 'arturo.dat',
     }
+
     data = CCD2d(**kwargs)
-    data.get_lambda_list()
+#    data.get_lambda_list()
     sys.exit(0)
 
