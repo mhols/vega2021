@@ -290,6 +290,7 @@ class FP:
     Fabry-Perrot modeling
     """
     def __init__(self, **kwargs):
+        self.kwargs = kwargs
         self.fpdata = json.load(open(kwargs['fp_file'],'r'))
         self.ccd = kwargs.get('ccd2d', CCD2d(**kwargs))
         self.ccd.sigma_clipping()
@@ -308,21 +309,37 @@ class FP:
         p = self.ccd.lambda_map_at_o(o)
         return p(self.data[self.data['true_order_number']==o]['wave3'].values)
 
-    def t_at_order(self, o):
-        return 1./ self.lam_at_order(o)
-
     def extract_fp_peaks_at_order(self, o):
-        t = self.t_at_order(o)
         f = self.flux_at_order(o)
+        tf = pd.DataFrame({'flux':f})
+        #f = tf['f'].array
+        tf['locmax'] = False
+        tf['locmax'] = np.logical_and((tf['flux'].diff() > 0).shift(), (tf['flux'].diff()<0))
+        tf['locmax'] = tf['locmax'].shift(-1, fill_value=False)
+        r = self.kwargs['fp_window']
+        # eliminate points that are too close to the border
+        tf['locmax'].iloc[:r] = False
+        tf['locmax'].iloc[-r:] = False
+        tf['locmax'][tf['flux']<self.kwargs['cutoff_fp_flux']] = False
+        I = tf.index[tf['locmax']]
+        snipp = tf['flux'].array[(I[:, np.newaxis] + np.arange(-r,r+1)).T]
+        snapp = np.arange(-r,r+1)
+        # local polynomial fit
+        p = np.polyfit(snapp, snipp, deg=2)
+        # shift of max position
+        delta = -p[1]/(2*p[0])
+        # possition of local max in pixel
+        pixpos = I+delta
+        tf['peak'] = np.NaN
+        tf['peak'].iloc[I] = self.ccd.lambda_map_at_o(o)(pixpos)
+        tf['peakf'] = 1./tf['peak']
+        tf['lam']=self.ccd.lambda_map_at_o(o)(tf.index)
+        tf['freq']=1./tf['lam']
 
-        tf = pd.DataFrame({'t': t, 'f':f})
-        tf.sort_values('t', inplace=True)
-        tf.reset_index(inplace=True)
-        tf['d1'] = tf['f'].diff()
-        f = tf['f'].values
-        tf['locmax'] = np.NaN
-        tf['locmax'][1:-1]= (f[1:-1]-f[:-2])*(f[2:]-f[1:-1])<0
+        self.tf = tf
+
         return tf
+
 
 if __name__=='__main__':
 
