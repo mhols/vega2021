@@ -18,14 +18,17 @@ def gauss(x, A, mu, sigma, y_offset):
 
 def igauss(x, A, mu, sigma, y_offset):
     return y_offset +  0.5 * A * (
-        sps.erf((x+0.5-mu)/(np.sqrt(2)*sigma))
-        - sps.erf((x-0.5-mu)/(np.sqrt(2)*sigma)))
+        sps.erf((x + 0.5 - mu)/(np.sqrt(2)*sigma))
+        - sps.erf((x -0.5 -mu)/(np.sqrt(2)*sigma)))
+
+def cauchy(x, A, mu, sigma, y_offset):
+    return y_offset + A*sigma/(sigma**2 + (x-mu)**2)
 
 def loss_1(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
     i = func(n, *params)
-    return (i-intens)/np.sqrt(np.abs(i)+1e-8)
+    return np.abs(i-intens)/np.sqrt(np.abs(i)+1e-8)
 
 def loss_2(params, *args):
     intens, func = args
@@ -39,45 +42,75 @@ def loss_3(params, *args):
     i = func(n, *params)
     return (i-intens)/np.sqrt(intens)
 
+
+def mean_histogram_estimator(intens):
+    """
+    removing baseline followed by histogram mean
+    """
+    lag = 2 # for continuum estimation
+    cont = (np.mean(intens[:lag])+np.mean(intens[-lag:]))/2
+    cont = 0 #0.5*(intens[0]+intens[-1])
+    intens = intens - max(0.0, np.min(intens))
+    n = np.arange(intens.shape[0])
+    intens = np.abs(intens)
+    return np.sum(n*intens) / np.sum(intens)
+
 def estimate_location(intens, fun, g):
 
-    # check positivity
-    intens = intens - min(0, np.min(intens))
+    # backproject on positivity
+    intens = intens - max(0, np.min(intens))
     # first guess of parameters
     n = np.arange(intens.shape[0])
     A = np.sum(np.abs(intens))
-    mu = np.sum(np.abs(intens) * n) / np.sum(np.abs(intens))
-    sigma = np.sqrt(np.sum(np.abs(intens) * (n-mu)**2)) / np.sum(np.abs(intens))
-    y_min = np.min(intens)
-    y_max = np.min(intens)
+    Amin = max(0, A-4*np.sqrt(A))
+    Amax = A+4*np.sqrt(A)
 
-    params0 = np.array([A, mu, sigma, 0])
-    bounds = (np.array([max(0, A-5*np.sqrt(A)), 0, sigma/10, -y_min-1]), 
-              np.array([A+4*np.sqrt(A),         len(intens)-1, 4*sigma,  y_max]))
+    mu = len(intens)/2
+    mumin = 0
+    mumax = len(intens)+1
+
+    sigma = len(intens)
+    sigmamax = 4*sigma
+    sigmamin = 0.1
+
+    y_offset_min = 0
+    y_offset_max = 10 + max(0, np.min(intens))
+    y_offset = (y_offset_min+y_offset_max)/2
+
+    params0 = np.array([A, mu, sigma, y_offset])
+
+    bounds = (np.array([Amin, mumin, sigmamin, y_offset_min]),
+              np.array([Amax, mumax, sigmamax, y_offset_max]))
+
     res = sop.least_squares(
         fun, 
         params0, 
         bounds=bounds, 
-        method='dogbox', 
+        #method='dogbox', 
         args=(intens, g))
     return res.x
 
-def bootstrap_estimate_location(intens, fun, g, size=50):
+function_map = {
+    'gauss': gauss,
+    'igauss': igauss,
+    'cauchy': cauchy,
+    'loss_1': loss_1,
+    'loss_2': loss_2,
+    'loss_3': loss_3,
+}
+
+
+def bootstrap_estimate_location(intens, **kwargs):
+    g = function_map[kwargs['profile']]
+    size = kwargs['n_bootstrap']
+    fun = function_map[kwargs['loss_function']]
     intens = intens - min(0, np.min(intens))
     p = intens / np.sum(intens)
 
     n = int(np.sum(intens))
     intens = np.random.multinomial(n, p, size)
-    import matplotlib.pyplot as plt
     res = [ estimate_location(inte, fun, g)[1] for inte in intens]
-    """plt.figure()
-    for inte in intens:
-        plt.plot(inte)
-    plt.show()
 
-    plt.plot(res)
-    plt.show()
-    """
     return np.mean(res), np.std(res)
 
 def sigma_clipping(
@@ -92,14 +125,11 @@ def sigma_clipping(
     n: number of iterations (<=0 or None means iterate until no change)
     """
     i = 0
-    lenold = 0
     n = kwargs.get('n_sigma_clip', 5)
     while i < n:
         I = fit(data)<=epsilon
-        print(i, len(data), len(I))
-        data = data[I]
-        if len(I)==lenold:
+        if np.all(I):
             break
+        data = data[I]
         i+=1
-        lenold = len(I)
     return data
