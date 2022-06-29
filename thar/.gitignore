@@ -8,3 +8,7 @@ __pycache__/**
 *.log
 notebooks/
 notebooks/**
+.ipynb_checkpoints
+.ipynb_checkpoints/**
+.ipynb_checkpoints/*.ipynb
+**/.ipynb_checkpoints
