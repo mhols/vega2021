@@ -25,17 +25,20 @@ from scipy.signal import correlate
 from scipy.optimize import curve_fit
 #
 #
-name1 = "FP_voie_1.dat"
-name2 = "FP_voie_2.dat"
-name3 = "FP_voie_3.dat"
 
 
 wave2Dname = 'wave2D_Matthias.dat'
 wave2D = np.loadtxt(wave2Dname)
 
 #lecture du fichier FP reduit avec le DRS de Neo-Narval
+fitsfile='NEO_20220517_201653_mo2.fits'
 
-a=pyfits.open('NEO_20220517_201653_mo2.fits')
+a=pyfits.open(fitsfile)
+
+name1 =  fitsfile + "_FP_voie_1"
+name2 =  fitsfile + "_FP_voie_2"
+name3 =  fitsfile + "_FP_voie_3"
+
 
 # *****************************************
 # hier nimmt man Matthias polynom
