@@ -89,8 +89,9 @@ class CCD2d:
 
     def color_of_order(self, o):
         cmap = cm.get_cmap(self.kwargs['palette_order'])
-        colors = cmap(np.linspace(0,1, len(self.get_orders())))
-        return colors[o-self.get_orders()[0]]
+        orders = self.get_orders()
+        colors = cmap(np.linspace(0,1, max(orders) - min(orders) +1))
+        return colors[o-min(orders)]
 
     def outlier_removal_1(self):
         """
@@ -344,13 +345,13 @@ class FP:
 if __name__=='__main__':
 
     kwargs = {
-    "datafile": "ThAr2D_voie_3.dat.json",
+    "datafile": "NEO_20220219_173048_th2_voie1.json",
     'bootstrap_data': True,
     'n_bootstrap': 100,                             # number of bootstrap experiments
     'profile': 'gauss',
     'loss_function': 'loss_1',                     # weighted L2-loss
     'save_bootstraped_data': True,
-    'bootstraped_file': 'ThAr2D_voie_3_new.json',
+    'bootstraped_file': 'ThAr2D_voie_1_new.json',
     'epsilon_sigma_bootstrap': 3,         # locations with larger uncertainty are removed
     'epsilon_sigma_clipp': 3,
     'epsilon_sigma_clipp_2d' : 2,
