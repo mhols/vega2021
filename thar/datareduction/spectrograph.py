@@ -23,15 +23,12 @@ class CCD2d:
         if data is None:
             data = pd.DataFrame(pd.read_json(kwargs['datafile']))
         self.data = data
-        # self._orders = list(set(self.data['true_order_number']))
 
         if self.kwargs['bootstrap_data']:
             self.bootstrap_data()
 
         # basic outlier removal / quality filter
         self.outlier_removal_1()
-
-        # create fixed effects
         self.polynomial_fit = {}
 
     def generate_fixed_effects(self):
@@ -73,7 +70,7 @@ class CCD2d:
         if self.kwargs['save_bootstraped_data']:
             self.data.to_json(self.kwargs['bootstraped_file'])
 
-        print ('n negative ', shit)
+        ## print ('n negative ', shit)
 
 
     def color_of_order(self, o):
@@ -224,7 +221,7 @@ class CCD2d:
         # computes a polynomial proxy
         """
 
-        olrange = [(self.o * self.l).min(), (self.o*self.l).max()]
+        olrange = [self.ol.min(), self.ol.max()]
         orange = [self.o.min(), self.o.max()]
 
         Nol = self.kwargs['order_ol']+1
