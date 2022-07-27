@@ -46,10 +46,6 @@ class CCD2d:
         I = np.identity(Nlo + 1)
         Cheb_o = [np.polynomial.chebyshev.Chebyshev(c, window=[-1,1], domain=lo_range) for c in I]
 
-        
-        #self._fixed_effects = [lambda ol, o: T1(ol)*T2(o) for ()]
-   
-
     def bootstrap_data(self):
         res = []
         new_mean_pixel_pos = []
@@ -68,16 +64,9 @@ class CCD2d:
             except Exception as ex:
                 print(i, line, ex)
                 shit += 1
-                #plt.figure()
-                #plt.plot(l['flux_values_extract'])
-                #plt.show()
-                #continue
             new_mean_pixel_pos.append(position)
             sigma_new_mean.append(sigma)
-            #l['new_mean_pixel_pos'] = p
-            #l['sigma_new_mean'] = sigma
-            #res.append(l)
-        # self.data = pd.DataFrame(res)
+            progress(i,len(self.data), status='')
         self.data['new_mean_pixel_pos'] = pd.Series(new_mean_pixel_pos)
         self.data['sigma_new_mean'] = pd.Series(sigma_new_mean)
 
