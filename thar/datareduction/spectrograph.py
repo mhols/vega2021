@@ -81,7 +81,7 @@ class CCD2d:
 
     def outlier_removal_1(self):
         """
-        removing outliers based on bootstrap uncertainty 
+        removing outliers based on bootstrap uncertainty
         of histotram expectation
         """
         epsilon = self.kwargs['epsilon_sigma_bootstrap']
@@ -149,7 +149,7 @@ class CCD2d:
         nn = 10001
         olams = np.linspace(self.ol.min()/1.05, self.ol.max()*1.05, nn, endpoint=True)
         p = interp1d(
-            self.polynomial_fit[o] (olams), 
+            self.polynomial_fit[o] (olams),
             olams)
         return p(x)/o
 
@@ -185,7 +185,7 @@ class CCD2d:
 
     def get_orders(self):
         orders = list(set(self.data['true_order_number']))
-        orders = get_kwarg(self.kwargs, 'orders', orders)
+        orders = self.kwarg.get('orders', orders)
         return orders
 
     def fit_global_polynomial(self, **kwargs):
@@ -193,9 +193,9 @@ class CCD2d:
         res = {}
         ol = self.o * self.l
         domain = [ol.min(), ol.max()]
-        p = np.polynomial.chebyshev.Chebyshev.fit(ol, self.x, 
-                                                domain=domain, 
-                                                deg=n, 
+        p = np.polynomial.chebyshev.Chebyshev.fit(ol, self.x,
+                                                domain=domain,
+                                                deg=n,
                                                 w = 1/self.sigma)
 
         self.polynomial_fit = { o: p for o in self.get_orders()}
@@ -209,9 +209,9 @@ class CCD2d:
         domain = [ol.min(), ol.max()]
         for o in self.get_orders():
             I = self.index_order(o)
-            res[o] = np.polynomial.chebyshev.Chebyshev.fit(self.l[I]*o, self.x[I], 
-                                                           domain=domain, 
-                                                           deg=n, 
+            res[o] = np.polynomial.chebyshev.Chebyshev.fit(self.l[I]*o, self.x[I],
+                                                           domain=domain,
+                                                           deg=n,
                                                            w = 1/self.sigma[I])
         self.polynomial_fit = res
         return res
@@ -230,12 +230,12 @@ class CCD2d:
         nolko = [(n, k) for n in range(Nol) for k in range(No)]
 
         Tshebol = [np.polynomial.chebyshev.Chebyshev.basis(
-                    window=[-1,1], 
-                    domain=olrange, 
+                    window=[-1,1],
+                    domain=olrange,
                     deg=n) for n in range(Nol)]
 
         Tshebo = [np.polynomial.chebyshev.Chebyshev.basis(
-                    window=[-1,1], 
+                    window=[-1,1],
                     domain=orange,
                     deg=n) for n in range(No)]
 
@@ -249,10 +249,10 @@ class CCD2d:
         G = (1./np.sqrt(self.sigma**2+sigma_min**2))[:, np.newaxis] * G
         coeffs = np.linalg.lstsq(G, (1./self.sigma) * self.x )[0]
 
-        self.polynomial_fit = {o : 
-                               sum([ coeffs[i] * Tshebol[nol] * Tshebo[no](o) for i, (nol, no) in enumerate(nolko)]) 
+        self.polynomial_fit = {o :
+                               sum([ coeffs[i] * Tshebol[nol] * Tshebo[no](o) for i, (nol, no) in enumerate(nolko)])
                                for o in self.get_orders() }
-       
+
         return self.polynomial_fit
 
     def ndata(self):
