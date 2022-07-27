@@ -185,7 +185,7 @@ class CCD2d:
 
     def get_orders(self):
         orders = list(set(self.data['true_order_number']))
-        orders = self.kwarg.get('orders', orders)
+        orders = self.kwargs.get('orders', orders)
         return orders
 
     def fit_global_polynomial(self, **kwargs):
