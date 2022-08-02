@@ -2,6 +2,7 @@
 global parameters for the datareduction pipeline
 """
 import os
+import numpy as np
 
 # directory layout
 
@@ -14,6 +15,7 @@ RESFILES = os.path.abspath(os.path.join(BASEDIR, 'mappings'))
 
 # processing parameters
 kwargs = {
+    'report_orders': np.arange(21, 61),     # wavemap shall be computed for these orders
     'n_bootstrap': 100,                     # number of bootstrap experiments
     'profile': 'gauss',                     #
     'loss_function': 'loss_1',              # weighted L2-loss

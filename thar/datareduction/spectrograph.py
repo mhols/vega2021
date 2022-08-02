@@ -48,6 +48,7 @@ class CCD2d:
         new_mean_pixel_pos = []
         sigma_new_mean = []
         shit = 0
+        print('\nbootstrapping data...\n')
         for i, line in self.data.iterrows():
             position = np.nan
             sigma = np.nan
@@ -188,17 +189,25 @@ class CCD2d:
         orders = self.kwargs.get('orders', orders)
         return orders
 
+    def get_report_orders(self):
+        report_only_nonempty = self.kwargs.get('report_only_nonempty', False)
+        if report_only_nonempty:
+            return self.get_orders()
+        return self.kwargs.get('report_orders', self.get_orders())
+
     def fit_global_polynomial(self, **kwargs):
         n = kwargs.get('order_ol', self.kwargs['order_ol'])
-        res = {}
         ol = self.o * self.l
         domain = [ol.min(), ol.max()]
-        p = np.polynomial.chebyshev.Chebyshev.fit(ol, self.x,
-                                                domain=domain,
-                                                deg=n,
-                                                w = 1/self.sigma)
+        try:
+            p = np.polynomial.chebyshev.Chebyshev.fit(ol, self.x,
+                                                    domain=domain,
+                                                    deg=n,
+                                                    w = 1/self.sigma)
 
-        self.polynomial_fit = { o: p for o in self.get_orders()}
+        except Exception as ex:
+            print ('problem fitting global polynomial\n', ex)
+        self.polynomial_fit = { o: p for o in self.get_report_orders()}
 
         return p
 
@@ -207,12 +216,21 @@ class CCD2d:
         res = {}
         ol = self.o * self.l
         domain = [ol.min(), ol.max()]
-        for o in self.get_orders():
+        orders = self.get_orders()
+        for o in self.get_report_orders():
+            if not o in orders:
+                res[o] = None
+                continue
             I = self.index_order(o)
-            res[o] = np.polynomial.chebyshev.Chebyshev.fit(self.l[I]*o, self.x[I],
-                                                           domain=domain,
-                                                           deg=n,
-                                                           w = 1/self.sigma[I])
+            try:
+                res[o] = np.polynomial.chebyshev.Chebyshev.fit(
+                    self.l[I]*o, self.x[I],
+                    domain=domain,
+                    deg=n,
+                    w = 1/self.sigma[I]
+                )
+            except Exception as ex:
+                print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
         self.polynomial_fit = res
         return res
 
@@ -246,12 +264,14 @@ class CCD2d:
                 G[i,j] = Tshebol[nol](self.o[i]*self.l[i]) * Tshebo[no](self.o[i])
 
         sigma_min = self.kwargs['sigma_min']
-        G = (1./np.sqrt(self.sigma**2+sigma_min**2))[:, np.newaxis] * G
-        coeffs = np.linalg.lstsq(G, (1./self.sigma) * self.x )[0]
+        G = np.array((1./np.sqrt(self.sigma**2+sigma_min**2)))[:, np.newaxis] * G
+        coeffs = np.linalg.lstsq(G, (1./self.sigma) * self.x , rcond=None)[0]
 
-        self.polynomial_fit = {o :
-                               sum([ coeffs[i] * Tshebol[nol] * Tshebo[no](o) for i, (nol, no) in enumerate(nolko)])
-                               for o in self.get_orders() }
+        self.polynomial_fit = {
+            o : sum([ coeffs[i] * Tshebol[nol] * Tshebo[no](o)
+                for i, (nol, no) in enumerate(nolko)])
+                     for o in self.get_report_orders()
+        }
 
         return self.polynomial_fit
 
@@ -259,18 +279,29 @@ class CCD2d:
         return len(self.o)
 
     def get_lambda_list(self):
-        res = np.zeros(len(self.get_orders())*7800)
+        """
+        2Dmap for all orders as returned by self.get_report_orders()
+        saves to kwargs['file_lambda_list']
+        """
+        res = np.zeros(len(self.get_report_orders())*7800)
         i = 0
         x = np.arange(7800)
-        for i, o in enumerate(self.get_orders()):
+        for i, o in enumerate(self.get_report_orders()):
             res[i*7800:(i+1)*7800] = self.lambda_at_x_o(x, o)
         np.savetxt(self.kwargs['file_lambda_list'], res)
         return res
 
     def get_lambda_map(self):
         tmp = self.get_lambda_list()
-        return {o: tmp[i*7800:(i+1)*7800] for i, o in enumerate(self.get_orders())}
+        return {o: tmp[i*7800:(i+1)*7800] for i, o in enumerate(self.get_report_orders())}
 
+
+    def get_rms_per_spectrum(self):
+        res = pd.Series(index=self.data.index)
+        for o in self.get_orders():
+            I = self.index_order(o)
+            res.iloc[I] = 3e5 * (self.lambda_at_x_o(self.x[I], o)/self.l-1).abs()
+        np.savetxt(self.kwargs['rms_report_file'], res)
 
 class FP:
     """
