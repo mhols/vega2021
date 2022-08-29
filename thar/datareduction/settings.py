@@ -22,11 +22,11 @@ kwargs = {
     'epsilon_sigma_bootstrap': 4,           # locations with larger uncertainty are removed
     'epsilon_sigma_clipp': 4,               # sigma clip for 1d polynomial
     'epsilon_sigma_clipp_2d' : 4,           # sigma clip for 2d polynomial
-    'clipp_method' : 'rel_std',             # 'rel_std' or 'pixerror' or 'est_std'
+    'clipp_method' : 'pixerror',            # 'rel_std' or 'pixerror' or 'est_std'
     'n_sigma_clip' : 100,                   # maximal number of sigma clips
     'sigma_min' : 0.,                       # minimial sigma to avoid overfitting
     'palette_order': 'gist_rainbow',        # palette of orders
-    'order_ol': 5,                          # order polynomial in ol
+    'order_ol': 7,                          # order polynomial in ol
     'order_o': 6,                           # order polynomial in o
 }
 

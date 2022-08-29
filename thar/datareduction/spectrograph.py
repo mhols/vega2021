@@ -1,5 +1,5 @@
 import json
-from util import *
+from .util import *
 import sys
 import pandas as pd
 import numpy as np
@@ -199,6 +199,7 @@ class CCD2d:
         n = kwargs.get('order_ol', self.kwargs['order_ol'])
         ol = self.o * self.l
         domain = [ol.min(), ol.max()]
+        p = None
         try:
             p = np.polynomial.chebyshev.Chebyshev.fit(ol, self.x,
                                                     domain=domain,
