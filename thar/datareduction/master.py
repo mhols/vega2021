@@ -5,7 +5,7 @@ import os
 
 kwargs = settings.kwargs
 
-fitsfiles = os.listdir(settings.DATADIR)
+fitsfiles = os.listdir(settings.DATADIR) # so werden all files in DATADIR bearbeitet
 refname = os.path.join(settings.REFFILES, "thar_spec_MM201006.dat")
 atlasname = os.path.join(settings.REFFILES, "thar_UVES_MM090311.dat")
 
