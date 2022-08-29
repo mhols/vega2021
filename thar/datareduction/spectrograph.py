@@ -156,8 +156,20 @@ class CCD2d:
 
     def lambda_map_at_o(self, o):
         nn = 10001
-        olams = np.linspace(self.ol.min()/1.05, self.ol.max()*1.05, nn, endpoint=True)
-        p = interp1d(self.polynomial_fit[o] (olams), olams/o)
+        p = self.polynomial_fit[o]
+        olams = np.linspace(self.ol.min(), self.ol.max(), nn, endpoint=True)
+        der = p.deriv()
+        I, = np.where(der(olams) > 0)
+        II, = np.where(I[1:]-I[:-1] > 1)
+        if len(II)==0:
+            olmin, olmax = olams[I[0]], olams[I[-1]]
+        else:
+            III = np.argmax(II[1:]-II[:-1])
+            olmin = olams[I[II[III]]]
+            olmax = olams[I[II[III-1]]]
+
+        olams = np.linspace(olmin, olmax, nn, endpoint=True)
+        p = interp1d(self.polynomial_fit[o](olams), olams/o)
         return p
 
     @property
@@ -265,7 +277,7 @@ class CCD2d:
                 G[i,j] = Tshebol[nol](self.o[i]*self.l[i]) * Tshebo[no](self.o[i])
 
         sigma_min = self.kwargs['sigma_min']
-        G = np.array((1./np.sqrt(self.sigma**2+sigma_min**2)))[:, np.newaxis] * G
+        G = np.array((1./ np.sqrt(self.sigma**2+sigma_min**2)))[:, np.newaxis] * G
         coeffs = np.linalg.lstsq(G, (1./self.sigma) * self.x , rcond=None)[0]
 
         self.polynomial_fit = {
@@ -288,7 +300,12 @@ class CCD2d:
         i = 0
         x = np.arange(7800)
         for i, o in enumerate(self.get_report_orders()):
-            res[i*7800:(i+1)*7800] = self.lambda_at_x_o(x, o)
+            p = self.lambda_map_at_o(o);
+            for j, xx in enumerate(x):
+                try:
+                    res[i*7800+j] = p(xx)
+                except:
+                    res[i*7800+j] =  np.NaN
         np.savetxt(self.kwargs['file_lambda_list'], res)
         return res
 

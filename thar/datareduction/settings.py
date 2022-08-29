@@ -26,7 +26,7 @@ kwargs = {
     'n_sigma_clip' : 100,                   # maximal number of sigma clips
     'sigma_min' : 0.,                       # minimial sigma to avoid overfitting
     'palette_order': 'gist_rainbow',        # palette of orders
-    'order_ol': 7,                          # order polynomial in ol
+    'order_ol': 6,                          # order polynomial in ol
     'order_o': 6,                           # order polynomial in o
 }
 
