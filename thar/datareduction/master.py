@@ -2,6 +2,7 @@ import settings
 import spectrograph
 import thar_write
 import os
+import re
 
 kwargs = settings.kwargs
 
@@ -12,6 +13,8 @@ atlasname = os.path.join(settings.REFFILES, "thar_UVES_MM090311.dat")
 
 # bootstrapping the data
 for f in fitsfiles:
+    if not re.match(r'^fo.*\.fits$', f):
+        continue
     f = os.path.join(settings.DATADIR, f)
     print ('working on :', f)
 
