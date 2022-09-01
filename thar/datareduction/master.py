@@ -25,7 +25,7 @@ for f in fitsfiles:
     snippet_files = [
         os.path.join(
             settings.TMPFILES, 
-            basename_stripped+'.snippet.voie_{}.json'.format(i)) for i in [1,2,3] 
+            basename_stripped+'.snippet.voie_{}.json'.format(i)) for i in [1,] 
     ]
 
     ### making the snippets for the voices 
