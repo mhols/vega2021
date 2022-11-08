@@ -13,7 +13,8 @@ atlasname = os.path.join(settings.REFFILES, "thar_UVES_MM090311.dat")
 
 # bootstrapping the data
 for f in fitsfiles:
-    if not re.match(r'^fo.*\.fits$', f):
+    if not re.match(r'^.*\.fits$', f):
+        print('did not match', f)
         continue
     f = os.path.join(settings.DATADIR, f)
     print ('working on :', f)
@@ -25,7 +26,7 @@ for f in fitsfiles:
     snippet_files = [
         os.path.join(
             settings.TMPFILES, 
-            basename_stripped+'.snippet.voie_{}.json'.format(i)) for i in [1,] 
+            basename_stripped+'.snippet.voie_{}.json'.format(i)) for i in [1,2,3] 
     ]
 
     ### making the snippets for the voices 
