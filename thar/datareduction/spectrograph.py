@@ -1,5 +1,5 @@
 import json
-from util import *
+from .util import *
 import sys
 import pandas as pd
 import numpy as np
