@@ -47,6 +47,8 @@ for f in fitsfiles:
             'bootstrap_data': True,
             'save_bootstraped_data': True,
             'bootstraped_file': bootstrapped_file,
+            'save_sigma_clipped_data': True,
+            'sigma_clipped_file': bootstrapped_file,
             'file_lambda_list': file_lambda_list
         })
 

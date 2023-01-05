@@ -13,6 +13,56 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 matplotlib.rcParams['figure.dpi'] = 200
 
+M = 1.0
+S = 1.0
+PIXEL = 1
+HZ = 1
+KILO = 1000
+KM = KILO * M
+
+C_LIGHT = 300000 * KM / S    # speed of ligth
+
+def polyfit_2d(ol, o, x, s, **kwargs):
+    olrange = kwargs['olrange']
+    orange = kwargs['orange']
+    Nol = kwargs['order_ol']+1
+    No  = kwargs['order_o'] +1
+
+    nolko = [(n, k) for n in range(Nol) for k in range(No)]
+
+    Tshebol = [np.polynomial.chebyshev.Chebyshev.basis(
+                    window=[-1,1],
+                    domain=olrange,
+                    deg=n) for n in range(Nol)]
+
+    Tshebo = [np.polynomial.chebyshev.Chebyshev.basis(
+                    window=[-1,1],
+                    domain=orange,
+                    deg=n) for n in range(No)]
+    
+    ndata = len(x)
+    G = np.zeros((ndata, len(nolko)))
+    sigma_min = kwargs['sigma_min']
+    
+    s = np.sqrt(s**2 + sigma_min**2)
+
+    for i in range(ndata):
+        for j, (nol, no) in enumerate(nolko):
+            G[i,j] = Tshebol[nol](ol[i]) * Tshebo[no](o[i])
+
+    G = (1./ s)[:, np.newaxis] * G
+    coeffs = np.linalg.lstsq(G, (1./s) * x )[0]
+
+    polynomial_fit = {
+        o : sum([ coeffs[i] * Tshebo[no](o) * Tshebol[nol] 
+            for i, (nol, no) in enumerate(nolko)])
+                for o in orange 
+    }
+    return polynomial_fit
+
+
+
+
 
 class CCD2d:
     """
@@ -24,12 +74,16 @@ class CCD2d:
             data = pd.DataFrame(pd.read_json(kwargs['datafile']))
         self.data = data
 
+        self.data['selected'] = True # we are using only this subset
+        total_flux = np.array([sum(flux) for flux in self.data['flux_values_extract']])
+        self.data['total_flux'] = total_flux
+
         if self.kwargs['bootstrap_data']:
             self.bootstrap_data()
 
         # basic outlier removal / quality filter
         self.outlier_removal_1()
-        self.polynomial_fit = {}
+        self.polynomial_fit = {o: np.polynomial.Polynomial([0]) for o in self.all_order() }
 
     def generate_fixed_effects(self):
         Nlo = self.kwargs['Nlo']
@@ -92,40 +146,100 @@ class CCD2d:
     def eval_polynomial(self, ol, o):
         return np.array([ self.polynomial_fit[oo](ooll) for oo, ooll in zip(o, ol)])
 
+    def eval_dpolyomial_dl(self, ol, o):
+        return np.array([ oo*self.polynomial_fit[oo].deriv()(ooll) for oo, ooll in zip(o, ol)])
+    
     def sigma_clipping(self):
         # sigma clipping
 
-        epsilon=self.kwargs['epsilon_sigma_clipp']
-        thd = epsilon
-        for i in range(self.kwargs['n_sigma_clip']):
-            self.fit_polynomial_order_by_order()
-            res = self.eval_polynomial(self.o*self.l, self.o) - self.x
+        # order by order fitting first
+        epsilon = self.kwargs['epsilon_sigma_clipp']
+        thd = epsilon 
+        o = self.data['true_order_number']
+        l = self.data['ref_lambda']
+        x = self.data['new_mean_pixel_pos']
+        sigma = self.data['sigma_new_mean']
 
-            if self.kwargs['clipp_method'] == 'pixerror':
+        for i in range(self.kwargs['n_sigma_clipp']):
+
+            self.fit_polynomial_order_by_order()
+            res = self.eval_polynomial(o*l, o) - x
+            dxdl = self.eval_dpolyomial_dl(o*l, o)
+
+            # how to define the clipping
+            if self.kwargs['clipp_method'] == 'pixerror':   # absolute error in pixel
                 thd = 1 * epsilon
-            elif self.kwargs['clipp_method'] == 'rel_std':
-                thd = self.sigma * epsilon
+            elif self.kwargs['clipp_method'] == 'rel_std':  # relative error in std of each pixel
+                thd = sigma * epsilon
+            elif self.kwargs['clipp_method'] == 'vrad':     # radial velocity uncertainty
+                thd = l * dxdl * epsilon / C_LIGHT
             else:
-                thd = epsilon * np.std(res)
+                raise Exception ('no such method') 
+                # thd = epsilon * np.std(res)
+            # clipping 
             I = np.abs(res)<=thd
-            if np.all(I):
+
+            if np.all(I==self.data['selected']):
                 break
-            self.data = self.data[I].copy().reset_index(drop=True)
+            self.data.loc[:, 'selected'] = I[:]
 
         epsilon=self.kwargs['epsilon_sigma_clipp_2d']
-        for i in range(self.kwargs['n_sigma_clip']):
+
+
+        for i in range(self.kwargs['n_sigma_clipp_2d']):
             self.fit_2d_polynomial()
-            res = self.eval_polynomial(self.ol, self.o) - self.x
+            res = self.eval_polynomial(o*l, o) - x
+            dxdl = self.eval_dpolyomial_dl(o*l, o)
+
             if self.kwargs['clipp_method'] == 'pixerror':
                 thd = 1 * epsilon
             elif self.kwargs['clipp_method'] == 'rel_std':
-                thd = self.sigma * epsilon
+                thd = sigma * epsilon
+            elif self.kwargs['clipp_method'] == 'vrad':     # radial velocity uncertainty
+                thd = l * dxdl * epsilon / C_LIGHT
             else:
                 thd = epsilon * np.std(res)
             I = np.abs(res)<=thd
-            if np.all(I):
+            if np.all(I==self.data['selected']):
                 break
-            self.data = self.data[I].copy().reset_index(drop=True)
+            if len(I) < 10:
+                epsilon *= 1.5
+            self.data.loc[:, 'selected'] = I
+
+        if self.kwargs['save_sigma_clipped_data']:
+            self.data.to_json(self.kwargs['sigma_clipped_file'])
+
+    def _delta_lam_over_lam_factor(self, l, o):
+        """
+
+        dl / l = (dl / dx) * x / l * dx = (dx / dl)^{-1} * x / l * dx
+        at o we have x = p(ol) => dx/dl = p'(ol) * o
+        returns (dx / dl)^{-1} * x / l 
+        """
+        p = self.polynomial_fit[o]
+        dp = p.deriv()
+        x = p(o*l)
+        factor = (o * dp(o*l))**(-1) * x / l
+        return factor
+
+    def delta_radial_velocity_fit(self):
+        res = []
+        for o, l, x in zip (self.o, self.l, self.x):
+            p = self.polynomial_fit[o]
+            dp = p.deriv()
+            dxdl = o*dp(o*l)
+            dx = p(o*l) - x
+            factor = dxdl**(-1) / l
+
+            res.append(C_LIGHT * factor * dx)
+        return res
+    
+    def delta_l_over_l(self):
+        lmaps = self.lambda_maps()
+        return np.array([lmaps[o](x)/l-1 for o, l,x in zip(self.o, self.l, self.x)])
+
+    def delta_pixel(self):
+        return self.eval_polynomial(self.ol, self.o) - self.x
 
     def bare_x_to_lambda(self, x, o):
         """
@@ -172,32 +286,48 @@ class CCD2d:
         p = interp1d(self.polynomial_fit[o](olams), olams/o)
         return p
 
+    def lambda_maps(self):
+        return {o: self.lambda_map_at_o(o) for o in self.all_order()}
+
     @property
     def x(self):
-        return self.data['new_mean_pixel_pos']
+        return self.data['new_mean_pixel_pos'][self.data['selected']]
 
     @property
     def sigma(self):
-        return self.data['sigma_new_mean']
-
+        return self.data['sigma_new_mean'][self.data['selected']]
 
     @property
     def l(self):
-        return self.data['ref_lambda']
+        return self.data['ref_lambda'][self.data['selected']]
 
     @property
     def o(self):
-        return self.data['true_order_number']
+        return self.data['true_order_number'][self.data['selected']]
 
     @property
     def ol(self):
         return self.o * self.l
 
+    @property
+    def total_flux(self):
+        return self.data['total_flux'][self.data['selected']]
+
+    @property
+    def index(self):
+        return self.data.index[self.data['selected']]
+
     def index_order(self, o):
+        return self.data['true_order_number'][self.data['selected']]==o
+
+    def index_order_unselected(self, o):
         return self.data['true_order_number']==o
 
+    def all_order(self):
+        return list(set(self.data['true_order_number']))
+
     def get_orders(self):
-        orders = list(set(self.data['true_order_number']))
+        orders = list(set(self.data['true_order_number'][self.data['selected']]))
         orders = self.kwargs.get('orders', orders)
         return orders
 
@@ -209,7 +339,7 @@ class CCD2d:
 
     def fit_global_polynomial(self, **kwargs):
         n = kwargs.get('order_ol', self.kwargs['order_ol'])
-        ol = self.o * self.l
+        ol = self.ol
         domain = [ol.min(), ol.max()]
         p = None
         try:
@@ -220,7 +350,8 @@ class CCD2d:
 
         except Exception as ex:
             print ('problem fitting global polynomial\n', ex)
-        self.polynomial_fit = { o: p for o in self.get_report_orders()}
+        self.polynomial_fit = {o: np.polynomial.Polynomial([0]) for o in self.all_order()}
+        self.polynomial_fit.update({ o: p for o in self.get_report_orders()})
 
         return p
 
@@ -229,11 +360,14 @@ class CCD2d:
         res = {}
         ol = self.o * self.l
         domain = [ol.min(), ol.max()]
-        orders = self.get_orders()
-        for o in self.get_report_orders():
-            if not o in orders:
-                res[o] = None
-                continue
+        orders = self.all_order()
+
+        pglobal = self.fit_global_polynomial()
+
+        for o in orders:
+            #if not o in self.get_report_orders():
+            #    res[o] = np.polynimial.Polynomial([0])
+            #    continue
             I = self.index_order(o)
             try:
                 res[o] = np.polynomial.chebyshev.Chebyshev.fit(
@@ -243,18 +377,36 @@ class CCD2d:
                     w = 1/self.sigma[I]
                 )
             except Exception as ex:
-                print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
+                res[o] = pglobal
+                
+                #print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
+        
         self.polynomial_fit = res
         return res
 
-    def fit_2d_polynomial(self):
+    def fit_2d_polynomial(self, **kwargs):
         """
         # computes a polynomial proxy
         """
 
-        olrange = [self.ol.min(), self.ol.max()]
-        orange = [self.o.min(), self.o.max()]
+        self.kwargs.update(kwargs)
+        o = self.data['true_order_number']
+        l = self.data['ref_lambda']
 
+        olrange = [(o*l).min(), (o*l).max()]
+        orange = [o.min(), o.max()]
+        """
+        self.polynomial_fit = polyfit_2d(
+            self.ol.to_numpy(),
+            self.o.to_numpy(),
+            self.x.to_numpy(),
+            self.sigma.to_numpy(),
+            olrange=olrange,
+            orange=orange,
+            **self.kwargs
+        )
+        return self.polynomial_fit
+        """
         Nol = self.kwargs['order_ol']+1
         No  = self.kwargs['order_o'] +1
 
@@ -270,24 +422,30 @@ class CCD2d:
                     domain=orange,
                     deg=n) for n in range(No)]
 
-        G = np.zeros((self.ndata(), len(nolko)))
-        for i in range(self.ndata()):
-            for j in range(len(nolko)):
-                nol, no = nolko[j]
-                G[i,j] = Tshebol[nol](self.o[i]*self.l[i]) * Tshebo[no](self.o[i])
+        G = np.zeros((self.ndata, len(nolko)))
+        o = self.o.to_numpy()
+        l = self.l.to_numpy()
+        x = self.x.to_numpy()
+        s = self.sigma.to_numpy()
+        s = np.sqrt(s**2 + self.kwargs['sigma_min']**2)
+
+        for i in range(self.ndata):
+            for j, (nol, no) in enumerate(nolko):
+                G[i,j] = Tshebol[nol](o[i]*l[i]) * Tshebo[no](o[i])
 
         sigma_min = self.kwargs['sigma_min']
-        G = np.array((1./ np.sqrt(self.sigma**2+sigma_min**2)))[:, np.newaxis] * G
-        coeffs = np.linalg.lstsq(G, (1./self.sigma) * self.x , rcond=None)[0]
+        G = (1./ s)[:, np.newaxis] * G
+        coeffs = np.linalg.lstsq(G, (1./s) * x )[0]
 
         self.polynomial_fit = {
-            o : sum([ coeffs[i] * Tshebol[nol] * Tshebo[no](o)
+            o : sum([ coeffs[i] * Tshebo[no](o) * Tshebol[nol] 
                 for i, (nol, no) in enumerate(nolko)])
-                     for o in self.get_report_orders()
+                     for o in self.all_order() 
         }
 
         return self.polynomial_fit
 
+    @property
     def ndata(self):
         return len(self.o)
 
@@ -395,7 +553,8 @@ if __name__=='__main__':
     'palette_order': 'gist_rainbow',
     'order_ol': 6,
     'order_o': 7,
-    'n_sigma_clip' : 100,
+    'n_sigma_clipp' : 100,
+    'n_sigma_clipp_2d' : 100,
     'sigma_min' : 0.,                    # minimial sigma to avoid overfitting
     'file_lambda_list': 'arturo.dat',
     }
@@ -403,4 +562,3 @@ if __name__=='__main__':
     data = CCD2d(**kwargs)
 #    data.get_lambda_list()
     sys.exit(0)
-
