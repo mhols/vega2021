@@ -313,6 +313,28 @@ def FILEMATRIX_to_JSON(
 
     print (time[I].shape, intensity[I].shape, errors[I].shape)
 
+<<<<<<< HEAD
+
+def spectrum_matrix(time, quantity, **kwargs):
+      """
+      binns the spec into nphase bins
+      """
+      period = kwargs.get('period', VEGAPERIOD)
+      nphase = kwargs.get('nphase', 128)
+      bins = np.linspace(0, period, nphase + 1)
+      res = np.zeros((nphase, quantity.shape[1]))
+      nn = np.zeros(nphase)
+      ii = np.digitize(np.mod(time, period), bins)
+      for i, s in zip(ii, quantity):
+          res[i-1, :] += s
+          nn[i-1] += 1
+      nn = np.where(nn>0,nn,1)
+      res[:,:] = res / nn[:,np.newaxis]
+      return res[:, 1:-1], bins[:-1]
+
+
+=======
+>>>>>>> torsten
 class SpectralAnalyser:
     """
     a class for the modeling of spectral lines a la Boehm
@@ -524,7 +546,7 @@ class SpectralAnalyser:
             'usedindex': self.usedindex.tolist(),
             'vrange': self.vrange.tolist(),
         }
-        with open(kwargs.get('outfile', 
+        with open(kwargs.get('outfile',
             os.path.join(os.path.dirname(__file__), 'vega.json')), 'w') as outfile:
             json.dump(res, outfile, indent=2)
 
@@ -538,7 +560,7 @@ class SpectralAnalyser:
         cubic spline interpolation of spectrum
         """
         intens = self.intensity
-        res = [ 
+        res = [
             UnivariateSpline(self.velocity, intens[i], s=factor)(self.velocity)
                 for i in range(intens.shape[0])
                 ]
@@ -583,9 +605,9 @@ class SpectralAnalyser:
         # m = np.ones(I.size)
         # mask = np.correlate(m, m, mode='full')
 
-        # computing factor to map correlation based 
+        # computing factor to map correlation based
         # shifts to vrads...
-        eps = 0.001  # small number to shift 
+        eps = 0.001  # small number to shift
         v0 = self.velocity - 0.5 * self.deltavbin  # evaluation at center
         v1 = v0 - eps * self.deltavbin  # shifted centers
         tmp = interp1d(v0, base)
@@ -622,7 +644,7 @@ class SpectralAnalyser:
             i0 = np.argmin(inte)
             """
             in this simple form there are multiple values on the intensity axis
-            this is due to the fact that towards the edges the left ant right part of 
+            this is due to the fact that towards the edges the left ant right part of
             the intensity are not
             monotonic functions of the the velocity..
             TODO: add diagnostic tool for the minimal depth
@@ -642,9 +664,26 @@ class SpectralAnalyser:
         bise = self.bisector_borders()
         min_intens = np.min(self.intensity, axis=1)
 
+<<<<<<< HEAD
+        at = min_intens * atdepth + 1*(1-atdepth)  # linear interpolation between min_intens and 1
+
+=======
         at = min_intens + atdepth * (1-min_intens)  # linear interpolation between min_intens and 1
     
+>>>>>>> torsten
         res = ((r(a) + l(a))/2 for (l,r), a in zip(bise, at))
+        return np.fromiter(res, dtype=float)
+
+    def rv_bis_range_rel_depth(self, atdepth, **kwargs):
+        """
+        at: 0 -> at minimum  1-> at 1
+        """
+        bise = self.bisector_borders()
+        min_intens = np.min(self.intensity, axis=1)
+
+        at = min_intens[:, np.newaxis] + atdepth[np.newaxis,:] * (1-min_intens[:, np.newaxis])  # linear interpolation between min_intens and 1
+    
+        res = (((r(a) + l(a))/2).mean() for (l,r), a in zip(bise, at))
         return np.fromiter(res, dtype=float)
 
     def vspan(self, uu, ul, lu, ll, nn=20):
@@ -659,7 +698,7 @@ class SpectralAnalyser:
         vl = np.row_stack([ self.rv_bis(atdepth=d) for d in li ])
         data = np.median(vu, axis=0) - np.median(vl, axis=0)
         np.savetxt('vspan_{}.dat'.format(self.name), np.column_stack((self.time, data)))
-       
+
         return data
 
     def vspan_old(self, upper, lower):

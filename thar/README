@@ -1,0 +1,5 @@
+th2D.py crée le ficher input pour la calibration 2D.
+
+pour visualiser un jupyter notebook:
+
+jupyter-notebook fitwave.ipynb

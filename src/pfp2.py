@@ -7,11 +7,12 @@ Created on Dec 2, 2014
 from matplotlib import gridspec
 import os
 from scipy.signal import spectral
-
+from scipy.stats import gaussian_kde
+from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-from spectralutil import *
+from spectralutil_old import *
 
 
 PROGDIR = os.path.dirname(__file__)
@@ -19,7 +20,8 @@ DATADIR = os.path.join(PROGDIR, '../data')
 
 DATAFILE1 = os.path.join(DATADIR, 'Vega_matrix_lsdos.dat')  # fichiers LSD, re-normalise, nature (=unscaled,(0.9 - 1))
 DATAFILE2 = os.path.join(DATADIR, 'Vega_matrix_lsdns.dat')  # fichiers LSD, re-normalise, streched entre 0 et 1
-DATAFILE3 = os.path.join(DATADIR, 'Vega_matrix_lsd_strongos.dat')  # lines between 0.3 and 1.0 depth, strong
+#DATAFILE3 = os.path.join(DATADIR, 'Vega_matrix_lsd_strongos.dat')  # lines between 0.3 and 1.0 depth, strong
+DATAFILE3 = os.path.join(DATADIR, 'titi.dat')  # lines between 0.3 and 1.0 depth, strong
 DATAFILE4 = os.path.join(DATADIR, 'Vega_matrix_lsdtrsos.dat')  # Teff 9500 logg 4.0 0.5-1.0
 DATAFILE5 = os.path.join(DATADIR, 'filematrix_takeda.dat')
 DATAFILE6 = os.path.join(DATADIR, 'filematrix_453.dat')
@@ -27,10 +29,13 @@ DATAFILE7 = os.path.join(DATADIR, 'Vega_cfht.dat')
 DATAFILE8 = os.path.join(DATADIR, 'Vega_9500.40.03-10.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE9 = os.path.join(DATADIR, 'Vega_tbl10.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # lines between 0.3 and 1.0 depth, medium
-DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # lines between 0.3 and 1.0 depth, medium
 
-# DATAFILE = [DATAFILE1, DATAFILE2,DATAFILE3,DATAFILE4,DATAFILE5,DATAFILE6,DATAFILE7,DATAFILE8]
-names = ["full", "single"]
+DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # lines between 0.3 and 1.0 depth, medium
+#DATAFILE11 = os.path.join(DATADIR, 'test.dat')  # lines between 0.3 and 1.0 depth, medium
+
+
+
+ames = ["full", "single"]
 
 
 nvals = {}
@@ -59,7 +64,7 @@ vranges[DATAFILE9] = (-60.0, 40.0)
 vranges[DATAFILE10] = (-60.0, 40.0)
 vranges[DATAFILE11] = (-60.0, 40.0)
 
-DATAFILE = DATAFILE11 # DATAFILE8
+DATAFILE = DATAFILE10  # DATAFILE8
 
 
 class Pictures(object):
@@ -167,103 +172,103 @@ class Pictures(object):
 
     @property
     def intens_mean(self):
-        if self._intens_mean is None:
-            self._intens_mean = self.analyzer.meanIntensity
-        # self._intens_mean = self.analyzer.meanIntensity
+#       if None == self._intens_mean:
+#            self._intens_mean = self.analyzer.meanIntensity
+        self._intens_mean = self.analyzer.meanIntensity
         return self._intens_mean
 
     @property
     def vrad_corr(self):
-        if None == self._vrad_corr:
+        if None is self._vrad_corr:
             self._vrad_corr = self.analyzer.rv_corr(relative_depth=self.r_depth)
         return self._vrad_corr
 
     @property
     def vspan(self):
-        if None == self._vspan:
+        if self._vspan is None:
             self._vspan = self.analyzer.vspan(upper=self.upper, lower=self.lower)
         return self._vspan
 
     @property
     def vrad_bis(self):
-        if None == self._vrad_bis:
+        if None is self._vrad_bis:
             self._vrad_bis = self.analyzer.vrad_bis(extension=self.extension)
         return self._vrad_bis
 
     @property
     def vrad_skew(self):
-        if None == self._vrad_skew:
+        if None is self._vrad_skew:
             self._vrad_skew = self.analyzer.rv_skew(self.r_depth)
         return self._vrad_skew
 
     @property
     def vrad_std(self):
-        if None == self._vrad_std:
+        if None is self._vrad_std:
             self._vrad_std = self.analyzer.rv_std(self.r_depth)
         return self._vrad_std
 
     @property
     def ls_vrad_skew(self):
-        if None == self._ls_vrad_skew:
+        if None is self._ls_vrad_skew:
             mn = np.mean(self.vrad_skew)
             self._ls_vrad_skew = spectral.lombscargle(self.time, self.vrad_skew - mn, self.freq)
         return self._ls_vrad_skew
 
     @property
     def ls_vrad_mean(self):
-        if None == self._ls_vrad_mean:
+        if None is self._ls_vrad_mean:
             mn = np.mean(self.vrad_mean)
             self._ls_vrad_mean = spectral.lombscargle(self.time, self.vrad_mean - mn, self.freq)
         return self._ls_vrad_mean
 
     @property
     def ls_vrad_corr(self):
-        if None == self._ls_vrad_corr:
+        if None is self._ls_vrad_corr:
             mn = np.mean(self.vrad_corr)
             self._ls_vrad_corr = spectral.lombscargle(self.time, self.vrad_corr - mn, self.freq)
         return self._ls_vrad_corr
 
     @property
     def ls_vspan(self):
-        if None == self._ls_vspan:
+        if None is self._ls_vspan:
             mn = np.mean(self.vspan)
             self._ls_vspan = spectral.lombscargle(self.time, self.vspan - mn, self.freq)
         return self._ls_vspan
 
     @property
     def ls_vrad_bis(self):
-        if None == self._ls_vrad_bis:
+        if None is self._ls_vrad_bis:
             mn = np.mean(self.vrad_bis)
             self._ls_vrad_bis = spectral.lombscargle(self.time, self.vrad_bis - mn, self.freq)
         return self._ls_vrad_bis
 
     @property
     def bisector(self):
-        if None == self._bisector:
+        if None is self._bisector:
             self._bisector, self._depth = self.analyzer.bisector (upper=self.d0, lower=self.d1)
         return self._bisector
 
     @property
     def depth(self):
-        if None == self._depth:
+        if None is self._depth:
             self._bisector, self._depth = self.analyzer.bisector (upper=self.d0, lower=self.d1)
         return self._depth
 
     @property
     def window(self):
-        if None == self._window:
+        if None is self._window:
             self._window = spectral.lombscargle(self.time, np.ones(len(self.time)), self.freq)
         return self._window
 
     @property
     def eqwidth(self):
-        if None == self._eqwidth:
+        if None is self._eqwidth:
             self._eqwidth = self.analyzer.eqwidth()
         return self._eqwidth
 
     @property
     def ls_eqwidth(self):
-        if None == self._ls_eqwidth:
+        if None is self._ls_eqwidth:
             mn = np.mean(self.eqwidth)
             self._ls_eqwidth = spectral.lombscargle(self.time, self.eqwidth - mn, self.freq)
         return self._ls_eqwidth
@@ -317,20 +322,19 @@ class Pictures(object):
         plt.figure()
 
         mnint = self.intens_mean
-        #mnint = mnint - 1.
-        #mnint /= mnint.min()
-        #mnint = 1. - mnint
-        plt.figure()
-        for n in range(mnint.shape[0]):
+        mnint = mnint - 1.
+        mnint /= mnint.min()
+        mnint = 1. - mnint
+        for n in range(self.nspec):
             mn = self.inte[n, :]
-            # mn = mn-1.
-            # mn /= mn.min()
-            # mn = 1.-mn
-            plt.xlim([-60.,40.])
+            mn = mn-1.
+            mn /= mn.min()
+            mn = 1.-mn
+            plt.axis([-60.,40.,-0.1,0.1])
             plt.plot(self.velocity, mn - mnint)
-        plt.title('deviation intensity profile')
+        plt.title('intensity profile')
         plt.xlabel('vrad (first moment) [km/s]')
-        plt.ylabel('intensity')
+        plt.ylabel('scaled intensity')
         plt.savefig(name + self.format)
 
 
@@ -345,9 +349,13 @@ class Pictures(object):
         plt.ylabel('Profile depth')
         n, d = self.bisector.shape
         di = 0.5 * (self.depth[1] - self.depth[0])
-        for i in xrange(n/100):
+        for i in range(int(n/100)):
             u = np.random.uniform(-di, di, d)
             plt.plot(self.bisector[i*100, :], 1-self.depth + u, ',b')
+#        for i in range(n):
+#            u = np.random.uniform(-di, di, d)
+#            plt.plot(self.bisector[i, :], 1-self.depth + u, ',b')
+
         m = self.bisector.mean(axis=0)
         s = self.bisector.std(axis=0)
         plt.plot(m, 1-self.depth, '-k')
@@ -381,13 +389,33 @@ class Pictures(object):
     def vrad_mean_vspan(self):
         name = "vrad_mean_vspan"
 
+        x = self.vrad_mean
+        y = self.vspan
+        xy = np.vstack([x,y])
+        z =gaussian_kde(xy)(xy)
+
+# Sort the points by density, so that the densest points are plotted last
+        idx = z.argsort()
+        x, y, z = x[idx], y[idx], z[idx]
+
+#        fig, ax = plt.subplots()
+#        ax.scatter(x, y, c=z, s=20)
+        colours = np.zeros( (len(z),3) )
+        norm = Normalize( vmin=z.min(), vmax=z.max() )
+        colours = [cm.ScalarMappable( norm=norm, cmap='rainbow').to_rgba( val ) for val in z]
+
         plt.figure()
+        plt.title(name)
+        plt.scatter( x, y, color=colours )
+#
+
+
 #        plt.axis([-13.06,-12.96,0.1,0.6])
         plt.title('Correlation vspan -- radial velocity')
-        plt.plot(self.vrad_mean, self.vspan, 'o')
+#        plt.plot(self.vrad_mean, self.vspan, 'o')
         plt.xlabel('radial velocity (first moment) (km/s)')
         plt.ylabel('vspan (km/s)')
-        plt.xlim(-13.08, -13.01)
+        plt.xlim(-13.1, -13.01)
         plt.ylim(0.2, 0.6)
         plt.savefig(name + self.format)
 
@@ -395,12 +423,33 @@ class Pictures(object):
     def vrad_corr_vspan(self):
         name = "vrad_corr_vspan"
 
+
+#        print(self.vrad_corr)
+        x = self.vrad_corr
+        y = self.vspan
+        xy = np.vstack([x,y])
+        z =gaussian_kde(xy)(xy)
+
+# Sort the points by density, so that the densest points are plotted last
+        idx = z.argsort()
+        x, y, z = x[idx], y[idx], z[idx]
+
+#        fig, ax = plt.subplots()
+#        ax.scatter(x, y, c=z, s=20)
+        colours = np.zeros( (len(z),3) )
+        norm = Normalize( vmin=z.min(), vmax=z.max() )
+        colours = [cm.ScalarMappable( norm=norm, cmap='rainbow').to_rgba( val ) for val in z]
+
         plt.figure()
         plt.title(name)
-        plt.plot(self.vrad_corr, self.vspan, 'o', color='#ED7F10', ms=12, alpha=0.7)
+        plt.scatter( x, y, color=colours )
+##        plt.plot(self.vrad_corr, self.vspan, 'o', color='#ED7F10', ms=12, alpha=0.7)
         plt.xlabel('vrad (m/s)')
         plt.ylabel('vspan (m/s)')
         plt.title('vspan as a function of radial velocity')
+        plt.xlim(-0.17, 0.17)
+        plt.ylim(0.15, 0.55)
+
         plt.savefig(name + self.format)
 
     def vrad_mean_skew(self):
@@ -716,8 +765,8 @@ class Pictures(object):
         maxa = np.max(data)
         box = [0,15,0,1]
         self._plt_ls(data, box=box)
-
-        a = plt.axes([.4, .4, .4, .4], axisbg='white')
+#[left, bottom, width, height]
+        a = plt.axes([.65, .6, .2, .2], facecolor='white')
         plt.title('window function')
         wf = self.window
         wf /= wf.max()
@@ -733,7 +782,7 @@ class Pictures(object):
         plt.ylabel('Relative power spectral density')
 #        self._plt_ls_vr(1000*self.ls_vrad_mean)
 
-        box = [15,50,0,0.04]
+        box = [15,50,0,1.0]
         self._plt_ls(data,box=box, bars=False)
         plt.savefig(name + "_2"+self.format)
 
@@ -756,11 +805,42 @@ class Pictures(object):
         val /= val.sum(axis=1)[:,np.newaxis]
         val -= np.median(val,axis=0)
         #val /= val.max(axis=1)[:,np.newaxis]
+        #Sophie 2018:2.458331340824170038e+06
+        #Narval 2018:2.458332337050000206e+06
+#        tdiff=2.458332337050000206e+06-2.458331340824170038e+06
         tmp, bins = self.analyzer.spectrum_matrix(self.time, val, period=self.rotperiod, nphase=32)
 
         plt.imshow(np.abs(tmp[::-1,:])**0.5, interpolation='none', cmap=plt.cm.Blues)
         plt.plot(tmp)
         plt.savefig(name + self.format)
+
+    def ew_noise_corr(self):
+        name = 'moving_peaks_eq_width'
+        #return #TODO REMOVE
+        vul = 1.-self.inte
+        eqwidth = self.analyzer.eqwidth()
+        signois = self.analyzer.meansignoise()
+
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+            VV =[]
+            TT =[]
+            plt.title('night'+na)
+            for night in nightlist:
+                print("night = ", night)
+                I = self.analyzer.list_index[night]
+                print(night, len(I))
+                TT += list(self.time[I])
+                pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
+
+                plt.figure()
+                plt.plot(signois[I],eqwidth[I],'o')
+                maxs = np.max(signois[I])
+                mins = np.min(signois[I])
+                newx = np.linspace(mins,maxs,1000)
+                plt.plot(newx,pp(newx))
+                plt.show()
+
+
 
     def moving_peaks_signoise(self):
         name = 'moving_peaks_eq_width'
@@ -769,8 +849,12 @@ class Pictures(object):
         eqwidth = self.analyzer.eqwidth()
         signois = self.analyzer.meansignoise()
 
-        # for na, nightlist in zip(['s:1', ], [[0],]):
-        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], ]):
+
+#        for na, nightlist in zip(['s:1', 's:2', 's:3', 's:123456'], [[0], [1], [2], [0,1,2,3,4,5]]):
+
+
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+        #for na, nightlist in zip(['s:12','s:3','s:123'], [[0,1],[2],[0,1,2]]):
             VV =[]
             TT =[]
             plt.figure(figsize=(6,10))
@@ -791,13 +875,13 @@ class Pictures(object):
             #plt.contourf(self.velocity, bins, tmp, cmap=plt.cm.Reds)
 
 
-            tmp = np.sign(tmp) * np.abs(tmp)**0.5
+            tmp = np.sign(tmp) * np.abs(tmp)**0.7
 
             #ax = plt.axes([self.velocity[0],self.velocity[-1],0,1], frameon=False)
             #ax.set_axis_off()
             #ax.set_xlim(self.velocity[0],self.velocity[-1])
             #ax.set_ylim(0,1)
-            v0=-15.01
+            v0=-13.01
 
             plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',
                        interpolation='none', origin='lower',
@@ -811,12 +895,49 @@ class Pictures(object):
             yt = [0,0.2,0.4,0.6,0.8, 1]
             plt.yticks(yt,[str(t) for t in yt])
             plt.vlines([-22, 0, 22], 0,1)
+            plt.vlines([-35, 0, 37], 0,1,linestyles='dashed')
             plt.hlines([1./2], -33,32)
             plt.xlim(self.velocity[0]-v0, self.velocity[-1]-v0)
             plt.xlabel('velocity [km/s]')
-            plt.ylabel('phase [fraction of period]')
+            plt.ylabel('phase fraction of period]')
 
             plt.savefig(name + na +self.format)
+
+
+    def ew_noise_corr(self):
+        name = 'moving_peaks_eq_width'
+        #return #TODO REMOVE
+        vul = 1.-self.inte
+        eqwidth = self.analyzer.eqwidth()
+        signois = self.analyzer.meansignoise()
+
+
+#       for na, nightlist in zip(['s1','s2','s3','s4','s5','s6'], [[0], [1], [2], [3], [4], [5]]):
+#        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7'], [[0], [1], [2], [3], [4], [5], [6]]):
+
+
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7'], [[0], [1], [2], [3], [4], [5], [6]]):
+
+            VV =[]
+            TT =[]
+
+            for night in nightlist:
+                print("night = ", night)
+                try:
+                    I = self.analyzer.list_index[night]
+                    print(night, len(I))
+                except:
+                    continue
+                TT += list(self.time[I])
+                pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
+
+                plt.figure()
+                plt.title('night'+na)
+                plt.plot(signois[I],eqwidth[I],'o')
+                maxs = np.max(signois[I])
+                mins = np.min(signois[I])
+                newx = np.linspace(mins,maxs,1000)
+                plt.plot(newx,pp(newx))
 
 
     def signoise_eqwidth(self):
@@ -885,7 +1006,7 @@ class Pictures(object):
         plt.ylabel('quantile spread in arbitrary units')
         plt.yticks([])
         plt.vlines(self.rotperiod, [0], [1], colors=['red'])
-        plt.ylim(0.85*res.max(), 1.1*res.max())
+        plt.ylim(0.6*res.max(), 1.2*res.max())
         plt.yticks([0.9*res.max(), 1.0*res.max()],['0.9','1.0'])
         plt.xlim(p0,p1)
         plt.savefig(name+self.format)
@@ -895,10 +1016,10 @@ if __name__ == '__main__':
     #myPics.vrad_mean_vrad_corr()
     #myPics.ts_vrad()
     #myPics.ts_eqwidth()
-    myPics.intens()
-    myPics.intens_all()
-#    myPics.vrad_mean_vspan()
-#    myPics.vrad_corr_vspan()
+#    myPics.intens()
+#    myPics.intens_all()
+    myPics.vrad_mean_vspan()
+    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
 #    myPics.vrad_corr_skew()
@@ -910,15 +1031,15 @@ if __name__ == '__main__':
 #    myPics.ls_spec_all3()
 #    myPics.ls_spec_vrad_corr()
 #    myPics.ls_spec_vrad_bis()
-#    myPics.ls_spec_vspan()
+    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
-#    myPics.bisector_time()
+    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #    myPics.bayes_freq_vrad_mean()
-    myPics.moving_peaks_signoise()
-#    myPics.estrotentropy()
+#    myPics.moving_peaks_signoise()
+###    myPics.estrotentropy()
 
     #myPics.saveData("time_vrad_mean.dat", [6142.+myPics.time, myPics.vrad_mean])  # first column
     #myPics.saveData("time_vrad_corr.dat", [myPics.time, myPics.vrad_corr])  # first column
@@ -927,5 +1048,8 @@ if __name__ == '__main__':
     #myPics.saveData("time_skew.dat", [myPics.time, myPics.vrad_skew])  # first column
 
 
-    plt.show()
 
+
+    # myPics.ew_noise_corr()
+
+    plt.show()

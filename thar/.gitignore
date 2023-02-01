@@ -1,0 +1,13 @@
+*.fits
+__pycache__
+__pycache__/**
+*.ipynb
+*.json
+*.zip
+*.dat
+*.log
+notebooks/
+notebooks/**
+.ipynb_checkpoints
+.ipynb_checkpoints/**
+.ipynb_checkpoints/*.ipynb
