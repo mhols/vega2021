@@ -19,14 +19,25 @@ from scipy.optimize import curve_fit
 def print(*x):
     pass
 
+NROWS=4208
+ORDERS=range(21,58)
 clum=3e5
 
-def thar_write(refname,atlasname,fitsfile,outfile1,outfile2,outfile3):
+def thar_write(refname,atlasname,voie1,voie2,voie3,outfile1,outfile2,outfile3):
     """
     refname: fichier ascii du spectre ThAr de reference (UVES)
+        refname = 'thar_spec_MM201006.dat'
     atlasname: fichier ascii des raies retenues ThAr de reference
+        atlasname = 'thar_UVES_MM090311.dat'
     fitsfile: fichier input Neo-Narval ThAr (th2)
     outfile1 (2,3): output json file
+    
+    root = '/Users/boehm/Desktop/extract/thar_hobo'
+    wavefile=root+'/reffiles/artlambda.dat'
+    fluxfile1=root+'/datafiles/voie1hols.dat'
+    fluxfile2=root+'/datafiles/voie2hols.dat'
+    #fitsfile=root+'/datafiles/NEO_20230125_175423_th2.fits'
+
     """
     #lecture du fichier ascii du spectre ThAr de reference (UVES)
     #ce spectre contient une premiere colonne lambda, une seconde intensite,...
@@ -70,6 +81,7 @@ def thar_write(refname,atlasname,fitsfile,outfile1,outfile2,outfile3):
             atlasline[l] = float(sfr[1])
     fr.close
 
+"""
     a=pyfits.open(fitsfile)
     wave1=a[1].data['Wavelength1']
     intens1=a[1].data['Beam1']
@@ -79,6 +91,9 @@ def thar_write(refname,atlasname,fitsfile,outfile1,outfile2,outfile3):
     intens3=a[1].data['Beam3']
 
     orderlim=a[2].data['Orderlimit']
+"""
+    orderlim=NROWS*np.arange(np.array(ORDERS).size+1)
+
 
     def gauss(x, A, mu, sigma, y_offset):
     # A, sigma, mu, y_offset = p
@@ -123,7 +138,7 @@ def thar_write(refname,atlasname,fitsfile,outfile1,outfile2,outfile3):
         
     # seuil en ADU pour qu'on puisse selectionner une raie de l'atlas. Il faut qu'elle depasse de ce seuil le zero. Ensuite, il faut donner une zone +/- autour de la raie du catalogue, pour detecter la valeur maxi du flux tu ThAr obs.
     # le vrange est donc cette largeur en km/s
-        seuil = 100.
+        seuil = 2000.
         vrange = 9.
     # on ne veut choisir que les raies de l'atlas qui se retrouvent dans la zone atlasext[k] +/- vrange, et qui ont un flux max au dessus du seuil. Ca reduit la liste. En plus, il faut le faire sur les deux voies et appliquer le mini.
         
@@ -429,9 +444,15 @@ def thar_write(refname,atlasname,fitsfile,outfile1,outfile2,outfile3):
 if __name__ == "__main__":
     refname = "./reffiles/thar_spec_MM201006.dat"
     atlasname = "./reffiles/thar_UVES_MM090311.dat"
-    fitsfile = "./datafiles/NEO_20220219_173048_th2.fits"
-    outfile1 = "NEO_20220219_173048_th2_voie1.json"
-    outfile2 = "NEO_20220219_173048_th2_voie2.json"
-    outfile3 = "NEO_20220219_173048_th2_voie3.json"
+    root = '/Users/boehm/Desktop/extract/thar_hobo'
+    wavefile=root+'/reffiles/artlambda.dat'
+    voie1=root+'/datafiles/voie1hols.dat'
+    voie2=root+'/datafiles/voie2hols.dat'
+    voie3=root+'/datafiles/voie3hols.dat'
+    #fitsfile=root+'/datafiles/NEO_20220219_173048_th2.fits'
+    ##fitsfile=root+'/datafiles/NEO_20230125_175423_th2.fits'
+    outfile1 = "NEO_20230125_175423_th2_voie1.json"
+    outfile2 = "NEO_20230125_175423_th2_voie2.json"
+    outfile3 = "NEO_20230125_175423_th2_voie3.json"
     
     thar_write(refname,atlasname,fitsfile,outfile1,outfile2,outfile3)
