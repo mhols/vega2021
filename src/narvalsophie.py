@@ -1,8 +1,10 @@
 from scipy.interpolate.fitpack2 import UnivariateSpline
+from matplotlib import gridspec
 import spectralutil as sp
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.polynomial import polynomial as Poly
 import sys
 
 
@@ -124,6 +126,94 @@ def lomb_scargel_vspan(*specs, depth=0.9, uu=0.2, ul=0.3, lu=0.5, ll=0.6):
         plt.plot(oms/(2*np.pi), data)
 
 
+def bisector_test(*specs):
+    for spec in specs:
+        bise = spec.bisector_borders()
+        atdepth = np.linspace (0.01, 0.9, 64)
+        min_intens = np.min(spec.intensity, axis=1)
+        inte = spec.intensity
+        v = spec.velocity
+        plt.figure()
+        plt.title(spec.name)
+        for (i, mini) in enumerate(min_intens):
+            at = mini + atdepth * (1-mini)  # linear interpolation 
+            l, r = bise[i]
+            plt.plot((l(at)+r(at))/2, at)
+            plt.plot(v, inte[i])
+
+
+def intens_bubble(*specs):
+    for spec in specs:
+        intens = spec.intensity
+        v = spec.velocity
+        plt.figure()
+        plt.plot(v, intens.T)
+        #v = spec.velocity
+        atdepth = np.linspace (0.4, 0.7, 64)
+        vm = spec.rv_bis_range_rel_depth(atdepth)
+        I = np.arange(61,68)
+        intens = intens[:, I]
+        v = v[I]
+        plt.figure()
+        plt.plot(intens.T)
+        intens = 1-intens
+        p = Poly.polyfit(v, intens.T, 2)
+        vb = -1*p[1]/(2*p[2])
+        # vb = np.sum(intens*v[np.newaxis, :], axis=1)/np.sum(intens, axis=1)
+        plt.figure()
+        plt.title('bulk-v '+ spec.name)
+        plt.plot(spec.time, vm, '.')
+        plt.figure()
+        plt.title('bumb-v '+ spec.name)
+        plt.plot(spec.time, vb, '.')
+
+        plt.figure()
+        plt.title(spec.name)
+        for i in range(spec.number_of_nights()):
+            mask = spec.mask_of_night(i)
+            plt.plot(vm[mask].mean(), vb[mask].mean(), 'o')
+        plt.figure()
+        plt.title(spec.name)
+        for i in range(spec.number_of_nights()):
+            mask = spec.mask_of_night(i)
+            plt.plot(vm[mask], vb[mask], 'o')
+
+
+"""
+def bisector_time():
+    name = "bisector_time"
+    plt.figure()
+    gs=gridspec.GridSpec(1, 2, width_ratios=[3, 1])
+    plt.subplot(gs[0])
+    plt.axis([-14,-12.75,0.,1.])
+    plt.title('bisector variations')
+    plt.xlabel('velocity (km/s)')
+    plt.ylabel('Profile depth')
+    n, d = bisector.shape
+    di = 0.5 * (self.depth[1] - self.depth[0])
+    for i in range(int(n/100)):
+        u = np.random.uniform(-di, di, d)
+        plt.plot(self.bisector[i*100, :], 1-self.depth + u, ',b')
+#        for i in range(n):
+#            u = np.random.uniform(-di, di, d)
+#            plt.plot(self.bisector[i, :], 1-self.depth + u, ',b')
+
+    m = self.bisector.mean(axis=0)
+    s = self.bisector.std(axis=0)
+    plt.plot(m, 1-self.depth, '-k')
+    plt.plot(m + 1.96 * s, 1-self.depth, '-g')
+    plt.plot(m - 1.96 * s, 1-self.depth, '-g')
+
+    plt.subplot(gs[1])
+    plt.title('std of bisector')
+    plt.axis([0, 0.15, 0, 1])
+    plt.plot(s, 1-self.depth, '-g')
+    plt.yticks([])
+    plt.xticks([])
+    plt.xticks([0,0.1],['0','0.1'])
+    plt.savefig(name + self.format)
+"""
+
 if __name__ == '__main__':
     matplotlib.rcParams.update({'font.size': 22})
 
@@ -131,8 +221,8 @@ if __name__ == '__main__':
     sophie2012 = sp.SpectralAnalyser('sophie12_reduced.json')
     narval = sp.SpectralAnalyser("narval_reduced.json")
 
-    for f in np.linspace(0.9, 1.1, 21):
-        binned_spectrum(sophie2012, sophie2018, period=f*sp.VEGAPERIOD)
+    #for f in np.linspace(0.9, 1.1, 21):
+    #    binned_spectrum(sophie2012, sophie2018, period=f*sp.VEGAPERIOD)
 
     #lomb_scargel_vspan(sophie2012, sophie2018, narval, uu=0.5, ul=0.66, lu=0.75, ll=0.9)
     #lomb_scargel_vspan_old(sophie2012, sophie2018, narval, uu=0.5, ul=0.34, lu=0.25, ll=0.1)
@@ -140,4 +230,7 @@ if __name__ == '__main__':
     #radial_velocity_correlation(narval, sophie2018, sophie2012, relative_depth=0.8)
     #radial_velocity_bisector(narval, sophie2018, sophie2012, atdepth=0.5)
 
+
+    # bisector_test(sophie2012, sophie2018, narval)
+    intens_bubble(sophie2018)
     plt.show()
