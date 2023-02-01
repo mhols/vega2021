@@ -462,7 +462,6 @@ class Extractor:
         self._restart()
         self.kwargs = kwargs
         self._fitsfile = fitsfile
-
         # all properties can be lasily evaluated
 
         # masterflat and masterbias can be computed or passed
@@ -471,7 +470,6 @@ class Extractor:
         self._beams = None
         self._order_bounds = None
         self._Blaze = None
-
 
     def logging(self, message):
         print('Extractor: ' + message)
@@ -605,7 +603,10 @@ class Extractor:
             self._compute_voie1et2()
         return self._voie2
 
-    
+
+    def get_lambda(self):
+        return self._lambda
+
     def _compute_masterflat(self, dirname=DIRNAME):
         """
         Bias removed flat

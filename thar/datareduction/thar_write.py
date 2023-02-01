@@ -22,6 +22,11 @@ def print(*x):
 NROWS=4208
 ORDERS=range(21,58)
 clum=3e5
+REF_SPECTRUM = './reffiles/thar_spec_MM201006.dat'
+REF_ATLAS = './reffiles/thar_UVES_MM090311.dat',  )
+
+
+def 
 
 def thar_write(refname,atlasname,voie1,voie2,voie3):
     """
@@ -49,37 +54,36 @@ def thar_write(refname,atlasname,voie1,voie2,voie3):
     #3033.0867480159  103.99224526863826    0.36633407377209    0.36633407377209     97.132933537024
 
     #nombre de lignes du catalogue de raies
-    num_lines=len(open(refname,'r').readlines())
+    with open(REF_SPECTRUM, 'r') as f:
+        lines = f.readlines() 
+
+    num_lines=length(lines)
     npt=num_lines-2
     linecount = 0
     refwave = np.zeros (npt, dtype =  float)
     refintens = np.zeros (npt, dtype =  float)
 
-
-    fr = open(refname, 'r')
-    linefr = fr.readline()
-    linefr = fr.readline()
     for l in range (0,npt):
-            linefr = fr.readline()
+            linefr = lines[2+l]
             sfr = linefr.split()
             refwave[l] = float(sfr[0])
             refintens[l] = float(sfr[1])
-    fr.close
 
 
-    #lecture du fichier ascii catalogue de raies thar_UVES_MM090311.dat
+    # REF_ATLecture du fichier ascii catalogue de raies thar_UVES_MM090311.dat
     #33322.4046  3000.109256  0.450 Ar II  W
     #33319.9704  3000.328442 -0.007 XX 0   P
     #atlasname = 'thar_UVES_MM090311.dat'
-    num_alines=len(open(atlasname,'r').readlines())
+    with open(REF_ATLAS, 'r') as f:
+        alines = f.readlines()
+
+    num_alines=length(alines)
     npt=num_alines
     atlasline = np.zeros (npt, dtype =  float)
-    ar = open(atlasname, 'r')
     for l in range (0,npt):
-            linear = ar.readline()
+            linear = alines[l]
             sfr = linear.split()
             atlasline[l] = float(sfr[1])
-    fr.close
 
 """
     a=pyfits.open(fitsfile)
@@ -446,7 +450,8 @@ if __name__ == "__main__":
     myext = Extractor(kjflhaksdjhfa)
 
     myext.set_fitsfile('thoriumrordshdkjalsdf')
-    voie1 = myext.voie1()
-    voie2 = myext.voie2()
+    voie1 = myext.voie1[44]
 
-    snippets =  thar_write(refname='./' , atlasname=, voie1, voi2, voie3)
+    snippets =  thar_write(order, nvoie)
+    
+   
