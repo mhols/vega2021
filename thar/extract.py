@@ -39,8 +39,9 @@ DEGREEBLAZE = 7                                                   # polynomial d
 voie3 must be redetermined with new separation beam along minima between 1 and 3
 """
 
-DIRNAME ='/Users/boehm/Desktop/extract/fitsfiles'
+DIRNAME ='./datafiles'
 DATADIR=DIRNAME
+LAMBDAFILE = './reffiles/artlambda.dat'
 
 """
 Neo-Narval fits files contain nli ligns and  ncol columns. Red orders are low pixel indices, blue ones correspond to high indices. Low pixel indices correspond to lower wavelength within one given order, wavelength is increasing towards higher column indices.
@@ -301,6 +302,7 @@ def _followorder(image,xstart,ystart,up=True):
     res[IC] = 0
     return res
     
+    
 def followorder(image,xstart,ystart):
     res = _followorder(image,xstart,ystart,up=True) + _followorder(image, xstart,ystart,up=False)
     res = generic_filter(res, 
@@ -308,6 +310,13 @@ def followorder(image,xstart,ystart):
     )
 
     return res
+    
+def get_lambda(order):
+    artlambda = loadtxt(LAMBDAFILE)
+    selectedorder = o
+    mult = selectedorder - 21
+    lamb = artlambda[mult*NROWS:(mult+1)*NROWS]
+    return lamb
 
 class BeamOrder:
     """
