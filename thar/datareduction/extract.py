@@ -35,12 +35,14 @@ OFFSETBLUE=16
 MEMORY_POSITION = 0.7  # memory of AR1 process for line following
 BLAZE_RANGE = range(-OFFSETRED, OFFSETBLUE+1)                     # range for the blase function
 DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
+CLUM = 3e5
 """
 voie3 must be redetermined with new separation beam along minima between 1 and 3
 """
 
 DIRNAME ='/Users/boehm/Desktop/extract/fitsfiles'
 DATADIR=DIRNAME
+LAMBDAFILE = './reffiles/artlambda.dat'
 
 """
 Neo-Narval fits files contain nli ligns and  ncol columns. Red orders are low pixel indices, blue ones correspond to high indices. Low pixel indices correspond to lower wavelength within one given order, wavelength is increasing towards higher column indices.
@@ -308,6 +310,13 @@ def followorder(image,xstart,ystart):
     )
 
     return res
+    
+def get_lambda(order):
+    artlambda = np.loadtxt(LAMBDAFILE)
+    selectedorder = order
+    mult = selectedorder - ORDERS[0]
+    lamb = artlambda[mult*NROWS:(mult+1)*NROWS]
+    return lamb
 
 class BeamOrder:
     """
