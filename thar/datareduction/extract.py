@@ -40,9 +40,9 @@ CLUM = 3e5
 voie3 must be redetermined with new separation beam along minima between 1 and 3
 """
 
-DIRNAME ='/Users/boehm/Desktop/extract/fitsfiles'
+DIRNAME ='./../datafiles'
 DATADIR=DIRNAME
-LAMBDAFILE = './reffiles/artlambda.dat'
+LAMBDAFILE = './../reffiles/artlambda.dat'
 
 """
 Neo-Narval fits files contain nli ligns and  ncol columns. Red orders are low pixel indices, blue ones correspond to high indices. Low pixel indices correspond to lower wavelength within one given order, wavelength is increasing towards higher column indices.

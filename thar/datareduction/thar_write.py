@@ -22,27 +22,13 @@ def print(*x):
 NROWS=4208
 ORDERS=range(21,58)
 clum=3e5
-REF_SPECTRUM = './reffiles/thar_spec_MM201006.dat'
-REF_ATLAS = './reffiles/thar_UVES_MM090311.dat',  )
+REF_SPECTRUM = './../reffiles/thar_spec_MM201006.dat'
+REF_ATLAS = './../reffiles/thar_UVES_MM090311.dat'
 
 
-def 
-
-def thar_write(refname,atlasname,voie1,voie2,voie3):
+def thar_write(extractor, o):
     """
-    refname: fichier ascii du spectre ThAr de reference (UVES)
-        refname = 'thar_spec_MM201006.dat'
-    atlasname: fichier ascii des raies retenues ThAr de reference
-        atlasname = 'thar_UVES_MM090311.dat'
-    fitsfile: fichier input Neo-Narval ThAr (th2)
-    outfile1 (2,3): output json file
-    
-    root = '/Users/boehm/Desktop/extract/thar_hobo'
-    wavefile=root+'/reffiles/artlambda.dat'
-    fluxfile1=root+'/datafiles/voie1hols.dat'
-    fluxfile2=root+'/datafiles/voie2hols.dat'
-    #fitsfile=root+'/datafiles/NEO_20230125_175423_th2.fits'
-
+    extractor: Extractor object
     """
     #lecture du fichier ascii du spectre ThAr de reference (UVES)
     #ce spectre contient une premiere colonne lambda, une seconde intensite,...
@@ -57,17 +43,17 @@ def thar_write(refname,atlasname,voie1,voie2,voie3):
     with open(REF_SPECTRUM, 'r') as f:
         lines = f.readlines() 
 
-    num_lines=length(lines)
+    num_lines=len(lines)
     npt=num_lines-2
     linecount = 0
     refwave = np.zeros (npt, dtype =  float)
     refintens = np.zeros (npt, dtype =  float)
 
     for l in range (0,npt):
-            linefr = lines[2+l]
-            sfr = linefr.split()
-            refwave[l] = float(sfr[0])
-            refintens[l] = float(sfr[1])
+        linefr = lines[2+l]
+        sfr = linefr.split()
+        refwave[l] = float(sfr[0])
+        refintens[l] = float(sfr[1])
 
 
     # REF_ATLecture du fichier ascii catalogue de raies thar_UVES_MM090311.dat
@@ -77,15 +63,15 @@ def thar_write(refname,atlasname,voie1,voie2,voie3):
     with open(REF_ATLAS, 'r') as f:
         alines = f.readlines()
 
-    num_alines=length(alines)
+    num_alines=len(alines)
     npt=num_alines
     atlasline = np.zeros (npt, dtype =  float)
     for l in range (0,npt):
-            linear = alines[l]
-            sfr = linear.split()
-            atlasline[l] = float(sfr[1])
+        linear = alines[l]
+        sfr = linear.split()
+        atlasline[l] = float(sfr[1])
 
-"""
+    """
     a=pyfits.open(fitsfile)
     wave1=a[1].data['Wavelength1']
     intens1=a[1].data['Beam1']
@@ -95,7 +81,7 @@ def thar_write(refname,atlasname,voie1,voie2,voie3):
     intens3=a[1].data['Beam3']
 
     orderlim=a[2].data['Orderlimit']
-"""
+    """
     orderlim=NROWS*np.arange(np.array(ORDERS).size+1)
 
 
@@ -116,25 +102,32 @@ def thar_write(refname,atlasname,voie1,voie2,voie3):
     res2=[]
     res3=[]
 
+    ### Matthias adding....
+    wave1 = get_lambda(o)
+    wave2 = get_lambda(o)
+    wave3 = get_lambda(o)
+
+    intens1 = extractor.voie1[o]
+    intens2 = extractor.voie2[o]
+    intens3 = extractor.voie2[o]
 
     #for j in range (19,20):
     #for j in range (31,orderlim.size-2):
     for j in range (2,orderlim.size-2):
-
         ordernum[j] = j
-    # vrai numero d'ordre
+        # vrai numero d'ordre
         tordernum[j] = ordernum[j]+21
     #    print("j: ",j, " ordernum[j]", ordernum[j], " true ordernum[j]: ",tordernum[j])
     #ici on ne selectionne que les raies de l'atlas dans l'ordre j, index.size est ce nombre de raies du catalogue UVES
-        indexx=np.where((wave1[orderlim[j]]<atlasline) & (atlasline < wave1[orderlim[j+1]-1]))
+        indexx=np.where((wave1[0]<atlasline) & (atlasline < wave1[-1]))
         atlasext=atlasline[indexx]
-        wext1=wave1[orderlim[j]:orderlim[j+1]]
-        iext1=intens1[orderlim[j]:orderlim[j+1]]
-        wext2=wave2[orderlim[j]:orderlim[j+1]]
-        iext2=intens2[orderlim[j]:orderlim[j+1]]
-        wext3=wave3[orderlim[j]:orderlim[j+1]]
-        iext3=intens3[orderlim[j]:orderlim[j+1]]
-        centrallam[j]=(wave1[orderlim[j+1]-1]+wave1[orderlim[j]])/2.
+        wext1=wave1
+        iext1=intens1
+        wext2=wave2
+        iext2=intens2
+        wext3=wave3
+        iext3=intens3
+        centrallam[j]=(wave1[-1]+wave1[0])/2.
     #
     #orderlim[j+1]-orderlim[j] vaut 7800, il y a donc 7800 pixels (="Arturos") par ordre
     #ces pixels ne sont pas les pixels du CCD mais correspondent a un sousechantillonnage afin d arriver a la superresolution
@@ -152,6 +145,8 @@ def thar_write(refname,atlasname,voie1,voie2,voie3):
         numlines=int(np.array(indexx).size)
         maxi = np.zeros (numlines, dtype =  float)
         maxir = np.zeros (numlines, dtype =  float)
+        
+        # TODO check if intline1 is used
         intline1 = np.zeros (numlines, dtype =  float)
         intline2 = np.zeros (numlines, dtype =  float)
         
@@ -438,20 +433,23 @@ def thar_write(refname,atlasname,voie1,voie2,voie3):
     # EW= A*(np.sqrt(2pi) sigma) si le continu est a 1!! Donc renormalisation AVANT
     # la division par gopt[3] est une normalisation locale
 
+    """
     with open(outfile1, 'w') as outfile:
         json.dump(res1, outfile, indent=2)
     with open(outfile2, 'w') as outfile:
         json.dump(res2, outfile, indent=2)
     with open(outfile3, 'w') as outfile:
-        json.dump(res3, outfile, indent=2)
+        json.dump(res3, outfile, indent=2)  
+    """
+
+    return res1, res2, res3
 
 if __name__ == "__main__":
     from extract import *
-    myext = Extractor(kjflhaksdjhfa)
+    myext = Extractor(DATADIR='./../datafiles')
+    myext.set_fitsfile('./../datafiles/NEO_20220903_191404_th0.fits')
 
-    myext.set_fitsfile('thoriumrordshdkjalsdf')
-    voie1 = myext.voie1[44]
-
-    snippets =  thar_write(order, nvoie)
+    snippets =  thar_write(myext, 44)
+    print ('snippets', snippets)
     
    
