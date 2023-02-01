@@ -15,10 +15,7 @@ import json
 import scipy
 from scipy.optimize import curve_fit
 #
-from extract import *
-
-def print(*x):
-    pass
+import extract
 
 NROWS=4208
 ORDERS=range(21,58)
@@ -109,10 +106,10 @@ def thar_write(extractor, o):
     res3=[]
 
     ### Matthias adding....
-    wave1 = get_lambda(o)
+    wave1 = extract.get_lambda(o)
     print(wave1)
-    wave2 = get_lambda(o)
-    wave3 = get_lambda(o)
+    wave2 = extract.get_lambda(o)
+    wave3 = extract.get_lambda(o)
 
     intens1 = extractor.voie1[o]
     intens2 = extractor.voie2[o]
@@ -452,8 +449,8 @@ def thar_write(extractor, o):
     return res1, res2, res3
 
 if __name__ == "__main__":
-    from extract import *
-    myext = Extractor(DATADIR='./../datafiles')
+    print ('es geht los')
+    myext = extract.Extractor(DATADIR='./../datafiles')
     myext.set_fitsfile('./../datafiles/NEO_20220903_191404_th0.fits')
 
     snippets =  thar_write(myext, 44)
