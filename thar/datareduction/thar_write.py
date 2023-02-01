@@ -23,7 +23,7 @@ NROWS=4208
 ORDERS=range(21,58)
 clum=3e5
 
-def thar_write(refname,atlasname,voie1,voie2,voie3,outfile1,outfile2,outfile3):
+def thar_write(refname,atlasname,voie1,voie2,voie3):
     """
     refname: fichier ascii du spectre ThAr de reference (UVES)
         refname = 'thar_spec_MM201006.dat'
@@ -442,17 +442,11 @@ def thar_write(refname,atlasname,voie1,voie2,voie3,outfile1,outfile2,outfile3):
         json.dump(res3, outfile, indent=2)
 
 if __name__ == "__main__":
-    refname = "./reffiles/thar_spec_MM201006.dat"
-    atlasname = "./reffiles/thar_UVES_MM090311.dat"
-    root = '/Users/boehm/Desktop/extract/thar_hobo'
-    wavefile=root+'/reffiles/artlambda.dat'
-    voie1=root+'/datafiles/voie1hols.dat'
-    voie2=root+'/datafiles/voie2hols.dat'
-    voie3=root+'/datafiles/voie3hols.dat'
-    #fitsfile=root+'/datafiles/NEO_20220219_173048_th2.fits'
-    ##fitsfile=root+'/datafiles/NEO_20230125_175423_th2.fits'
-    outfile1 = "NEO_20230125_175423_th2_voie1.json"
-    outfile2 = "NEO_20230125_175423_th2_voie2.json"
-    outfile3 = "NEO_20230125_175423_th2_voie3.json"
-    
-    thar_write(refname,atlasname,fitsfile,outfile1,outfile2,outfile3)
+    from extract import *
+    myext = Extractor(kjflhaksdjhfa)
+
+    myext.set_fitsfile('thoriumrordshdkjalsdf')
+    voie1 = myext.voie1()
+    voie2 = myext.voie2()
+
+    snippets =  thar_write(refname='./' , atlasname=, voie1, voi2, voie3)
