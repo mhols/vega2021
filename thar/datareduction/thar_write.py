@@ -15,6 +15,7 @@ import json
 import scipy
 from scipy.optimize import curve_fit
 #
+from extract import *
 
 def print(*x):
     pass
@@ -40,6 +41,9 @@ def thar_write(extractor, o):
     #3033.0867480159  103.99224526863826    0.36633407377209    0.36633407377209     97.132933537024
 
     #nombre de lignes du catalogue de raies
+    
+    print('in thar_write')
+
     with open(REF_SPECTRUM, 'r') as f:
         lines = f.readlines() 
 
@@ -98,12 +102,15 @@ def thar_write(extractor, o):
     centrallam = np.zeros (orderlim.size, dtype = float)
     tordernum = np.zeros (orderlim.size, dtype = float)
 
+    print ('coucou')
+
     res1=[]
     res2=[]
     res3=[]
 
     ### Matthias adding....
     wave1 = get_lambda(o)
+    print(wave1)
     wave2 = get_lambda(o)
     wave3 = get_lambda(o)
 
