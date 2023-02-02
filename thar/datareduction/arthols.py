@@ -15,7 +15,7 @@ import pandas as pd
 
 ORDERS = range(21, 60)
 #NROWS = 7208
-"""
+
 hol1 = 917.7
 hol2 = 3327.99
 art1 = 1660.0
@@ -26,6 +26,7 @@ hol1 = 644.20
 hol2 = 3769.86
 art1 = 1088.85
 art2 = 7340.84
+"""
 
 n = (hol1-hol2)/(art1-art2)
 b = hol1 - n*art1
@@ -45,12 +46,12 @@ def reload():
 
 def restart(**kwargs):
 
-    myext=Extractor('./fitsfiles/NEO_20220903_190703_fla.fits',
-        DATADIR='./fitsfiles',**kwargs)
+    myext=Extractor('./datafiles/NEO_20220903_190703_fla.fits',
+        DATADIR='./datafiles',**kwargs)
     return myext
 
-#artfile = "/Users/boehm/Desktop/vega2021/thar/datafiles/NEO_20220219_173048_th2.fits"
-artfile = "/Users/boehm/Desktop/vega2021/thar/datafiles/NEO_20230125_175423_th2.fits"
+artfile = "/Users/boehm/Desktop/vega2021/thar/datafiles/NEO_20220219_173048_th2.fits"
+#artfile = "/Users/boehm/Desktop/vega2021/thar/datafiles/NEO_20230125_175423_th2.fits"
 a=pyfits.open(artfile)
 
 wave1=a[1].data['Wavelength1']
@@ -64,7 +65,7 @@ orderlim=a[2].data['Orderlimit']
 
 #myext=restart()
 myext = restart(VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
-myext.set_fitsfile('fitsfiles/NEO_20220903_191404_th0.fits')
+myext.set_fitsfile('datafiles/NEO_20220903_191404_th0.fits')
 
 
 waveart = []
