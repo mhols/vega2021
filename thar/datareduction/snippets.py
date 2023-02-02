@@ -10,29 +10,29 @@
 
 
 import astropy.io.fits as pyfits
+import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import os
 import json
 import scipy
 from scipy.optimize import curve_fit
-from extract import *
+import extract
 #
-
-def print(*x):
-    pass
 
 #NROWS=4208
 #ORDERS=range(21,58)
-#clum=3e5
+CLUM=3e5
 
-REF_SPECTRUM = './reffiles/thar_spec_MM201006.dat'
-REF_ATLASLINES = './reffiles/thar_UVES_MM090311.dat'
+REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
+REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
+EXCLUSION = '../reffiles/excluded.dat'
 #seuil en ADU
 SEUIL = 2000.
 #vrange in km/s
 VRANGE= 9.
-def snippets(nvoie,order):
+
+def snippets(extractor,nvoie,order):
    
 
     """
@@ -47,69 +47,93 @@ def snippets(nvoie,order):
     """
     #nombre de lignes du catalogue de raies
     
-    num_lines=len(open(REF_SPECTRUM,'r').readlines())
+    with open(REF_SPECTRUM, 'r') as f:
+        lines = f.readlines()
+
+    num_lines=len(lines)
     npt=num_lines-2
     linecount = 0
     refwave = np.zeros (npt, dtype =  float)
     refintens = np.zeros (npt, dtype =  float)
 
-
-    fr = open(REF_SPECTRUM, 'r')
-    linefr = fr.readline()
-    linefr = fr.readline()
     for l in range (0,npt):
-            linefr = fr.readline()
-            sfr = linefr.split()
-            refwave[l] = float(sfr[0])
-            refintens[l] = float(sfr[1])
-    fr.close
+        linefr = lines[2+l]
+        sfr = linefr.split()
+        refwave[l] = float(sfr[0])
+        refintens[l] = float(sfr[1])
+
 
 
     #lecture du fichier ascii catalogue de raies thar_UVES_MM090311.dat
     #33322.4046  3000.109256  0.450 Ar II  W
     #33319.9704  3000.328442 -0.007 XX 0   P
     #atlasname = 'thar_UVES_MM090311.dat'
-    num_alines=len(open(REF_ATLASLINES,'r').readlines())
+    with open(REF_ATLASLINES, 'r') as f:
+        alines = f.readlines()
+
+    num_alines=len(alines)
     npt=num_alines
     atlasline = np.zeros (npt, dtype =  float)
-    ar = open(atlasname, 'r')
     for l in range (0,npt):
-            linear = ar.readline()
-            sfr = linear.split()
-            atlasline[l] = float(sfr[1])
-    fr.close
+        linear = alines[l]
+        sfr = linear.split()
+        atlasline[l] = float(sfr[1])
+    
+    
      
     o = order
-    voie=voie+'nvoie'
-    myext = restart()
-    flux = myext.voie
-    lam  = myext.get_lambda(o)
-
+    if nvoie == 1:
+        flux = myext.voie1[o]
+    elif nvoie == 2:
+        flux = myext.voie2[o]
+    elif nvoie == 3:
+        flux = myext.voie3[o]
+    else:
+        raise Exception('no such voie')
+        
+    lam  = extract.get_lambda(o)
     res = []
-    o = order
-    
-    # ICI ON DOIT LIRE exlude.dat et filter les atlasline d'office
-    # cad ne pas prendre les raies tombant dans des endroits interdits
-    
-    
-    
-    
-    
+
     
     
     #####
     
     #selectionner les raies de reference dans l'intervalle spectral
-    indexx=np.where(lam[0] <atlasline) & (atlasline < lam[lam.size-1])
-    atlasext=atlasline[indexx]
+    #lam[-1] deniere valeur de lambda
     
-
-    # on ne veut choisir que les raies de l'atlas qui se retrouvent dans la zone atlasext[k] +/- vrange, et qui ont un flux max au dessus du seuil. Ca reduit la liste. En plus, il faut le faire sur les deux voies et appliquer le mini.
+    indexx=np.where((lam[0] <atlasline) & (atlasline < lam[-1]))
+    atlasext=atlasline[indexx]
+   
+       
+    # ICI ON DOIT LIRE exlude.dat et filter les atlasline d'office
+    # cad ne pas prendre les raies tombant dans des endroits interdits
+    exclusion = np.loadtxt(EXCLUSION)
+    
+    #I = []
+    I, = np.where(exclusion[:,0] == o)
+    print(atlasext)
+    
+    goodlines = []
+    for l in atlasext:
+        for i in I:
+            if l >= exclusion[i,1] and l <= exclusion[i,2]:
+                break
+        goodlines.append(l)
+        
+    atlasext=np.array(goodlines)
+    print(atlasext)
+    plt.plot(lam,flux)
+    plt.plot(refwave,refintens)
+    for ll in atlasext:
+        plt.vlines(ll,0.,20000.,'y')
+    plt.show()
+    
+    # on ne veut choisir que les raies de l'atlas qui se retrouvent dans la zone atlasext[k] +/- vrange, et qui ont un flux max au dessus du seuil. Ca reduit la liste.
         
     latlasext=atlasext*(1.-VRANGE/CLUM)
     ratlasext=atlasext*(1.+VRANGE/CLUM)
         
-    numlines=int(np.array(indexx).size)
+    numlines=atlasext.shape[0]
     maxi = np.zeros (numlines, dtype =  float)
     maxir = np.zeros (numlines, dtype =  float)
         
@@ -117,64 +141,31 @@ def snippets(nvoie,order):
     #de reference. Il faut que la grille en longueur d'onde soit des le
     #depart suffisamment bonne pour que la raie observee tombe dans le snippet
     
-    for k in range (numlines):
-    # snippets autour des raies de references, extraits dans spectre obs
-        indext =  np.where((lam <ratlasext[k]) & (lam >latlasext[k]))
-        wav=lam[indext]
-        int=flux[indext]
-        
-    # snippets autour des raies de references, extraits dans spectre de ref
-        indextr =  np.where((refwave<ratlasext[k]) & (refwave>latlasext[k]))
-        wavr=refwave[indextr]
-        intr=refintens[indextr]
-        
-        
+    plt.figure()
+    snip = []
+    for l,c,r in zip(latlasext,atlasext,ratlasext):
+        indext =  np.where((lam > l) & (lam < r))
+        wave=lam[indext]
+        inte=flux[indext]
+        plt.plot(wave,inte)
+  
+       
+      
     # selectionner que les raies du ThAr observes au dessus du seuil.
     # pour chaque raie k on determine le maximum de flux
+  
+        if np.max(inte) >= SEUIL:
+            snip.append({"o":o,"refwave":c ,"wave":wave,"inte":inte})
+    plt.show()
+    return snip
+  
 
-        maxi[k] = max(int)
-        maxir[k] = max(intr)
-     
-    # ici on filtre sur les maxima
-    indseuil= np.where((maxi > SEUIL) & (maxir > SEUIL))
-        
-    #number of selected reference lines
-    nslines=int(np.array(indseuil).size)
-    # liste des raies au dessus du seuil, avec bords rouges et bleus
-    satlasext=atlasext[indseuil]
-    slatlasext=latlasext[indseuil]
-    sratlasext=ratlasext[indseuil]
-        
-    
-    for k in range (nslines):
-            linecount += 1
-            indextr = np.where((wavr <sratlasext[k]) & (wavr>slatlasext[k]))
-            wr=wavr[indextr]
-            ir=intr[indextr]
-        
-            indext =  np.where((wav<max(wr)) & (wav>min(wr)))
-            wavext=wav[indext]
-            intext=int[indext]
-            
-            print(k,satlasext(k),wavext,intext)
-   
-   
-"""
-                res1.append({
-                    'ThAr_line_number': linecount,
-                    'ref_lambda': satlasext[k],
-                    'true_order_number': tordernum[j],
-                    'pixels_extract': pixel1.tolist(),
-                    'flux_values_extract': yyy.tolist()
-                })
-
-"""
 
 if __name__ == "__main__":
     print ('es geht los')
-    myext = restart()
-    myext.set_fitsfile('./datafiles/NEO_20220903_191404_th0.fits')
+    myext = extract.Extractor(DATADIR='./../datafiles',VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
+    myext.set_fitsfile('../datafiles/NEO_20220903_191404_th0.fits')
 
-    snippets =  snippets(myext, 44)
-    print ('snippets', snippets)
+    snip =  snippets(myext,1, 44)
+    print ('snip', snip)
     
