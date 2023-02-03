@@ -32,6 +32,23 @@ SEUIL = 2000.
 SEUILR = 800.
 #vrange in km/s
 VRANGE= 9.
+    
+with open(REF_SPECTRUM, 'r') as f:
+    lines = f.readlines()
+
+num_lines=len(lines)
+npt=num_lines-2
+linecount = 0
+refwave = np.zeros (npt, dtype =  float)
+refintens = np.zeros (npt, dtype =  float)
+
+for l in range (0,npt):
+    linefr = lines[2+l]
+    sfr = linefr.split()
+    refwave[l] = float(sfr[0])
+    refintens[l] = float(sfr[1])
+
+
 
 def snippets(extractor,nvoie,order):
    
@@ -48,20 +65,6 @@ def snippets(extractor,nvoie,order):
     """
     #nombre de lignes du catalogue de raies
     
-    with open(REF_SPECTRUM, 'r') as f:
-        lines = f.readlines()
-
-    num_lines=len(lines)
-    npt=num_lines-2
-    linecount = 0
-    refwave = np.zeros (npt, dtype =  float)
-    refintens = np.zeros (npt, dtype =  float)
-
-    for l in range (0,npt):
-        linefr = lines[2+l]
-        sfr = linefr.split()
-        refwave[l] = float(sfr[0])
-        refintens[l] = float(sfr[1])
 
 
 
@@ -112,7 +115,7 @@ def snippets(extractor,nvoie,order):
     
     #I = []
     I, = np.where(exclusion[:,0] == o)
-    print(atlasext)
+    #print(atlasext)
     
     goodlines = []
     for l in atlasext:
@@ -122,13 +125,14 @@ def snippets(extractor,nvoie,order):
         goodlines.append(l)
         
     atlasext=np.array(goodlines)
-    print(atlasext)
+    #(atlasext)
+    """
     plt.figure(figsize=(16,6))
     plt.plot(lam,flux)
     plt.plot(refwave,refintens)
     for ll in atlasext:
         plt.vlines(ll,0.,20000.,'y')
-    
+    """
     
     # on ne veut choisir que les raies de l'atlas qui se retrouvent dans la zone atlasext[k] +/- vrange, et qui ont un flux max au dessus du seuil. Ca reduit la liste.
         
@@ -159,13 +163,19 @@ def snippets(extractor,nvoie,order):
       
     # selectionner que les raies du ThAr observes au dessus du seuil.
     # pour chaque raie k on determine le maximum de flux
-  
-        if (np.max(inte) - np.min(inte)) >= SEUIL:
-            if (np.max(inter) - np.min(inter)) >= SEUILR:
-                snip.append({"o":o,"refwave":c ,"wave":wave,"inte":inte})
-                plt.vlines(c,0.,20000.,'r')
-                plt.plot(wave,inte,"r")
+        distmax = 2.
+        goodsnippet = True
+        goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
+        goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
+        goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
+        if goodsnippet:
+            snip.append({"o":o,"refwave":c ,"wave":wave,"inte":inte})
+            """
+            plt.vlines(c,0.,20000.,'r')
+            plt.plot(wave,inte,"r")
+            
     plt.show()
+    """
     return snip
   
 
@@ -176,12 +186,12 @@ if __name__ == "__main__":
     myext.set_fitsfile('../datafiles/NEO_20220903_191404_th0.fits')
 
     snip =  snippets(myext,1, 44)
-    print ('snip', snip)
+    print ('snip', snip, len(snip))
+
     
 """"
     #plotten im ipython
     o=56
-    plt.plot(extract.get_lambda(o),myext.voie1[o])
     lam,flux = myext.get_lambda_intens1(o)
     plt.plot(lam,flux)
     plt.show()
