@@ -191,9 +191,22 @@ if __name__ == "__main__":
     
 """"
     #plotten im ipython
-    o=56
-    lam,flux = myext.get_lambda_intens1(o)
-    plt.plot(lam,flux)
-    plt.show()
+o=54
+lam,flux = myext.get_lambda_intens1(o)
+plt.plot(lam,flux,"b")
+plt.plot(refwave,refintens,"r")
+plt.show()
     
+    
+for o in extract.ORDERS:
+   lam,flux = myext.get_lambda_intens1(o)
+   plt.figure(figsize=(16,6))
+   plt.xlim(lam[0],lam[-1])
+   plt.ylim(0.,100000)
+   plt.plot(lam,flux,"b")
+   tit = str(o)
+   plt.title(tit)
+   plt.plot(refwave,refintens,"r")
+   plt.show()
+
 """

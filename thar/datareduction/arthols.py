@@ -150,7 +150,7 @@ np.savetxt('voie2hols.dat',np.array(tmpvh2),fmt=['%.7f'])
 """
 whols=np.loadtxt('artlambda.dat')
 vhols=np.loadtxt('voie1hols.dat')
-order = 33
+order = 54
 torder = order-ORDERS[0]
 wa=wave1[torder*7800:(torder+1)*7800]
 va=intens1[torder*7800:(torder+1)*7800]
