@@ -46,8 +46,8 @@ def reload():
 
 def restart(**kwargs):
 
-    myext=Extractor('./datafiles/NEO_20220903_190703_fla.fits',
-        DATADIR='./datafiles',**kwargs)
+    myext=Extractor('../datafiles/NEO_20220903_190703_fla.fits',
+        DATADIR='../datafiles',**kwargs)
     return myext
 
 artfile = "/Users/boehm/Desktop/vega2021/thar/datafiles/NEO_20220219_173048_th2.fits"
@@ -65,7 +65,7 @@ orderlim=a[2].data['Orderlimit']
 
 #myext=restart()
 myext = restart(VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
-myext.set_fitsfile('datafiles/NEO_20220903_191404_th0.fits')
+myext.set_fitsfile('../datafiles/NEO_20220903_191404_th0.fits')
 
 
 waveart = []

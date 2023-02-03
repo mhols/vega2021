@@ -29,6 +29,7 @@ REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
 EXCLUSION = '../reffiles/excluded.dat'
 #seuil en ADU
 SEUIL = 2000.
+SEUILR = 800.
 #vrange in km/s
 VRANGE= 9.
 
@@ -83,15 +84,15 @@ def snippets(extractor,nvoie,order):
      
     o = order
     if nvoie == 1:
-        flux = myext.voie1[o]
+        lam,flux = myext.get_lambda_intens1(o)
     elif nvoie == 2:
-        flux = myext.voie2[o]
+        lam,flux = myext.get_lambda_intens2(o)
     elif nvoie == 3:
-        flux = myext.voie3[o]
+        lam,flux = myext.get_lambda_intens3(o)
     else:
         raise Exception('no such voie')
         
-    lam  = extract.get_lambda(o)
+    
     res = []
 
     
@@ -122,11 +123,12 @@ def snippets(extractor,nvoie,order):
         
     atlasext=np.array(goodlines)
     print(atlasext)
+    plt.figure(figsize=(16,6))
     plt.plot(lam,flux)
     plt.plot(refwave,refintens)
     for ll in atlasext:
         plt.vlines(ll,0.,20000.,'y')
-    plt.show()
+    
     
     # on ne veut choisir que les raies de l'atlas qui se retrouvent dans la zone atlasext[k] +/- vrange, et qui ont un flux max au dessus du seuil. Ca reduit la liste.
         
@@ -141,21 +143,28 @@ def snippets(extractor,nvoie,order):
     #de reference. Il faut que la grille en longueur d'onde soit des le
     #depart suffisamment bonne pour que la raie observee tombe dans le snippet
     
-    plt.figure()
+   
     snip = []
     for l,c,r in zip(latlasext,atlasext,ratlasext):
         indext =  np.where((lam > l) & (lam < r))
         wave=lam[indext]
         inte=flux[indext]
-        plt.plot(wave,inte)
+        
+        indextr = np.where((refwave > l) & (refwave < r))
+        waver = refwave[indextr]
+        inter = refintens[indextr]
+        
   
        
       
     # selectionner que les raies du ThAr observes au dessus du seuil.
     # pour chaque raie k on determine le maximum de flux
   
-        if np.max(inte) >= SEUIL:
-            snip.append({"o":o,"refwave":c ,"wave":wave,"inte":inte})
+        if (np.max(inte) - np.min(inte)) >= SEUIL:
+            if (np.max(inter) - np.min(inter)) >= SEUILR:
+                snip.append({"o":o,"refwave":c ,"wave":wave,"inte":inte})
+                plt.vlines(c,0.,20000.,'r')
+                plt.plot(wave,inte,"r")
     plt.show()
     return snip
   
@@ -169,3 +178,12 @@ if __name__ == "__main__":
     snip =  snippets(myext,1, 44)
     print ('snip', snip)
     
+""""
+    #plotten im ipython
+    o=56
+    plt.plot(extract.get_lambda(o),myext.voie1[o])
+    lam,flux = myext.get_lambda_intens1(o)
+    plt.plot(lam,flux)
+    plt.show()
+    
+"""

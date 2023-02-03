@@ -547,6 +547,17 @@ class Extractor:
     def bias_voie2(self, o):
         return self.beams[o].beam_sum_voie2(self.masterbias) 
 
+    def get_lambda_intens1(self, o):
+        I = self.beams[o].I
+        return get_lambda(o)[I], self.voie1[o][I]
+    
+    def get_lambda_intens2(self, o):
+        I = self.beams[o].I
+        return get_lambda(o)[I], self.voie2[o][I]
+        
+    def get_lambda_intens3(self, o):
+        I = self.beams[o].I
+        return get_lambda(o)[I], self.voie3[o][I]
     
     def _compute_voie1et2(self):
         choice =  self.kwargs.get('VOIE_METHOD', 'SUM_DIVIDE') 
@@ -611,10 +622,6 @@ class Extractor:
             self.logging('computing voie1 and voie')
             self._compute_voie1et2()
         return self._voie2
-
-
-    def get_lambda(self):
-        return self._lambda
 
     def _compute_masterflat(self, dirname=DIRNAME):
         """
