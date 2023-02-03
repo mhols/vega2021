@@ -12,6 +12,7 @@
 import astropy.io.fits as pyfits
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import sys
 import os
 import json
@@ -113,9 +114,7 @@ def snippets(extractor,nvoie,order):
     # cad ne pas prendre les raies tombant dans des endroits interdits
     exclusion = np.loadtxt(EXCLUSION)
     
-    #I = []
     I, = np.where(exclusion[:,0] == o)
-    #print(atlasext)
     
     goodlines = []
     for l in atlasext:
@@ -169,14 +168,20 @@ def snippets(extractor,nvoie,order):
         goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
         goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
         if goodsnippet:
-            snip.append({"o":o,"refwave":c ,"wave":wave,"inte":inte})
+            snip.append({
+                "o": o,
+                "refwave": c ,
+                "index": indextr, 
+                "wave": wave,
+                "inte": inte
+            })
             """
             plt.vlines(c,0.,20000.,'r')
             plt.plot(wave,inte,"r")
             
     plt.show()
     """
-    return snip
+    return pd.Dataframe(snip)
   
 
 

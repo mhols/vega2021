@@ -11,16 +11,21 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import cm
+
 matplotlib.rcParams['figure.dpi'] = 200
 
-M = 1.0
-S = 1.0
-PIXEL = 1
-HZ = 1
-KILO = 1000
-KM = KILO * M
+
+##  local units
+M = 1.0         # Meter
+S = 1.0         # Second
+PIXEL = 1       # Pixel unit
+HZ = 1/S        # Herz
+KILO = 1000     # Kilo
+KM = KILO * M   # Kilometer
 
 C_LIGHT = 300000 * KM / S    # speed of ligth
+##  -------------
+
 
 def polyfit_2d(ol, o, x, s, **kwargs):
     olrange = kwargs['olrange']
@@ -66,7 +71,7 @@ def polyfit_2d(ol, o, x, s, **kwargs):
 
 class CCD2d:
     """
-    #  resolution of ccd imaging
+    class for wavemap computation (i.e. 2D polynomial and friends)
     """
     def __init__(self, data=None, **kwargs):
         self.kwargs = kwargs  # saving for later use
@@ -86,6 +91,9 @@ class CCD2d:
         self.polynomial_fit = {o: np.polynomial.Polynomial([0]) for o in self.all_order() }
 
     def generate_fixed_effects(self):
+        """
+        for later use when replacing the 2d polynomial with 2d splines
+        """
         Nlo = self.kwargs['Nlo']
         No = len(self.get_orders())
         N = max(Nlo, No)
@@ -98,11 +106,14 @@ class CCD2d:
         Cheb_o = [np.polynomial.chebyshev.Chebyshev(c, window=[-1,1], domain=lo_range) for c in I]
 
     def bootstrap_data(self):
+        """
+        bootstrap estimate of location uncertainty
+        """
         res = []
         new_mean_pixel_pos = []
         sigma_new_mean = []
         shit = 0
-        print('\nbootstrapping data...\n')
+        print('\nbootstrapping data...\n')   ## TODO: better logging
         for i, line in self.data.iterrows():
             position = np.nan
             sigma = np.nan
@@ -114,7 +125,7 @@ class CCD2d:
                 position = line['pixels_extract'][0] + delta_p
 
             except Exception as ex:
-                print(i, line, ex)
+                print(i, line, ex)  ## TODO: better logging
                 shit += 1
             new_mean_pixel_pos.append(position)
             sigma_new_mean.append(sigma)
