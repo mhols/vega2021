@@ -170,6 +170,7 @@ def _snippets(extractor,nvoie,order):
                 "true_order_number": o,
                 "ref_lambda": c ,
                 "pixels_extract": indext, 
+                "pixel_mean" : np.mean(indext),
                 "wave": wave,
                 "reduced_flux_values_extract": inte,
                 "flux_values_extract" : bare_inte,

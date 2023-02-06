@@ -20,7 +20,7 @@ if RECOMPUTE_2D_POLYNOMIAL:
             print (ex)
             continue
 
-        snipets_voie = [
+        snippets_voie = [
             snippets.snippets(myext, i, ORDERS)
             for i in [1, 2]   # [1, 2, 3]
         ]
@@ -34,5 +34,7 @@ if RECOMPUTE_2D_POLYNOMIAL:
                 ),
                 **kwargs
             ) 
-            for i, snip in enumerate(snipets_voie)
+            for i, snip in enumerate(snippets_voie)
         ]
+
+        ccds[f_thar] = {'ccd': ccd, 'snippets': snippets_voie}

@@ -1,19 +1,20 @@
-# from master import *
+from master import *
 from spectrograph import *
 from matplotlib.pyplot import *
 
 import pickle
 
-#with open('ccd.pickle', 'wb') as f:
-#    pickle.dump(ccd, f)
+with open('ccds.pickle', 'wb') as f:
+    pickle.dump(ccds, f)
 
-with open('ccd.pickle', 'rb') as f:
-    ccd = pickle.load(f)
+with open('ccds.pickle', 'rb') as f:
+    ccds = pickle.load(f)
 
 voie1 = 0
 voie2 = 1
 
-c = ccd[voie1]
+
+c = ccds['ccd'][voie1]
 
 figure(figsize=(10, 6))
 for o in c.all_order():
