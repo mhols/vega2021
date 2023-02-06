@@ -135,6 +135,7 @@ def sigma_clipping(
     return data
 
 
+
 # The MIT License (MIT)
 # Copyright (c) 2016 Vladimir Ignatev
 #

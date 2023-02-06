@@ -50,10 +50,8 @@ for l in range (0,npt):
     refintens[l] = float(sfr[1])
 
 
-
-def snippets(extractor,nvoie,order):
+def _snippets(extractor,nvoie,order):
    
-
     """
     #lecture du fichier ascii du spectre ThAr de reference (UVES)
     #ce spectre contient une premiere colonne lambda, une seconde intensite,...
@@ -65,10 +63,6 @@ def snippets(extractor,nvoie,order):
     #3033.0867480159  103.99224526863826    0.36633407377209    0.36633407377209     97.132933537024
     """
     #nombre de lignes du catalogue de raies
-    
-
-
-
     #lecture du fichier ascii catalogue de raies thar_UVES_MM090311.dat
     #33322.4046  3000.109256  0.450 Ar II  W
     #33319.9704  3000.328442 -0.007 XX 0   P
@@ -88,11 +82,14 @@ def snippets(extractor,nvoie,order):
      
     o = order
     if nvoie == 1:
-        lam,flux = myext.get_lambda_intens1(o)
+        lam, flux = extractor.get_lambda_intens1(o)
+        bare_voie = extractor.bare_voie1(o)        
     elif nvoie == 2:
-        lam,flux = myext.get_lambda_intens2(o)
+        lam, flux = extractor.get_lambda_intens2(o)
+        bare_voie = extractor.bare_voie2(o)        
     elif nvoie == 3:
-        lam,flux = myext.get_lambda_intens3(o)
+        lam, flux = extractor.get_lambda_intens3(o)
+        bare_voie = extractor.bare_voie3(o)        
     else:
         raise Exception('no such voie')
         
@@ -149,11 +146,12 @@ def snippets(extractor,nvoie,order):
    
     snip = []
     for l,c,r in zip(latlasext,atlasext,ratlasext):
-        indext =  np.where((lam > l) & (lam < r))
+        indext,  =  np.where((lam > l) & (lam < r))
         wave=lam[indext]
         inte=flux[indext]
+        bare_inte = bare_voie[indext]
         
-        indextr = np.where((refwave > l) & (refwave < r))
+        indextr, = np.where((refwave > l) & (refwave < r))
         waver = refwave[indextr]
         inter = refintens[indextr]
         
@@ -162,18 +160,19 @@ def snippets(extractor,nvoie,order):
       
     # selectionner que les raies du ThAr observes au dessus du seuil.
     # pour chaque raie k on determine le maximum de flux
-        distmax = 2.
+        distmax = 2.   ## TODO: make global constant
         goodsnippet = True
         goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
         goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
         goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
         if goodsnippet:
             snip.append({
-                "o": o,
-                "refwave": c ,
-                "index": indextr, 
+                "true_order_number": o,
+                "ref_lambda": c ,
+                "pixels_extract": indext, 
                 "wave": wave,
-                "inte": inte
+                "reduced_flux_values_extract": inte,
+                "flux_values_extract" : bare_inte,
             })
             """
             plt.vlines(c,0.,20000.,'r')
@@ -181,17 +180,21 @@ def snippets(extractor,nvoie,order):
             
     plt.show()
     """
-    return pd.Dataframe(snip)
+    return pd.DataFrame(snip)
   
+def snippets(extractor,nvoie,orders):
+    snipets = []
+    for o in orders:
+        snipets.append(_snippets(extractor, nvoie, o))
+    return pd.concat(snipets, ignore_index=True, axis=0)
+
 
 
 if __name__ == "__main__":
-    print ('es geht los')
     myext = extract.Extractor(DATADIR='./../datafiles',VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
     myext.set_fitsfile('../datafiles/NEO_20220903_191404_th0.fits')
 
-    snip =  snippets(myext,1, 44)
-    print ('snip', snip, len(snip))
+    snip =  snippets(myext,1, extract.ORDERS)
 
     
 """"

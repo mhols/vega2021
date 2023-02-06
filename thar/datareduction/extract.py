@@ -11,102 +11,11 @@ from scipy.signal import convolve2d
 from numpy.polynomial import Polynomial
 import pandas as pd
 
-NROWS = 4208        #number of rows
-NCOLS = 4196        #number of columns
-NCROSS = 100        #number of rows or columns in central cross
-NROWSBLOCK = 2054   #number of rows in individual blocks
-NCOLSBLOCK = 2048   #number of cols in individual blocks
-HIGHEXP = 60
-LOWEXP = 15
-CUTORDER = 35   #means that cutting flats is between 34 and 35
-ABSORPTIONHALFW = 6 # central region beteween orders
-JUMP = 2.     # allowed jump for beam extraction
-SMOOTHWIDTH_BEAM =   101 # width of local polynomial fit
-BACKGROUNDHW = 5                  
-VOIE1WIDTH =   18                 #right of separator
-VOIE2WIDTH =   18                 #left (redwards) of separator
-VOIE3WIDTH =   16
-FLUX_LIMIT =   500                # below, the beam extraction is discarded
+### all constants are in settings.py
+from settings import *
 
-SHIFT_MASK_VOIE1 = range(1, VOIE2WIDTH + 2)
-SHIFT_MASK_VOIE2 = range(-VOIE1WIDTH-1, 0)        # realtive indices of extraction mask
-OFFSETRED=16
-OFFSETBLUE=16
-MEMORY_POSITION = 0.7  # memory of AR1 process for line following
-BLAZE_RANGE = range(-OFFSETRED, OFFSETBLUE+1)                     # range for the blase function
-DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
-CLUM = 3e5
-"""
-voie3 must be redetermined with new separation beam along minima between 1 and 3
-"""
 
-DIRNAME ='./../datafiles'
-DATADIR=DIRNAME
-LAMBDAFILE = './../reffiles/artlambda.dat'
-
-"""
-Neo-Narval fits files contain nli ligns and  ncol columns. Red orders are low pixel indices, blue ones correspond to high indices. Low pixel indices correspond to lower wavelength within one given order, wavelength is increasing towards higher column indices.
-
-    image[500,:] is row at rowindex = 500
-        here it cuts all the orders
-    self.image[:,300] is column at columnindex = 300
-        it cuts the image parallel to the orders
-
-    Centralrow = image[Centralrowindex,:] = row cutting orders at blaze max
-
-CENTRALPOSITION: corresponds to the lowest value pixel position between two             beams of a given order, the order number beeing the true                order number. Coordinates are image values of ncol x nli of             the fits files. [trueordernumber, columnposition]
-
-OFFSETLIG: offset in line (this zone contains noise information not used                here)
-OFFSETCOL: same for column
-"""
-
-CENTRALROW = 2161
-CENTRALPOSITION = {
-    21: 824,
-    22: 866,
-    23: 907,
-    24: 948,
-    25: 990,
-    26:1032,
-    27:1074,
-    28:1117,
-    29:1161,
-    30:1206,
-    31:1252,
-    32:1299,
-    33:1347,
-    34:1398,
-    35:1449,
-    36:1501,
-    37:1555,
-    38:1611,
-    39:1669,
-    40:1728,
-    41:1789,
-    42:1852,
-    43:1918,
-    44:1985,
-    45:2054,
-    46:2126,
-    47:2200,
-    48:2276,
-    49:2355,
-    50:2436,
-    51:2520,
-    52:2606,
-    53:2697,
-    54:2789,
-    55:2885,
-    56:2984,
-    57:3086,
-    58:3192,
-    59:3302}
-
-# ORDERS = list(CENTRALPOSITION.keys())
-ORDERS = range(21, 58)
-REPORT_ORDERS = range(21, 60)
-
-# utility functions
+##### utility functions
 
 
 def removeCross(image):
@@ -166,6 +75,7 @@ def secondpoly(xx,yy):
 
 def load_image_from_fits(fitsfile):
     a=pyfits.open(fitsfile)
+    print('fitsfile ', fitsfile)
     image = np.clip(a[0].data,-100,65535)
     a.close()
     return removeCross(image)
@@ -189,24 +99,24 @@ def is_thorium(fitsfile):
     return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium'
 
 #liste = listallfits('/Users/boehm/Desktop/extract/Vega_2022TBL')
-def listallfits(dirname=DIRNAME):
+def listallfits(dirname=DATADIR):
     filelist = []
     for f in os.listdir(dirname):
         if f.endswith('.fits'):
             filelist.append(os.path.join(dirname,f))
     return filelist
 
-def getallflatfits(dirname=DIRNAME,texp=HIGHEXP):
+def getallflatfits(dirname=DATADIR,texp=HIGHEXP):
     for f in listallfits(dirname):
         if is_flatfield(f) and header_info_from_fits(f, 'EXPTIME')==texp:
             yield f
 
-def getallbiasfits(dirname=DIRNAME):
+def getallbiasfits(dirname=DATADIR):
     for f in listallfits(dirname):
         if is_bias(f):
             yield f
 
-def getallthoriumfits(dirname=DIRNAME):
+def getallthoriumfits(dirname=DATADIR):
     for f in listallfits(dirname):
         if is_thorium(f):
             yield f
@@ -218,13 +128,13 @@ def meanfits(*fitsfiles):
     return sum / len(fitsfiles)
     
 
-def masterbias(dirname=DIRNAME):
+def masterbias(dirname=DATADIR):
 
     bia = meanfits(*getallbiasfits(dirname))
     return bia
 
 
-def masterflat(dirname=DIRNAME):
+def masterflat(dirname=DATADIR):
     high = meanfits(*getallflatfits(dirname,HIGHEXP))
     low = meanfits(*getallflatfits(dirname,LOWEXP))
 
@@ -535,7 +445,7 @@ class Extractor:
         if self._masterbias is None:
             try:
                 self.logging('computing masterbias')
-                self._masterbias = masterbias(self.kwargs['DATADIR'])
+                self._masterbias = masterbias(self.kwargs.get('DATADIR', DATADIR))
             except:
                 raise Exception('please specify DATADIR or MASTERBIAS')
         return self._masterbias
@@ -560,7 +470,7 @@ class Extractor:
         return get_lambda(o)[I], self.voie3[o][I]
     
     def _compute_voie1et2(self):
-        choice =  self.kwargs.get('VOIE_METHOD', 'SUM_DIVIDE') 
+        choice =  self.kwargs.get('voie_method', 'SUM_DIVIDE') 
         if choice == 'SUM_DIVIDE':
             self._voie1 = {
                     o: self.beams[o].beam_sum_voie1(self.image) \
@@ -623,7 +533,15 @@ class Extractor:
             self._compute_voie1et2()
         return self._voie2
 
-    def _compute_masterflat(self, dirname=DIRNAME):
+    def bare_voie1(self, o):
+        I = self.beams[o].I
+        return self.beams[o].beam_sum_voie1(self.image)[I]
+
+    def bare_voie2(self, o):
+        I = self.beams[o].I
+        return self.beams[o].beam_sum_voie2(self.image)[I]
+
+    def _compute_masterflat(self, dirname=DATADIR):
         """
         Bias removed flat
         """
@@ -652,9 +570,9 @@ class Extractor:
         if self._masterflat is None:
             self.logging('computing masterflat')
             try:
-                DIR = self.kwargs['DATADIR']
+                DIR = self.kwargs.get('DATADIR', DATADIR)
             except:
-                raise Exception('no masterflat and no DIRNAME specified...')
+                raise Exception('no masterflat and no DATADIR specified...')
             self._masterflat = self._compute_masterflat(DIR)
         return self._masterflat
 

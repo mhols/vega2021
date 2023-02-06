@@ -1,60 +1,38 @@
-import settings
+from settings import *
 import spectrograph
-import thar_write
+import snippets
+import extract
+# import thar_write
 import os
 import re
 
-kwargs = settings.kwargs
+myext = extract.Extractor(**kwargs)
+# collection of CCD2d ojects (one for each thar file and for each voie)
 
-fitsfiles = os.listdir(settings.DATADIR) # so werden all files in DATADIR bearbeitet
-refname = os.path.join(settings.REFFILES, "thar_spec_MM201006.dat")
-atlasname = os.path.join(settings.REFFILES, "thar_UVES_MM090311.dat")
+if RECOMPUTE_2D_POLYNOMIAL:
+    ccds = {}
 
+    # generate 2-d polynomial for ThAr spectria in DATADIR
+    for f_thar in extract.getallthoriumfits(dirname=DATADIR):
+        try:
+            myext.set_fitsfile(f_thar)
+        except Exception as ex:
+            print (ex)
+            continue
 
-# bootstrapping the data
-for f in fitsfiles:
-    if not re.match(r'^.*\.fits$', f):
-        print('did not match', f)
-        continue
-    f = os.path.join(settings.DATADIR, f)
-    print ('working on :', f)
-
-    basename = os.path.basename(f)
-    basename_stripped = basename.replace('.fits', '')
-
-
-    snippet_files = [
-        os.path.join(
-            settings.TMPFILES, 
-            basename_stripped+'.snippet.voie_{}.json'.format(i)) for i in [1,2,3] 
-    ]
-
-    ### making the snippets for the voices 
-    thar_write.thar_write(refname, atlasname, os.path.abspath(f), *snippet_files)
-
-    for voie, snippet in zip ([1, 2, 3], snippet_files):
-        print('voie ', voie)
-        bootstrapped_file = os.path.join(
-            settings.TMPFILES, 
-            basename_stripped+'.bstr.voie_{}.json'.format(voie)
-        )
-        file_lambda_list = os.path.join(
-            settings.RESFILES, 
-            basename_stripped+'.wave2D.voie_{}.dat'.format(voie)
-        )
-        kwargs.update({
-            'datafile': snippet,
-            'bootstrap_data': True,
-            'save_bootstraped_data': True,
-            'bootstraped_file': bootstrapped_file,
-            'save_sigma_clipped_data': True,
-            'sigma_clipped_file': bootstrapped_file,
-            'file_lambda_list': file_lambda_list
-        })
-
-        data = spectrograph.CCD2d(**kwargs)
-        data.sigma_clipping()
-        data.get_lambda_list()
-
-
-
+        snipets_voie = [
+            snippets.snippets(myext, i, ORDERS)
+            for i in [1, 2]   # [1, 2, 3]
+        ]
+        
+        ccd = [
+            spectrograph.CCD2d(
+                data=snip, 
+                bootstrap_data = True,
+                file_lambda_list = os.path.join(
+                    RESFILES, os.path.basename(f_thar)+".wave2D_{}.dat".format(i)
+                ),
+                **kwargs
+            ) 
+            for i, snip in enumerate(snipets_voie)
+        ]

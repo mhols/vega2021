@@ -1,5 +1,5 @@
 import json
-from .util import *
+from util import *
 import sys
 import pandas as pd
 import numpy as np
@@ -8,12 +8,13 @@ from scipy.optimize import bisect
 from scipy.interpolate import interp1d
 from numpy.polynomial import Polynomial
 import matplotlib
-matplotlib.use('TkAgg')
+## matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
 matplotlib.rcParams['figure.dpi'] = 200
 
+from settings import *
 
 ##  local units
 M = 1.0         # Meter
@@ -83,12 +84,15 @@ class CCD2d:
         total_flux = np.array([sum(flux) for flux in self.data['flux_values_extract']])
         self.data['total_flux'] = total_flux
 
-        if self.kwargs['bootstrap_data']:
+        if self.kwargs.get('bootstrap_data', False):
             self.bootstrap_data()
 
         # basic outlier removal / quality filter
         self.outlier_removal_1()
-        self.polynomial_fit = {o: np.polynomial.Polynomial([0]) for o in self.all_order() }
+        self.polynomial_fit = {
+            o: np.polynomial.Polynomial([0]) 
+            for o in self.all_order() 
+        }
 
     def generate_fixed_effects(self):
         """
@@ -125,7 +129,7 @@ class CCD2d:
                 position = line['pixels_extract'][0] + delta_p
 
             except Exception as ex:
-                print(i, line, ex)  ## TODO: better logging
+                print("problem at ", i, line, ex)  ## TODO: better logging
                 shit += 1
             new_mean_pixel_pos.append(position)
             sigma_new_mean.append(sigma)
@@ -133,9 +137,12 @@ class CCD2d:
         self.data['new_mean_pixel_pos'] = pd.Series(new_mean_pixel_pos)
         self.data['sigma_new_mean'] = pd.Series(sigma_new_mean)
 
-        if self.kwargs['save_bootstraped_data']:
-            self.data.to_json(self.kwargs['bootstraped_file'])
-
+        if self.kwargs.get('save_bootstraped_data', False):
+            try:
+                self.data.to_json(self.kwargs['bootstraped_file'])
+            except:
+                raise Exception('bootstraped_file has not not been specified')
+        
         ## print ('n negative ', shit)
 
 
@@ -217,7 +224,7 @@ class CCD2d:
                 epsilon *= 1.5
             self.data.loc[:, 'selected'] = I
 
-        if self.kwargs['save_sigma_clipped_data']:
+        if self.kwargs.get('save_sigma_clipped_data', False):
             self.data.to_json(self.kwargs['sigma_clipped_file'])
 
     def _delta_lam_over_lam_factor(self, l, o):
@@ -335,7 +342,7 @@ class CCD2d:
         return self.data['true_order_number']==o
 
     def all_order(self):
-        return list(set(self.data['true_order_number']))
+        return self.kwargs.get('ORDERS', ORDERS)
 
     def get_orders(self):
         orders = list(set(self.data['true_order_number'][self.data['selected']]))
@@ -358,11 +365,19 @@ class CCD2d:
                                                     domain=domain,
                                                     deg=n,
                                                     w = 1/self.sigma)
+        except:
+            raise Exception ('problem fitting global polynomial\n')
+        
+        ## per default take constant polynomial
+        self.polynomial_fit = {
+            o: p # np.polynomial.Polynomial([0]) 
+            for o in self.all_order()
+        }
 
-        except Exception as ex:
-            print ('problem fitting global polynomial\n', ex)
-        self.polynomial_fit = {o: np.polynomial.Polynomial([0]) for o in self.all_order()}
-        self.polynomial_fit.update({ o: p for o in self.get_report_orders()})
+        ## overwrite wherever better polynomial is available
+        self.polynomial_fit.update({ 
+            o: p for o in self.get_report_orders()
+        })
 
         return p
 
@@ -444,10 +459,10 @@ class CCD2d:
             for j, (nol, no) in enumerate(nolko):
                 G[i,j] = Tshebol[nol](o[i]*l[i]) * Tshebo[no](o[i])
 
-        sigma_min = self.kwargs['sigma_min']
         G = (1./ s)[:, np.newaxis] * G
         coeffs = np.linalg.lstsq(G, (1./s) * x )[0]
 
+        ## compute restriction to each order of 2d polynomial
         self.polynomial_fit = {
             o : sum([ coeffs[i] * Tshebo[no](o) * Tshebol[nol] 
                 for i, (nol, no) in enumerate(nolko)])
@@ -465,22 +480,22 @@ class CCD2d:
         2Dmap for all orders as returned by self.get_report_orders()
         saves to kwargs['file_lambda_list']
         """
-        res = np.zeros(len(self.get_report_orders())*7800)
+        res = np.zeros(len(self.get_report_orders())*NROWS)
         i = 0
-        x = np.arange(7800)
+        x = np.arange(NROWS)
         for i, o in enumerate(self.get_report_orders()):
             p = self.lambda_map_at_o(o);
             for j, xx in enumerate(x):
                 try:
-                    res[i*7800+j] = p(xx)
+                    res[i*NROWS+j] = p(xx)
                 except:
-                    res[i*7800+j] =  np.NaN
+                    res[i*NROWS+j] =  np.NaN
         np.savetxt(self.kwargs['file_lambda_list'], res)
         return res
 
     def get_lambda_map(self):
         tmp = self.get_lambda_list()
-        return {o: tmp[i*7800:(i+1)*7800] for i, o in enumerate(self.get_report_orders())}
+        return {o: tmp[i*NROWS:(i+1)*NROWS] for i, o in enumerate(self.get_report_orders())}
 
 
     def get_rms_per_spectrum(self):
