@@ -535,11 +535,11 @@ class Extractor:
 
     def bare_voie1(self, o):
         I = self.beams[o].I
-        return self.beams[o].beam_sum_voie1(self.image)[I]
+        return self.beams[o].beam_sum_voie1(self.image)[I], I
 
     def bare_voie2(self, o):
         I = self.beams[o].I
-        return self.beams[o].beam_sum_voie2(self.image)[I]
+        return self.beams[o].beam_sum_voie2(self.image)[I], I
 
     def _compute_masterflat(self, dirname=DATADIR):
         """

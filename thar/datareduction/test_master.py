@@ -1,4 +1,4 @@
-# from master import *
+#from master import *
 from spectrograph import *
 from matplotlib.pyplot import *
 
