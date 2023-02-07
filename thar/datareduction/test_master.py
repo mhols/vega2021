@@ -1,11 +1,11 @@
-from master import *
+# from master import *
 from spectrograph import *
 from matplotlib.pyplot import *
 
 import pickle
 
-with open('ccds.pickle', 'wb') as f:
-    pickle.dump(ccds, f)
+#with open('ccds.pickle', 'wb') as f:
+#    pickle.dump(ccds, f)
 
 with open('ccds.pickle', 'rb') as f:
     ccds = pickle.load(f)
@@ -14,7 +14,7 @@ voie1 = 0
 voie2 = 1
 
 
-c = ccds['ccd'][voie1]
+c = ccds['/home/hols/vega2021/thar/datafiles/NEO_20220903_191404_th0.fits']['ccd'][voie1]
 
 figure(figsize=(10, 6))
 for o in c.all_order():

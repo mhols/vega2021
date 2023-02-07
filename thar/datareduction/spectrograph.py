@@ -240,21 +240,23 @@ class CCD2d:
         factor = (o * dp(o*l))**(-1) * x / l
         return factor
 
-    def delta_radial_velocity_fit(self):
-        res = []
-        for o, l, x in zip (self.o, self.l, self.x):
+
+    def delta_radial_velocity_model(self):
+        res = {}
+        for o in self.all_order():
+            I = self.index_order(o)
             p = self.polynomial_fit[o]
             dp = p.deriv()
-            dxdl = o*dp(o*l)
-            dx = p(o*l) - x
-            factor = dxdl**(-1) / l
-
-            res.append(C_LIGHT * factor * dx)
+            dxdl = o*dp(o*self.l[I])
+            dx = p(o*self.l[I]) - self.x[I]
+            factor = dxdl**(-1) / self.l[I]
+            tmp = C_LIGHT * factor * dx / (M/S) 
+            res[o] = np.sqrt(np.mean(tmp)**2+np.var(tmp))
         return res
-    
+
     def delta_l_over_l(self):
         lmaps = self.lambda_maps()
-        return np.array([lmaps[o](x)/l-1 for o, l,x in zip(self.o, self.l, self.x)])
+        return np.array([(lmaps[o](x)/l-1) for o, l,x in zip(self.o, self.l, self.x)])
 
     def delta_pixel(self):
         return self.eval_polynomial(self.ol, self.o) - self.x
