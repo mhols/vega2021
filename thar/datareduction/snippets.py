@@ -82,18 +82,24 @@ def _snippets(extractor,nvoie,order):
      
     o = order
     if nvoie == 1:
-        lam, flux = extractor.get_lambda_intens1(o)
+        _lam, _flux, I = extractor.get_lambda_intens1(o)
         bare_voie = extractor.bare_voie1(o)        
     elif nvoie == 2:
-        lam, flux = extractor.get_lambda_intens2(o)
+        _lam, _flux, I = extractor.get_lambda_intens2(o)
         bare_voie = extractor.bare_voie2(o)        
     elif nvoie == 3:
-        lam, flux = extractor.get_lambda_intens3(o)
+        _lam, _flux, I = extractor.get_lambda_intens3(o)
         bare_voie = extractor.bare_voie3(o)        
     else:
         raise Exception('no such voie')
         
+    lam = np.zeros(NROWS)
+    flux = np.zeros(NROWS)
     
+    lam[I] = _lam
+    flux[I] = _flux
+    
+
     res = []
 
     
