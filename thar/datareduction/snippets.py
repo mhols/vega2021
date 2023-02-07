@@ -19,6 +19,7 @@ import json
 import scipy
 from scipy.optimize import curve_fit
 import extract
+from settings import *
 #
 
 #NROWS=4208
