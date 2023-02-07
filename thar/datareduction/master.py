@@ -6,6 +6,7 @@ import extract
 import os
 import re
 
+
 myext = extract.Extractor(**kwargs)
 # collection of CCD2d ojects (one for each thar file and for each voie)
 
@@ -24,16 +25,16 @@ if RECOMPUTE_2D_POLYNOMIAL:
             snippets.snippets(myext, i, ORDERS)
             for i in [1, 2]   # [1, 2, 3]
         ]
-        
+
         ccd = [
             spectrograph.CCD2d(
-                data=snip, 
+                data=snip,
                 bootstrap_data = True,
                 file_lambda_list = os.path.join(
                     RESFILES, os.path.basename(f_thar)+".wave2D_{}.dat".format(i)
                 ),
                 **kwargs
-            ) 
+            )
             for i, snip in enumerate(snippets_voie)
         ]
 
