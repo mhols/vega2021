@@ -105,7 +105,7 @@ CENTRALPOSITION = {
 # ORDERS = list(CENTRALPOSITION.keys())
 ORDERS = range(21, 58)
 REPORT_ORDERS = ORDERS # range(21, 60)
-LAMBDAFILE = os.path.join(REFFILES, 'artlambda.dat')
+LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')
 
 
 

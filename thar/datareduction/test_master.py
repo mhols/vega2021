@@ -1,3 +1,4 @@
+
 from master import *
 from spectrograph import *
 from matplotlib.pyplot import *
@@ -26,8 +27,11 @@ figure(figsize=(10,6))
 p = c.fit_global_polynomial()
 for o in c.all_order():
     I = c.index_order(o)
-    plot(c.ol[I], c.x[I]-p(c.ol[I]), 'o', 
-    color=c.color_of_order(o), label=str(o))
+    plot(c.ol[I], c.x[I]-p(c.ol[I]), '-', 
+    color=c.color_of_order(o))
+    plot(c.ol[I], c.x[I]-p(c.ol[I]), '.', 
+    color=c.color_of_order(o))
+
 
 figure(figsize=(10,6))
 c.fit_polynomial_order_by_order()
