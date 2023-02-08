@@ -1,11 +1,11 @@
-#from master import *
+from master import *
 from spectrograph import *
 from matplotlib.pyplot import *
 
 import pickle
 
-#with open('ccds.pickle', 'wb') as f:
-#    pickle.dump(ccds, f)
+with open('ccds.pickle', 'wb') as f:
+    pickle.dump(ccds, f)
 
 with open('ccds.pickle', 'rb') as f:
     ccds = pickle.load(f)
