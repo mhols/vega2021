@@ -28,7 +28,7 @@ C_LIGHT = 300000 * KM / S    # speed of ligth
 ##  -------------
 
 
-def polyfit_2d(ol, o, x, s, **kwargs):
+def polyfit_2d(ol, o, x, w, **kwargs):
     olrange = kwargs['olrange']
     orange = kwargs['orange']
     Nol = kwargs['order_ol']+1
@@ -57,7 +57,7 @@ def polyfit_2d(ol, o, x, s, **kwargs):
             G[i,j] = Tshebol[nol](ol[i]) * Tshebo[no](o[i])
 
     G = (1./ s)[:, np.newaxis] * G
-    coeffs = np.linalg.lstsq(G, (1./s) * x )[0]
+    coeffs = np.linalg.lstsq(G, w * x )[0]
 
     polynomial_fit = {
         o : sum([ coeffs[i] * Tshebo[no](o) * Tshebol[nol] 
@@ -357,8 +357,8 @@ class CCD2d:
             return self.get_orders()
         return self.kwargs.get('report_orders', self.get_orders())
 
-    def fit_global_polynomial(self, **kwargs):
-        n = kwargs.get('order_ol', self.kwargs['order_ol'])
+    def get_global_polynomial(self):
+        n = self.kwargs['order_ol'] 
         ol = self.ol
         domain = [ol.min(), ol.max()]
         p = None
@@ -366,25 +366,39 @@ class CCD2d:
             p = np.polynomial.chebyshev.Chebyshev.fit(ol, self.x,
                                                     domain=domain,
                                                     deg=n,
-                                                    w = 1/self.sigma)
+                                                    w=self.fit_weight())
         except:
             raise Exception ('problem fitting global polynomial\n')
-        
-        ## per default take constant polynomial
+        return p
+
+    def fit_global_polynomial(self):
+        p = self.get_global_polynomial()
         self.polynomial_fit = {
             o: p # np.polynomial.Polynomial([0]) 
             for o in self.all_order()
         }
-
-        ## overwrite wherever better polynomial is available
-        self.polynomial_fit.update({ 
-            o: p for o in self.get_report_orders()
-        })
-
         return p
 
-    def fit_polynomial_order_by_order(self, **kwargs):
-        n = kwargs.get('order_ol', self.kwargs['order_ol'])
+    def len_total_data(self):
+        return len(self.data['true_order_number'])
+
+    def fit_weight(self):
+
+        match self.kwargs.get('fitweight', 'sigma'):
+            case 'equal':
+                weight = 1
+            case 'sigma':
+                weight = 1/self.sigma
+            case 'vrad':
+                weight = np.ones(self.ndata)
+                for o in self.all_order():
+                    I = self.index_order(o)
+                    weight[I] = 1/np.abs((self.ol[I]*self.polynomial_fit[o].deriv(1)(self.ol[I])))
+        return weight      
+
+    def fit_polynomial_order_by_order(self):
+        n = kwargs['order_ol']
+        weight = self.fit_weight()
         res = {}
         ol = self.o * self.l
         domain = [ol.min(), ol.max()]
@@ -393,16 +407,13 @@ class CCD2d:
         pglobal = self.fit_global_polynomial()
 
         for o in orders:
-            #if not o in self.get_report_orders():
-            #    res[o] = np.polynimial.Polynomial([0])
-            #    continue
             I = self.index_order(o)
             try:
                 res[o] = np.polynomial.chebyshev.Chebyshev.fit(
                     self.l[I]*o, self.x[I],
                     domain=domain,
                     deg=n,
-                    w = 1/self.sigma[I]
+                    w = weight[I]
                 )
             except Exception as ex:
                 res[o] = pglobal
@@ -423,12 +434,11 @@ class CCD2d:
 
         olrange = [(o*l).min(), (o*l).max()]
         orange = [o.min(), o.max()]
-        """
         self.polynomial_fit = polyfit_2d(
             self.ol.to_numpy(),
             self.o.to_numpy(),
             self.x.to_numpy(),
-            self.sigma.to_numpy(),
+            self.fit_weight().to_numpy(),
             olrange=olrange,
             orange=orange,
             **self.kwargs
@@ -472,7 +482,7 @@ class CCD2d:
         }
 
         return self.polynomial_fit
-
+        """
     @property
     def ndata(self):
         return len(self.o)

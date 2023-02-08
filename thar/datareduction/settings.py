@@ -3,9 +3,12 @@ global parameters for the datareduction pipeline
 """
 import os
 import numpy as np
+from dotenv import load_dotenv
+load_dotenv()
 
 
-RECOMPUTE_2D_POLYNOMIAL = True
+RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
+
 
 # directory layout
 
@@ -43,7 +46,16 @@ BLAZE_RANGE = range(-OFFSETRED, OFFSETBLUE+1)                     # range for th
 DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
 CLUM = 3e5
 
+## unities 
+M = 1.0         # Meter
+S = 1.0         # Second
+PIXEL = 1       # Pixel unit
+HZ = 1/S        # Herz
+KILO = 1000     # Kilo
+KHZ = KILO * HZ # Kiloherz
+KM = KILO * M   # Kilometer
 
+C_LIGHT = 300000 * KM / S    # speed of ligth
 """
 Neo-Narval fits files contain nli ligns and  ncol columns. Red orders are low pixel indices, blue ones correspond to high indices. Low pixel indices correspond to lower wavelength within one given order, wavelength is increasing towards higher column indices.
 

@@ -7,10 +7,10 @@ import os
 import re
 
 
-myext = extract.Extractor(**kwargs)
 # collection of CCD2d ojects (one for each thar file and for each voie)
 
 if RECOMPUTE_2D_POLYNOMIAL:
+    myext = extract.Extractor(**kwargs)
     ccds = {}
 
     # generate 2-d polynomial for ThAr spectria in DATADIR
@@ -38,4 +38,4 @@ if RECOMPUTE_2D_POLYNOMIAL:
             for i, snip in enumerate(snippets_voie)
         ]
 
-        ccds[f_thar] = {'ccd': ccd, 'snippets': snippets_voie}
+        ccds[os.path.basename(f_thar)] = {'ccd': ccd, 'snippets': snippets_voie}
