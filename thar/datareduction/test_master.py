@@ -14,7 +14,7 @@ voie1 = 0
 voie2 = 1
 
 
-c = ccds['/home/hols/vega2021/thar/datafiles/NEO_20220903_191404_th0.fits']['ccd'][voie1]
+c = ccds['/Users/boehm/Desktop/vega2021/thar/datafiles/NEO_20220903_191404_th0.fits']['ccd'][voie1]
 
 figure(figsize=(10, 6))
 for o in c.all_order():
