@@ -193,15 +193,15 @@ class CCD2d:
         # sigma clipping
         
         def _get_threshold(epsilon):
-            dxdl = self.eval_dpolynomial_dl(o*l, o)
+            dxdl = np.abs(self.eval_dpolynomial_dl(self._o*self._l, self._o))
             print(dxdl)    
             # how to define the clipping
             if self.kwargs['clipp_method'] == 'pixerror':   # absolute error in pixel
                 thd = 1 * epsilon
             elif self.kwargs['clipp_method'] == 'rel_std':  # relative error in std of each pixel
-                thd = sigma * epsilon
+                thd = self._sigma * epsilon
             elif self.kwargs['clipp_method'] == 'vrad':     # radial velocity uncertainty
-                thd = l * dxdl * epsilon / C_LIGHT
+                thd = self._l * dxdl * epsilon / C_LIGHT
             else:
                 raise Exception ('no such method') 
                 # thd = epsilon * np.std(res)
@@ -220,7 +220,7 @@ class CCD2d:
         for i in range(self.kwargs['n_sigma_clipp']):
 
             self.fit_polynomial_order_by_order()
-            res = self.eval_polynomial(o*l, o) - x
+            res = self.eval_polynomial(self._o*self._l, self._o) - self._x
 
            # clipping 
             thd = _get_threshold(epsilon)
@@ -235,7 +235,7 @@ class CCD2d:
 
         for i in range(self.kwargs['n_sigma_clipp_2d']):
             self.fit_2d_polynomial()
-            res = self.eval_polynomial(o*l, o) - x
+            res = self.eval_polynomial(self._o*self._l, self._o) - self._x
             thd = _get_threshold(epsilon)
             I = np.abs(res)<=thd
 
@@ -243,8 +243,9 @@ class CCD2d:
                 print('stable clipping after {} iterations'.format(i))
                 break
 
-            self.data.loc[:, 'selected'] = I
+            self.data.loc[:, 'selected'] = I[:]
 
+        self._report_fitresult()
 
     def _delta_lam_over_lam_factor(self, l, o):
         """
@@ -500,7 +501,7 @@ class CCD2d:
                 G[i,j] = Tshebol[nol](o[i]*l[i]) * Tshebo[no](o[i])
 
         G = (1./ s)[:, np.newaxis] * G
-        coeffs = np.linalg.lstsq(G, (1./s) * x )[0]
+        coeffs = np.linalg.lstsq(G, (1./s) * x, rcond=None)[0]
 
         ## compute restriction to each order of 2d polynomial
         self.polynomial_fit = {
@@ -523,6 +524,7 @@ class CCD2d:
             I = self.index_order_unselected(o)
             tmp[I] = self.lambda_map_at_o(o)(self.data['new_mean_pixel_pos'][I])
         self.data['polyfit_lambda'] = tmp
+        self.data['dvrad'] = C_LIGHT * (tmp / self._l - 1)
 
             
     @property

@@ -110,8 +110,8 @@ CENTRALPOSITION = {
     54:2789,
     55:2885,
     56:2984,
-    57:3086,
-    58:3192,}
+    57:3086,}
+    # 58:3192,} TODO make snipets not to break ...
     # 59:3302}  TODO make robust for empty beams
 
 ORDERS = list(CENTRALPOSITION.keys())
