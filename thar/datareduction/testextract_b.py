@@ -20,7 +20,7 @@ def reload():
 
 def restart(**kwargs):
 
-    myext=Extractor(DATADIR='./fitsfiles', **kwargs)
+    myext=Extractor(**kwargs)
 
     return myext
 

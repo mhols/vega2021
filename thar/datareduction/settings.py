@@ -111,12 +111,11 @@ CENTRALPOSITION = {
     55:2885,
     56:2984,
     57:3086,
-    58:3192,
-    59:3302}
+    58:3192,}
+    # 59:3302}  TODO make robust for empty beams
 
-# ORDERS = list(CENTRALPOSITION.keys())
-ORDERS = range(21, 58)
-REPORT_ORDERS = ORDERS # range(21, 60)
+ORDERS = list(CENTRALPOSITION.keys())
+# REPORT_ORDERS = ORDERS # range(21, 60)
 LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')
 
 
@@ -135,17 +134,16 @@ kwargs = {
     'datadir': DATADIR,
     'voie_method': 'SUM_DIVIDE_CENTRALROW',
     # ----------------
-    'report_orders': REPORT_ORDERS,     # wavemap shall be computed for these orders
     'n_bootstrap': 5,                     # number of bootstrap experiments
     'profile': 'gauss',                     #
     'loss_function': 'loss_1',              # weighted L2-loss
-    'epsilon_sigma_bootstrap': 4,           # locations with larger uncertainty are removed
-    'epsilon_sigma_clipp': 4,               # sigma clip for 1d polynomial
-    'epsilon_sigma_clipp_2d' : 2,           # sigma clip for 2d polynomial
-    'clipp_method' : 'pixerror',            # 'rel_std' or 'pixerror' or 'est_std'
-    'n_sigma_clipp' : 100,                  # maximal number of sigma clips
+    'epsilon_sigma_bootstrap': 3,           # locations with larger uncertainty are removed
+    'epsilon_sigma_clipp': 400*M/S,               # sigma clip for 1d polynomial
+    'epsilon_sigma_clipp_2d' : 400*M/S,           # sigma clip for 2d polynomial
+    'clipp_method' : 'vrad',            # 'rel_std' or 'pixerror' or 'est_std'
+    'n_sigma_clipp' : 0,                  # maximal number of sigma clips
     'n_sigma_clipp_2d' : 100,               # maximal number of sigma clips
-    'sigma_min' : 0.01,                     # minimial sigma to avoid overfitting
+    'sigma_min' : 0.001,                     # minimial sigma to avoid overfitting
     'palette_order': 'gist_rainbow',        # palette of orders
     'order_ol': 7,                          # order polynomial in ol
     'order_o': 5,                           # order polynomial in o

@@ -194,6 +194,7 @@ def _snippets(extractor,nvoie,order):
 def snippets(extractor,nvoie,orders):
     snipets = []
     for o in orders:
+        print('on order ', o)
         snipets.append(_snippets(extractor, nvoie, o))
     return pd.concat(snipets, ignore_index=True, axis=0)
 
