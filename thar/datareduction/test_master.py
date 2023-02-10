@@ -53,6 +53,17 @@ def plot4():
         plt.plot(c.ol[I], c.x[I]-p(c.ol[I]), 'o', 
         color=c.color_of_order(o), label=str(o))
 
+def plot5():
+    plt.figure()
+    olrange = np.linspace(c.ol.min(), c.ol.max(), 2048)
+    pglobal = c.get_global_polynomial(full=True)
+    for o in c.all_order():
+        p = c.polynomial_fit[o]
+        I = c.index_order(o)
+        plt.plot(c.ol[I], c.x[I]-pglobal(c.ol[I]), '.', 
+        color=c.color_of_order(o))
+        plt.plot(olrange, (p(olrange)-pglobal(olrange)), '-', color=c.color_of_order(o))
+    plt.ylim([-20, 60])
 
 def palette():
 

@@ -28,9 +28,9 @@ C_LIGHT = 300000 * KM / S    # speed of ligth
 ##  -------------
 
 
+"""
 def polyfit_2d(ol, o, x, w, **kwargs):
     olrange = kwargs['olrange']
-    orange = kwargs['orange']
     Nol = kwargs['order_ol']+1
     No  = kwargs['order_o'] +1
 
@@ -50,13 +50,13 @@ def polyfit_2d(ol, o, x, w, **kwargs):
     G = np.zeros((ndata, len(nolko)))
     sigma_min = kwargs['sigma_min']
     
-    s = np.sqrt(s**2 + sigma_min**2)
+    w = np.sqrt(w**2 + sigma_min**2)
 
     for i in range(ndata):
         for j, (nol, no) in enumerate(nolko):
             G[i,j] = Tshebol[nol](ol[i]) * Tshebo[no](o[i])
 
-    G = (1./ s)[:, np.newaxis] * G
+    G = (1./ w)[:, np.newaxis] * G
     coeffs = np.linalg.lstsq(G, w * x )[0]
 
     polynomial_fit = {
@@ -65,7 +65,7 @@ def polyfit_2d(ol, o, x, w, **kwargs):
                 for o in orange 
     }
     return polynomial_fit
-
+"""
 
 
 
@@ -88,7 +88,7 @@ class CCD2d:
             self.bootstrap_data()
 
         # basic outlier removal / quality filter
-        self.outlier_removal_1()
+        self.outlier_removal()
         self.polynomial_fit = {
             o: np.polynomial.Polynomial([0]) 
             for o in self.all_order() 
@@ -152,10 +152,11 @@ class CCD2d:
         colors = cmap(np.linspace(0,1, max(orders) - min(orders) +1))
         return colors[o-min(orders)]
 
-    def outlier_removal_1(self):
+    def outlier_removal(self):
         """
         removing outliers based on bootstrap uncertainty
         of histotram expectation
+        the removed data is dropped from the .data
         """
         epsilon = self.kwargs['epsilon_sigma_bootstrap']
         self.data = self.data[self.data['sigma_new_mean'] < epsilon].copy().reset_index(drop=True)
@@ -173,17 +174,14 @@ class CCD2d:
         # order by order fitting first
         epsilon = self.kwargs['epsilon_sigma_clipp']
         thd = epsilon 
-        o = self.data['true_order_number']
-        l = self.data['ref_lambda']
-        x = self.data['new_mean_pixel_pos']
-        sigma = self.data['sigma_new_mean']
+        self.data['selected'] = True
+        o = self.o
+        l = self.l
+        x = self.x
+        sigma = self.sigma
 
-        for i in range(self.kwargs['n_sigma_clipp']):
-
-            self.fit_polynomial_order_by_order()
-            res = self.eval_polynomial(o*l, o) - x
+        def _get_threshold():
             dxdl = self.eval_dpolyomial_dl(o*l, o)
-
             # how to define the clipping
             if self.kwargs['clipp_method'] == 'pixerror':   # absolute error in pixel
                 thd = 1 * epsilon
@@ -194,38 +192,37 @@ class CCD2d:
             else:
                 raise Exception ('no such method') 
                 # thd = epsilon * np.std(res)
-            # clipping 
+            return thd
+
+        for i in range(self.kwargs['n_sigma_clipp']):
+
+            self.fit_polynomial_order_by_order()
+            res = self.eval_polynomial(o*l, o) - x
+
+           # clipping 
+            thd = _get_threshold()
             I = np.abs(res)<=thd
 
             if np.all(I==self.data['selected']):
+                print('stable clipping after {} iterations'.format(i))
                 break
             self.data.loc[:, 'selected'] = I[:]
 
         epsilon=self.kwargs['epsilon_sigma_clipp_2d']
 
-
         for i in range(self.kwargs['n_sigma_clipp_2d']):
             self.fit_2d_polynomial()
             res = self.eval_polynomial(o*l, o) - x
-            dxdl = self.eval_dpolyomial_dl(o*l, o)
 
-            if self.kwargs['clipp_method'] == 'pixerror':
-                thd = 1 * epsilon
-            elif self.kwargs['clipp_method'] == 'rel_std':
-                thd = sigma * epsilon
-            elif self.kwargs['clipp_method'] == 'vrad':     # radial velocity uncertainty
-                thd = l * dxdl * epsilon / C_LIGHT
-            else:
-                thd = epsilon * np.std(res)
+            thd = _get_threshold()
             I = np.abs(res)<=thd
+
             if np.all(I==self.data['selected']):
+                print('stable clipping after {} iterations'.format(i))
                 break
-            if len(I) < 10:
-                epsilon *= 1.5
+
             self.data.loc[:, 'selected'] = I
 
-        if self.kwargs.get('save_sigma_clipped_data', False):
-            self.data.to_json(self.kwargs['sigma_clipped_file'])
 
     def _delta_lam_over_lam_factor(self, l, o):
         """
@@ -310,6 +307,18 @@ class CCD2d:
         return {o: self.lambda_map_at_o(o) for o in self.all_order()}
 
     @property
+    def _x(self):
+       return self.data['new_mean_pixel_pos']
+
+    @property
+    def _l(self):
+        return self.data['ref_lambda'] 
+
+    @property
+    def _o(self):
+        return self.data['true_order_number']
+
+    @property
     def x(self):
         return self.data['new_mean_pixel_pos'][self.data['selected']]
 
@@ -357,17 +366,20 @@ class CCD2d:
             return self.get_orders()
         return self.kwargs.get('report_orders', self.get_orders())
 
-    def get_global_polynomial(self):
-        n = self.kwargs['order_ol'] 
-        ol = self.ol
+    def get_global_polynomial(self, full=False):
+        n = self.kwargs['order_ol']
+        ol = self.ol if not full else self.data['true_order_number'] * self.data['ref_lambda']
         domain = [ol.min(), ol.max()]
         p = None
+        w = self.fit_weight() if not full else np.ones(len(self.data['true_order_number']))
+        x = self.x if not full else self.data['new_mean_pixel_pos']
         try:
-            p = np.polynomial.chebyshev.Chebyshev.fit(ol, self.x,
+            p = np.polynomial.chebyshev.Chebyshev.fit(ol, x,
                                                     domain=domain,
                                                     deg=n,
-                                                    w=self.fit_weight())
-        except:
+                                                    w=w)
+        except Exception as ex:
+            print(ex)
             raise Exception ('problem fitting global polynomial\n')
         return p
 
@@ -379,21 +391,24 @@ class CCD2d:
         }
         return p
 
+    @property
     def len_total_data(self):
         return len(self.data['true_order_number'])
 
     def fit_weight(self):
-
-        match self.kwargs.get('fitweight', 'sigma'):
-            case 'equal':
-                weight = 1
-            case 'sigma':
-                weight = 1/self.sigma
-            case 'vrad':
-                weight = np.ones(self.ndata)
-                for o in self.all_order():
-                    I = self.index_order(o)
-                    weight[I] = 1/np.abs((self.ol[I]*self.polynomial_fit[o].deriv(1)(self.ol[I])))
+        tmp =self.kwargs.get('fitweight', 'sigma') 
+        if (tmp == 'equal'):
+            weight = 1
+        elif (tmp == 'sigma'):
+            weight = 1/self.sigma
+        elif (tmp == 'vrad'):
+            weight = np.ones(self.ndata)
+            for o in self.all_order():
+                I = self.index_order(o)
+                weight[I] = \
+                1/(C_LIGHT * np.abs((self.ol[I]*self.eval_dpolynomial(self.ol[I], o))))
+        else:
+            raise Exception('no such fitweight' +tmp )
         return weight      
 
     def fit_polynomial_order_by_order(self):
@@ -404,11 +419,13 @@ class CCD2d:
         domain = [ol.min(), ol.max()]
         orders = self.all_order()
 
-        pglobal = self.fit_global_polynomial()
+        pglobal = self.get_global_polynomial()
 
         for o in orders:
             I = self.index_order(o)
             try:
+                if sum(I)<n+1:
+                    raise Exception('not enough points for fit in order')
                 res[o] = np.polynomial.chebyshev.Chebyshev.fit(
                     self.l[I]*o, self.x[I],
                     domain=domain,
@@ -417,37 +434,22 @@ class CCD2d:
                 )
             except Exception as ex:
                 res[o] = pglobal
-                
-                #print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
+                print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
         
         self.polynomial_fit = res
-        return res
 
-    def fit_2d_polynomial(self, **kwargs):
+    def fit_2d_polynomial(self):
         """
         # computes a polynomial proxy
-        """
-
-        self.kwargs.update(kwargs)
-        o = self.data['true_order_number']
-        l = self.data['ref_lambda']
-
-        olrange = [(o*l).min(), (o*l).max()]
-        orange = [o.min(), o.max()]
-        self.polynomial_fit = polyfit_2d(
-            self.ol.to_numpy(),
-            self.o.to_numpy(),
-            self.x.to_numpy(),
-            self.fit_weight().to_numpy(),
-            olrange=olrange,
-            orange=orange,
-            **self.kwargs
-        )
-        return self.polynomial_fit
         """
         Nol = self.kwargs['order_ol']+1
         No  = self.kwargs['order_o'] +1
 
+        o = self.o
+        l = self.l
+
+        olrange = [(o*l).min(), (o*l).max()]
+        orange = [o.min(), o.max()]
         nolko = [(n, k) for n in range(Nol) for k in range(No)]
 
         Tshebol = [np.polynomial.chebyshev.Chebyshev.basis(
@@ -464,7 +466,7 @@ class CCD2d:
         o = self.o.to_numpy()
         l = self.l.to_numpy()
         x = self.x.to_numpy()
-        s = self.sigma.to_numpy()
+        s = self.fit_weight()
         s = np.sqrt(s**2 + self.kwargs['sigma_min']**2)
 
         for i in range(self.ndata):
@@ -481,21 +483,38 @@ class CCD2d:
                      for o in self.all_order() 
         }
 
-        return self.polynomial_fit
+
+    def _report_fitresult(self):
         """
+        updates the self.data field with the fit results
+        """
+        self.data["polyfit_x"] = self.eval_polynomial(
+            self._o * self._l,
+            self._o)
+        
+        tmp = np.zeros(self.len_total_data)
+        for o in self.all_order():
+            I = self.index_order_unselected(o)
+            tmp[I] = self.lambda_map_at_o(o)(self.data['new_mean_pixel_pos'][I])
+        self.data['polyfit_lambda'] = tmp
+
+            
     @property
     def ndata(self):
         return len(self.o)
 
+    def ndata_in_order(self, o):
+        return sum(self.index_order(o))
+    
     def get_lambda_list(self):
         """
         2Dmap for all orders as returned by self.get_report_orders()
         saves to kwargs['file_lambda_list']
         """
-        res = np.zeros(len(self.get_report_orders())*NROWS)
+        res = np.zeros(len(self.all_order())*NROWS)
         i = 0
         x = np.arange(NROWS)
-        for i, o in enumerate(self.get_report_orders()):
+        for i, o in enumerate(self.all_order()):
             p = self.lambda_map_at_o(o);
             for j, xx in enumerate(x):
                 try:
@@ -507,7 +526,7 @@ class CCD2d:
 
     def get_lambda_map(self):
         tmp = self.get_lambda_list()
-        return {o: tmp[i*NROWS:(i+1)*NROWS] for i, o in enumerate(self.get_report_orders())}
+        return {o: tmp[i*NROWS:(i+1)*NROWS] for i, o in enumerate(self.all_order())}
 
 
     def get_rms_per_spectrum(self):
