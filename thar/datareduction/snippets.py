@@ -27,6 +27,7 @@ CLUM=3e5
 REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
 REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
 EXCLUSION = '../reffiles/excluded.dat'
+IVANLINES = '../reffiles/ivan.txt'
 #seuil en ADU
 SEUIL = 2000.
 SEUILR = 800.
@@ -84,6 +85,14 @@ def snippets(extractor,nvoie,order):
         atlasline[l] = float(sfr[1])
     
     
+    with open(IVANLINES, 'r') as kk:
+        ilines = kk.readlines()
+    num_ilines=len(ilines)
+    npti=num_ilines
+    iline = np.zeros (npti, dtype =  float)
+    for l in range (0,npti):
+        iline[l] = float(ilines[l])
+
      
     o = order
     if nvoie == 1:
@@ -107,6 +116,9 @@ def snippets(extractor,nvoie,order):
     
     indexx=np.where((lam[0] <atlasline) & (atlasline < lam[-1]))
     atlasext=atlasline[indexx]
+    
+    indexi=np.where((lam[0] <iline) & (iline < lam[-1]))
+    ivanext=iline[indexi]
    
        
     # ICI ON DOIT LIRE exlude.dat et filter les atlasline d'office
@@ -126,13 +138,14 @@ def snippets(extractor,nvoie,order):
         
     atlasext=np.array(goodlines)
     #(atlasext)
-    """
+    
     plt.figure(figsize=(16,6))
     plt.plot(lam,flux)
     plt.plot(refwave,refintens)
     for ll in atlasext:
         plt.vlines(ll,0.,20000.,'y')
-    """
+    for kk in ivanext:
+        plt.vlines(kk,10000.,20000.,'r')
     
     # on ne veut choisir que les raies de l'atlas qui se retrouvent dans la zone atlasext[k] +/- vrange, et qui ont un flux max au dessus du seuil. Ca reduit la liste.
         
@@ -170,12 +183,12 @@ def snippets(extractor,nvoie,order):
         goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
         if goodsnippet:
             snip.append({"o":o,"refwave":c ,"wave":wave,"inte":inte})
-            """
-            plt.vlines(c,0.,20000.,'r')
+            
+            plt.vlines(c,0.,10000.,'b')
             plt.plot(wave,inte,"r")
             
     plt.show()
-    """
+    
     return snip
   
 
@@ -188,8 +201,9 @@ if __name__ == "__main__":
     snip =  snippets(myext,1, 44)
     print ('snip', snip, len(snip))
 
-    
-""""
+
+
+"""
     #plotten im ipython
 o=54
 lam,flux = myext.get_lambda_intens1(o)
@@ -204,9 +218,35 @@ for o in extract.ORDERS:
    plt.xlim(lam[0],lam[-1])
    plt.ylim(0.,100000)
    plt.plot(lam,flux,"b")
-   tit = str(o)
-   plt.title(tit)
+   
+   
    plt.plot(refwave,refintens,"r")
    plt.show()
 
+how to read the snippets:
+
+order = np.array(snip[ll]['o'])
+lamc = np.zeros(len(snip))
+pixc = np.zeros(len(snip))
+for ll in range(len(snip)):
+    lamc[ll]=np.array(snip[ll]['refwave'])
+    pixc[ll]=np.array(np.median(snip[ll]['pixel']))
+plt.figure(figsize=(16,6))
+plt.plot(order*lamc,pixc)
+plt.show()
+
+
+
+plt.figure(figsize=(16,6))
+for order in extract.ORDERS:
+    snip =  snippets(myext,1, order)
+    lamc = np.zeros(len(snip))
+    pixc = np.zeros(len(snip))
+    for ll in range(len(snip)):
+        order = np.array(snip[ll]['o'])
+        lamc[ll]=np.array(snip[ll]['refwave'])
+        pixc[ll]=np.array(np.median(snip[ll]['pixel']))
+    plt.plot(order*lamc,pixc,'o')
+    plt.plot(order*lamc,pixc)
+plt.show()
 """
