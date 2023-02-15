@@ -17,6 +17,7 @@ voie2 = 1
 
 
 c = ccds['NEO_20220903_191404_th0.fits']['ccd'][voie1]
+c.kwargs = kwargs
 
 def plot1():
 
@@ -77,6 +78,17 @@ def plot6():
         plt.plot(olrange, (p(olrange)-pglobal(olrange)), '-', color=c.color_of_order(o))
     plt.ylim([-40, 60])
 
+def plot7():
+    plt.figure()
+    xrange = np.arange(NROWS)
+    pglobal = c.get_global_polynomial(full=True)
+    for o in c.all_order():
+        l = c._map_1D_l_x_o[o]
+        I = c.index_order(o)
+        plt.plot(c.ol[I], c.x[I]-pglobal(c.ol[I]), '.', 
+        color=c.color_of_order(o))
+        plt.plot(l(xrange)*o, ((olrange)-pglobal(olrange)), '-', color=c.color_of_order(o))
+    plt.ylim([-40, 60])
 
 def palette():
 

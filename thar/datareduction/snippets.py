@@ -26,15 +26,15 @@ from settings import *
 #ORDERS=range(21,58)
 CLUM=3e5
 
-REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
-REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
-EXCLUSION = '../reffiles/excluded.dat'
+#REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
+#REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
+#EXCLUSION = '../reffiles/excluded.dat'
 #seuil en ADU
 #SEUIL = 2000.
-SEUIL = 0.2
-SEUILR = 800.
+#SEUIL = 0.2
+#SEUILR = 800.
 #vrange in km/s
-VRANGE= 9.
+# VRANGE= 9.
     
 with open(REF_SPECTRUM, 'r') as f:
     lines = f.readlines()
@@ -163,7 +163,6 @@ def _snippets(extractor,nvoie,order):
         indextr, = np.where((refwave > l) & (refwave < r))
         waver = refwave[indextr]
         inter = refintens[indextr]
-        print(c,wave,inte)
   
        
       
@@ -185,12 +184,6 @@ def _snippets(extractor,nvoie,order):
                 "reduced_flux_values_extract": inte,
                 "flux_values_extract" : bare_inte,
             })
-            """
-            plt.vlines(c,0.,20000.,'r')
-            plt.plot(wave,inte,"r")
-            
-    plt.show()
-    """
     return pd.DataFrame(snip)
   
 def snippets(extractor,nvoie,orders):
@@ -204,7 +197,7 @@ def snippets(extractor,nvoie,orders):
 
 
 if __name__ == "__main__":
-    myext = extract.Extractor(DATADIR='./../datafiles',VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
+    myext = extract.Extractor(**kwargs)
     myext.set_fitsfile('../datafiles/NEO_20220903_191404_th0.fits')
 
     snip =  snippets(myext,1, extract.ORDERS)

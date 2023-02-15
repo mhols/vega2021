@@ -50,11 +50,11 @@ CLUM = 3e5
 M = 1.0         # Meter
 S = 1.0         # Second
 PIXEL = 1       # Pixel unit
+TIMES = 1       # number unit (i.e. 50*TIMES )
 HZ = 1/S        # Herz
 KILO = 1000     # Kilo
 KHZ = KILO * HZ # Kiloherz
 KM = KILO * M   # Kilometer
-
 C_LIGHT = 300000 * KM / S    # speed of ligth
 """
 Neo-Narval fits files contain nli ligns and  ncol columns. Red orders are low pixel indices, blue ones correspond to high indices. Low pixel indices correspond to lower wavelength within one given order, wavelength is increasing towards higher column indices.
@@ -115,38 +115,39 @@ CENTRALPOSITION = {
     # 59:3302}  TODO make robust for empty beams
 
 ORDERS = list(CENTRALPOSITION.keys())
-# REPORT_ORDERS = ORDERS # range(21, 60)
-LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')
+LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
 
 
 
 ## ----- snippet constants
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
-EXCLUSION = os.path.join(REFFILES, 'reffiles/excluded.dat')
+EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
 SEUIL = 2000.   # seuil en ADU 
 SEUILR = 800.
 VRANGE = 9.      # vrange in km/s
+VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'
  
 ## ----- spectrograph paramter
 kwargs = {
     'datadir': DATADIR,
-    'voie_method': 'SUM_DIVIDE_CENTRALROW',
+    'voie_method': VOIE_METHOD,
     # ----------------
-    'n_bootstrap': 5,                     # number of bootstrap experiments
-    'profile': 'gauss',                     #
-    'loss_function': 'loss_1',              # weighted L2-loss
-    'epsilon_sigma_bootstrap': 3,           # locations with larger uncertainty are removed
-    'epsilon_sigma_clipp': 400*M/S,               # sigma clip for 1d polynomial
-    'epsilon_sigma_clipp_2d' : 400*M/S,           # sigma clip for 2d polynomial
-    'clipp_method' : 'vrad',            # 'rel_std' or 'pixerror' or 'est_std'
-    'n_sigma_clipp' : 0,                  # maximal number of sigma clips
-    'n_sigma_clipp_2d' : 100,               # maximal number of sigma clips
-    'sigma_min' : 0.001,                     # minimial sigma to avoid overfitting
-    'palette_order': 'gist_rainbow',        # palette of orders
-    'order_ol': 7,                          # order polynomial in ol
-    'order_o': 5,                           # order polynomial in o
+    'n_bootstrap': 5,                        # number of bootstrap experiments
+    'profile': 'gauss',                      # fit profile for bootstrap estimate of centroid
+    'loss_function': 'loss_1',               # weighted L2-loss for bootstrap estimate of centroid
+    'epsilon_sigma_bootstrap': 3*PIXEL,      # locations with larger pixel uncertainty are removed
+    'epsilon_sigma_clipp': 200*M/S,          # sigma clip for 1d polynomial
+    'epsilon_sigma_clipp_2d' : 200*M/S,      # sigma clip for 2d polynomial
+    'clipp_method' : 'vrad',                 # 'rel_std' or 'pixerror' or 'est_std'
+    'n_sigma_clipp' :    100*TIMES,                   # maximal number of sigma clips
+    'n_sigma_clipp_2d' : 100*TIMES,                # maximal number of sigma clips
+    'fitweight': 'vrad',                    # weight based on pixel uncertainty of snippet centroid 
+    'sigma_min' : 5 * M/S,                      # minimial sigma to avoid overfitting
+    'palette_order': 'gist_rainbow',         # palette of orders
+    'order_ol': 7,                           # order polynomial in ol
+    'order_o': 5,                            # order polynomial in o
 }
 
 # parameters may be added or changed using kwargs.update('param': value)

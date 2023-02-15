@@ -250,7 +250,6 @@ class BeamOrder:
         self._yy = self._y[I]
 
         self._lower, self._upper = 0, NROWS
-        print('in beam order', order)
         self._evaluator = lambda x: np.interp(x, self._xx, self._yy)
         self._x = np.arange(NROWS)
         self._y = self(self._x)
