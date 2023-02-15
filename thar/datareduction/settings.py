@@ -148,6 +148,7 @@ kwargs = {
     'palette_order': 'gist_rainbow',         # palette of orders
     'order_ol': 7,                           # order polynomial in ol
     'order_o': 5,                            # order polynomial in o
+    'file_lambda_list': "wave-hoboe.dat"     # resolution output
 }
 
 # parameters may be added or changed using kwargs.update('param': value)

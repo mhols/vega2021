@@ -684,19 +684,14 @@ class CCD2d:
    
     def get_lambda_list(self):
         """
-        2Dmap for all orders as returned by self.get_report_orders()
         saves to kwargs['file_lambda_list']
         """
         res = np.zeros(len(self.all_order())*NROWS)
         i = 0
         x = np.arange(NROWS)
         for i, o in enumerate(self.all_order()):
-            p = self.lambda_map_at_o(o);
-            for j, xx in enumerate(x):
-                try:
-                    res[i*NROWS+j] = p(xx)
-                except:
-                    res[i*NROWS+j] =  np.NaN
+            ip = self._map_2D_ol_x_o[o]
+            res[i*NROWS:(i+1)*NROWS] = ip(x) 
         np.savetxt(self.kwargs['file_lambda_list'], res)
         return res
 
@@ -704,13 +699,6 @@ class CCD2d:
         tmp = self.get_lambda_list()
         return {o: tmp[i*NROWS:(i+1)*NROWS] for i, o in enumerate(self.all_order())}
 
-
-    def get_rms_per_spectrum(self):
-        res = pd.Series(index=self._data.index)
-        for o in self.all_order():
-            I = self.index_order(o)
-            res.iloc[I] = 3e5 * (self.lambda_at_x_o(self.x[I], o)/self.l-1).abs()
-        np.savetxt(self.kwargs['rms_report_file'], res)
 
 class FP:
     """
