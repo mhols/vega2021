@@ -30,7 +30,8 @@ REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
 REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
 EXCLUSION = '../reffiles/excluded.dat'
 #seuil en ADU
-SEUIL = 2000.
+#SEUIL = 2000.
+SEUIL = 0.2
 SEUILR = 800.
 #vrange in km/s
 VRANGE= 9.
@@ -162,7 +163,7 @@ def _snippets(extractor,nvoie,order):
         indextr, = np.where((refwave > l) & (refwave < r))
         waver = refwave[indextr]
         inter = refintens[indextr]
-        
+        print(c,wave,inte)
   
        
       
@@ -174,6 +175,7 @@ def _snippets(extractor,nvoie,order):
         goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
         goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
         if goodsnippet:
+ #           print('goodsnip',c)
             snip.append({
                 "true_order_number": o,
                 "ref_lambda": c ,
@@ -193,7 +195,8 @@ def _snippets(extractor,nvoie,order):
   
 def snippets(extractor,nvoie,orders):
     snipets = []
-    for o in orders:
+    
+    for o in np.array(orders):
         print('on order ', o)
         snipets.append(_snippets(extractor, nvoie, o))
     return pd.concat(snipets, ignore_index=True, axis=0)
