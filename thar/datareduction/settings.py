@@ -143,12 +143,11 @@ kwargs = {
     'clipp_method' : 'vrad',                 # 'rel_std' or 'pixerror' or 'est_std'
     'n_sigma_clipp' :    100*TIMES,                   # maximal number of sigma clips
     'n_sigma_clipp_2d' : 100*TIMES,                # maximal number of sigma clips
-    'fitweight': 'vrad',                    # weight based on pixel uncertainty of snippet centroid 
+    'fitweight': 'flux',                    # weight based on pixel uncertainty of snippet centroid 
     'sigma_min' : 5 * M/S,                      # minimial sigma to avoid overfitting
     'palette_order': 'gist_rainbow',         # palette of orders
     'order_ol': 7,                           # order polynomial in ol
     'order_o': 5,                            # order polynomial in o
-    'file_lambda_list': "wave-hoboe.dat"     # resolution output
 }
 
 # parameters may be added or changed using kwargs.update('param': value)

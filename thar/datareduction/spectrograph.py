@@ -559,6 +559,8 @@ class CCD2d:
             for o in self.all_order():
                 I = self.index_order(o)
                 weight[I] = C_LIGHT / (np.abs(oldps[I]))
+        elif (tmp == "flux"):
+            weight = 1./np.sqrt(self.data['total_flux'])
         else:
             raise Exception('no such fitweight' +tmp )
         return weight      
