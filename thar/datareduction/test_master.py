@@ -25,6 +25,7 @@ def plot1():
     for o in c.all_order():
         I = c.index_order(o)
         plt.plot(c.ol[I], c.x[I], 'o', color=c.color_of_order(o))
+    plt.show()
 
 def plot2():
     plt.figure(figsize=(10,6))
@@ -35,6 +36,7 @@ def plot2():
         color=c.color_of_order(o))
         plt.plot(c.ol[I], c.x[I]-p(c.ol[I]), '.', 
         color=c.color_of_order(o))
+    plt.show()
 
 def plot3():
     plt.figure(figsize=(10,6))
@@ -44,7 +46,8 @@ def plot3():
         I = c.index_order(o)
         plt.plot(c.ol[I], c.x[I]-p(c.ol[I]), 'o', 
         color=c.color_of_order(o), label=str(o))
-
+    plt.show()
+    
 def plot4():
     plt.figure(figsize=(10,6))
     c.fit_2d_polynomial()
@@ -53,6 +56,7 @@ def plot4():
         I = c.index_order(o)
         plt.plot(c.ol[I], c.x[I]-p(c.ol[I]), 'o', 
         color=c.color_of_order(o), label=str(o))
+    plt.show()
 
 def plot5():
     plt.figure()
@@ -65,6 +69,7 @@ def plot5():
         color=c.color_of_order(o))
         plt.plot(olrange, (p(olrange)-pglobal(olrange)), '-', color=c.color_of_order(o))
     plt.ylim([-40, 60])
+    plt.show()
 
 def plot6():
     plt.figure()
@@ -77,6 +82,7 @@ def plot6():
         color=c.color_of_order(o))
         plt.plot(olrange, (p(olrange)-pglobal(olrange)), '-', color=c.color_of_order(o))
     plt.ylim([-40, 60])
+    plt.show()
 
 def plot7():
     plt.figure()
@@ -89,6 +95,7 @@ def plot7():
         color=c.color_of_order(o))
         plt.plot(l(xrange)*o, ((olrange)-pglobal(olrange)), '-', color=c.color_of_order(o))
     plt.ylim([-40, 60])
+    plt.show()
 
 def palette():
 

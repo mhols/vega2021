@@ -27,15 +27,16 @@ from settings import *
 CLUM=3e5
 
 #REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
-#REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
-#EXCLUSION = '../reffiles/excluded.dat'
+REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
+EXCLUSION = '../reffiles/excluded.dat'
 #seuil en ADU
 #SEUIL = 2000.
-#SEUIL = 0.2
-#SEUILR = 800.
+SEUIL = 0.2
+SEUILR = 800.
 #vrange in km/s
-# VRANGE= 9.
-    
+VRANGE= 9.
+
+"""
 with open(REF_SPECTRUM, 'r') as f:
     lines = f.readlines()
 
@@ -50,7 +51,7 @@ for l in range (0,npt):
     sfr = linefr.split()
     refwave[l] = float(sfr[0])
     refintens[l] = float(sfr[1])
-
+"""
 
 def _snippets(extractor,nvoie,order):
    
@@ -160,18 +161,20 @@ def _snippets(extractor,nvoie,order):
         inte=flux[indext]
         bare_inte = bare_voie[indext]
         
+        """
         indextr, = np.where((refwave > l) & (refwave < r))
         waver = refwave[indextr]
         inter = refintens[indextr]
-  
+        print(c,wave,inte)
+        """
        
       
     # selectionner que les raies du ThAr observes au dessus du seuil.
     # pour chaque raie k on determine le maximum de flux
         distmax = 2.   ## TODO: make global constant
         goodsnippet = True
-        goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
-        goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
+   ###     goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
+   #     goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
         goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
         if goodsnippet:
  #           print('goodsnip',c)
@@ -184,6 +187,12 @@ def _snippets(extractor,nvoie,order):
                 "reduced_flux_values_extract": inte,
                 "flux_values_extract" : bare_inte,
             })
+            """
+            plt.vlines(c,0.,20000.,'r')
+            plt.plot(wave,inte,"r")
+            
+    plt.show()
+    """
     return pd.DataFrame(snip)
   
 def snippets(extractor,nvoie,orders):
@@ -197,7 +206,7 @@ def snippets(extractor,nvoie,orders):
 
 
 if __name__ == "__main__":
-    myext = extract.Extractor(**kwargs)
+    myext = extract.Extractor(DATADIR='./../datafiles',VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
     myext.set_fitsfile('../datafiles/NEO_20220903_191404_th0.fits')
 
     snip =  snippets(myext,1, extract.ORDERS)
