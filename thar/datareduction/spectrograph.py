@@ -129,7 +129,7 @@ class CCD2d:
         self._data = data
 
         self._data['selected'] = True # we are using only this subset
-        total_flux = np.array([sum(flux) for flux in self._data['flux_values_extract']])
+        total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['flux_values_extract']])
         self._data['total_flux'] = total_flux
 
         if self.kwargs.get('bootstrap_data', True):

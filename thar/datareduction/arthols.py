@@ -50,7 +50,7 @@ def restart(**kwargs):
         DATADIR='../datafiles',**kwargs)
     return myext
 
-artfile = "/Users/boehm/Desktop/vega2021/thar/datafiles/NEO_20220219_173048_th2.fits"
+artfile = "/Users/boehm/Desktop/vega2021/thar/datafilescopie/NEO_20220219_173048_th2.fits"
 #artfile = "/Users/boehm/Desktop/vega2021/thar/datafiles/NEO_20230125_175423_th2.fits"
 a=pyfits.open(artfile)
 
@@ -163,14 +163,16 @@ plt.plot(wh,vh)
 plt.show()
 """
 
-"""
+
 myext.set_fitsfile('/Users/boehm/Desktop/extract/fitsfiles/NEO_20220903_200017_st0.fits')
+
+"""
 for o in ORDERS:
     plt.figure(figsize=(16,6))
     plt.plot(myext.voie1[o])
     plt.plot(myext.voie2[o],"r")
 plt.show()
-
+"""
 
 
 # fichier reduit par le DRS:
@@ -183,7 +185,7 @@ wave2=a[1].data['Wavelength2']
 intens2=a[1].data['Beam2']
 wave3=a[1].data['Wavelength3']
 intens3=a[1].data['Beam3']
-
+"""
 for o in ORDERS:
     selectedorder = o
     mult = selectedorder - 21
@@ -196,6 +198,8 @@ for o in ORDERS:
     plt.plot(wa2,va2,"r")
 plt.show()
 
+
+"""
 for o in ORDERS:
     plt.figure(1, figsize=(15, 5))
     
@@ -213,4 +217,4 @@ for o in ORDERS:
     plt.plot(wa1,va1,"b")
     plt.plot(wa2,va2,"r")
     plt.show()
-"""
+
