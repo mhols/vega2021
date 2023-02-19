@@ -16,7 +16,7 @@ voie1 = 0
 voie2 = 1
 
 
-c = ccds['NEO_20220903_191404_th0.fits']['ccd'][voie1]
+c = ccds[0]['ccd'][voie1]
 c.kwargs = kwargs
 
 def plot1():

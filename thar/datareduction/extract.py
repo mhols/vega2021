@@ -98,6 +98,9 @@ def is_bias(fitsfile):
 def is_thorium(fitsfile):
     return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium'
 
+def is_star(fitsfile, name):
+    return header_info_from_fits(fitsfile, 'OBJECT') == name
+
 #liste = listallfits('/Users/boehm/Desktop/extract/Vega_2022TBL')
 def listallfits(dirname=DATADIR):
     filelist = []
@@ -119,6 +122,11 @@ def getallbiasfits(dirname=DATADIR):
 def getallthoriumfits(dirname=DATADIR):
     for f in listallfits(dirname):
         if is_thorium(f):
+            yield f
+
+def getallstarfits(dirname=DATADIR, name=''):
+    for f in listallfits(dirname):
+        if is_star(f, name):
             yield f
 
 def meanfits(*fitsfiles):
@@ -625,6 +633,80 @@ class Extractor:
                 o: self.beams[o].beam_sum_voie2(self.masterflat) for o in ORDERS
             }
         return self._flat_voie2
+
+    @property
+    def non_normalized_intens_1(self):
+        res = []
+        for o in ORDERS:
+            inte, I = self.bare_voie1(o)
+            inte[np.logical_not(I)] = 0.0
+
+            res.extend(inte)
+        return np.array(res)
+
+    @property
+    def normalized_intens_1(self):
+        res = []
+        for o in ORDERS:
+            inte, I = self.bare_voie1(o)
+            inte[np.logical_not(I)] = 0.0
+            inte /= inte.max()
+            res.extend(inte)
+        return np.array(res)
+
+    @property
+    def non_normalized_intens_2(self):
+        res = []
+        for o in ORDERS:
+            inte, I = self.bare_voie2(o)
+            inte[np.logical_not(I)] = 0.0
+            res.extend(inte)
+        return np.array(res)
+
+    @property
+    def normalized_intens_2(self):
+        res = []
+        for o in ORDERS:
+            inte, I = self.bare_voie2(o)
+            inte[np.logical_not(I)] = 0.0
+            inte /= inte.max() # TODO: quantile filter
+            res.extend(inte)
+        return np.array(res)
+
+    @property
+    def non_normalized_intens_3(self):
+        res = []
+        for o in ORDERS:
+            inte, I = self.bare_voie2(o)
+            inte[np.logical_not(I)] = 0.0
+            res.extend(inte)
+        return np.array(res)
+
+    @property
+    def normalized_intens_3(self):
+        res = []
+        for o in ORDERS:
+            inte, I = self.bare_voie2(o)
+            inte[np.logical_not(I)] = 0.0
+            res.extend(inte)
+        return np.array(res)
+
+    @property
+    def noise_1(self):
+        return np.sqrt(self.non_normalized_intens_1)
+
+    @property
+    def noise_2(self):
+        return np.sqrt(self.non_normalized_intens_2)
+
+    @property
+    def noise_3(self):
+        return np.sqrt(self.non_normalized_intens_3)
+
+
+    @property
+    def blaze_1(self):
+        pass
 
     def _estimate_background(self, image):
         MIN_FILTER_SIZE = 50

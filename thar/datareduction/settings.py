@@ -9,7 +9,7 @@ load_dotenv()
 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
 
-
+STARNAME = 'Vega'  
 # directory layout
 
 BASEDIR = os.path.join(os.path.dirname(__file__), '../')  # put jour actual base path here
@@ -134,7 +134,8 @@ kwargs = {
     'datadir': DATADIR,
     'voie_method': VOIE_METHOD,
     # ----------------
-    'n_bootstrap': 5,                        # number of bootstrap experiments
+
+    'n_bootstrap': 3,                        # number of bootstrap experiments
     'profile': 'gauss',                      # fit profile for bootstrap estimate of centroid
     'loss_function': 'loss_1',               # weighted L2-loss for bootstrap estimate of centroid
     'epsilon_sigma_bootstrap': 3*PIXEL,      # locations with larger pixel uncertainty are removed
@@ -152,4 +153,6 @@ kwargs = {
 
 # parameters may be added or changed using kwargs.update('param': value)
 
-
+## the following parameters are included into the fits files header
+PREFIX = 'HOBO_'
+HEADER_ITEMS = ['CUTORDER', 'FLUX_LIMIT']

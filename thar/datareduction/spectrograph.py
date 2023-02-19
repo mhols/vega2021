@@ -132,18 +132,18 @@ class CCD2d:
         total_flux = np.array([sum(flux) for flux in self._data['flux_values_extract']])
         self._data['total_flux'] = total_flux
 
-        if self.kwargs.get('bootstrap_data', False):
+        if self.kwargs.get('bootstrap_data', True):
             self.bootstrap_data()
 
         # basic outlier removal / quality filter
         self._outlier_removal()
         self._fit_global_polynomial()
-
         self._map_1D_x_ol_o = None
         self._map_1D_ol_x_o = None
         
         self._map_2D_x_ol_o = None
         self._map_2D_ol_x_o = None
+        self.sigma_clipping()
         
         
     def generate_fixed_effects(self):
@@ -694,8 +694,7 @@ class CCD2d:
         for i, o in enumerate(self.all_order()):
             ip = self._map_2D_ol_x_o[o]
             res[i*NROWS:(i+1)*NROWS] = ip(x) 
-        np.savetxt(self.kwargs['file_lambda_list'], res)
-        return res
+        return np.array(res)
 
     def get_lambda_map(self):
         tmp = self.get_lambda_list()
