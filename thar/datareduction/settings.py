@@ -59,6 +59,8 @@ KILO = 1000     # Kilo
 KHZ = KILO * HZ # Kiloherz
 KM = KILO * M   # Kilometer
 C_LIGHT = 300000 * KM / S    # speed of ligth
+ADU = 1.0       # astronical data unit ????
+
 """
 Neo-Narval fits files contain nli ligns and  ncol columns. Red orders are low pixel indices, blue ones correspond to high indices. Low pixel indices correspond to lower wavelength within one given order, wavelength is increasing towards higher column indices.
 
@@ -127,12 +129,12 @@ REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
-SEUIL = 0.2   # seuil en ADU 
+SEUIL = 0.2 * ADU   # seuil en ADU 
 SEUILR = 800.
 VRANGE = 9.0 * KM/S      # vrange in km/s
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'
 
-## ----- spectrograph paramter
+## ----- spectrograph paramter  TODO: uppercase
 voie_method = VOIE_METHOD
 datadir = DATADIR
 n_bootstrap = 3                        # number of bootstrap experiments
@@ -150,7 +152,8 @@ palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 7                           # order polynomial in ol
 order_o = 5                            # order polynomial in o
 
-kwargs = globals()
+kwargs = {k: v for k, v in globals().items if k[:1]!='_'}
+
 # kwargs = {
 #     'datadir': DATADIR,
 #     'voie_method': VOIE_METHOD,
