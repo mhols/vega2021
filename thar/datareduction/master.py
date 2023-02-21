@@ -104,17 +104,17 @@ for d, starfits in zip(list_of_jd, list_of_stars):
         fits.Column(
             name='flux_1',
             format='E',
-            array=myext.normalized_intens_1
+            array=myext.voie1_all
         ),
         fits.Column(
             name='flux_2',
             format='E',
-            array=myext.normalized_intens_2
+            array=myext.voie2_all
         ),
         fits.Column(
             name='flux_3',
             format='E',
-            array=myext.normalized_intens_3
+            array=myext.voie2_all ### TODO voie3
         ),
         fits.Column(
             name='noise_1',

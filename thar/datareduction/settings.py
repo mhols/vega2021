@@ -126,7 +126,7 @@ EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 SEUIL = 0.2 * ADU   # seuil en ADU 
 SEUILR = 800.
 VRANGE = 9.0 * KM/S      # vrange in km/s
-VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'
+VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
 voie_method = VOIE_METHOD

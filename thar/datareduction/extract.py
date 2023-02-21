@@ -293,7 +293,12 @@ class BeamOrder:
         all indices (usually from NCROSS to RROWS)
         """
         return np.arange(self._lower, self._upper) 
- 
+
+    def II(self):
+        tmp = np.full(NROWS, False)
+        tmp[self.I] = True
+        return tmp
+
     def mask_central_voie12(self):
         x=np.arange(NCROSS+1, NROWS)
         return mask_along_offset(x, self(x), [0])
@@ -541,13 +546,25 @@ class Extractor:
             self._compute_voie1et2()
         return self._voie2
 
+    @property
+    def voie1_all(self):
+        res = []
+        for o in ORDERS:
+            res.extend(self.voie1[o])
+        return np.array(res)
+
+    @property
+    def voie2_all(self):
+        res = []
+        for o in ORDERS:
+            res.extend(self.voie2[o])
+        return np.array(res)
+
     def bare_voie1(self, o):
-        I = self.beams[o].I
-        return self.beams[o].beam_sum_voie1(self.image)[I], I
+        return self.beams[o].beam_sum_voie1(self.image)
 
     def bare_voie2(self, o):
-        I = self.beams[o].I
-        return self.beams[o].beam_sum_voie2(self.image)[I], I
+        return self.beams[o].beam_sum_voie2(self.image)
 
     def _compute_masterflat(self, dirname=DATADIR):
         """
@@ -609,91 +626,52 @@ class Extractor:
             self._beams = { o: BeamOrder(o, self.masterflat, final=True) for o in ORDERS}
         return self._beams
 
+    def _compute_flat_voie1et2(self):
+        self.logging('computing flat_voie1 and flat_voie2')
+        self._flat_voie1 = {
+            o: self.beams[o].beam_sum_voie1(self.masterflat) for o in ORDERS
+        }
+        self._flat_voie2 = {
+            o: self.beams[o].beam_sum_voie2(self.masterflat) for o in ORDERS
+        }
+         
 
     @property
     def flat_voie1(self):
         if self._flat_voie1 is None:
-            self.logging('computing flat_voie1 and flat_voie2')
-            self._flat_voie1 = {
-                o: self.beams[o].beam_sum_voie1(self.masterflat) for o in ORDERS
-            }
-            self._flat_voie2 = {
-                o: self.beams[o].beam_sum_voie2(self.masterflat) for o in ORDERS
-            }
+            self._compute_flat_voie1et2()
         return self._flat_voie1
 
 
     @property
     def flat_voie2(self):
         if self._flat_voie2 is None:
-            self._flat_voie1 = {
-                o: self.beams[o].beam_sum_voie1(self.masterflat) for o in ORDERS
-            }
-            self._flat_voie2 = {
-                o: self.beams[o].beam_sum_voie2(self.masterflat) for o in ORDERS
-            }
+            self._compute_flat_voie1et2()
         return self._flat_voie2
 
     @property
     def non_normalized_intens_1(self):
         res = []
         for o in ORDERS:
-            tmp = np.zeros(NROWS)
-            inte, I = self.bare_voie1(o)
-            tmp[I] = inte
-
-            res.extend(tmp)
-        return np.array(res)
-
-    @property
-    def normalized_intens_1(self):
-        res = []
-        for o in ORDERS:
-            tmp = np.zeros(NROWS)
-            inte, I = self.bare_voie1(o)
-            tmp[I] = inte
-            tmp /= tmp.max()
-            res.extend(tmp)
+            inte = self.bare_voie1(o)
+            I =  self.beams[o].I
+            inte[np.logical_not(I)] = 0.0
+            res.extend(inte)
         return np.array(res)
 
     @property
     def non_normalized_intens_2(self):
         res = []
         for o in ORDERS:
-            inte = np.zeros(NROWS)
-            tmp, I = self.bare_voie2(o)
-            inte[I] = tmp
-            res.extend(inte)
-        return np.array(res)
-
-    @property
-    def normalized_intens_2(self):
-        res = []
-        for o in ORDERS:
-            inte = np.zeros(NROWS)
-            tmp, I = self.bare_voie2(o)
-            inte[I] = tmp
-            inte /= inte.max() # TODO: quantile filter
+            inte = self.bare_voie2(o)
+            I = self.beams[o].II
+            inte[np.logical_not(I)] = 0
             res.extend(inte)
         return np.array(res)
 
     @property
     def non_normalized_intens_3(self):
-        res = []
-        for o in ORDERS:
-            inte, I = self.bare_voie2(o)
-            inte[np.logical_not(I)] = 0.0
-            res.extend(inte)
-        return np.array(res)
-
-    @property
-    def normalized_intens_3(self):
-        res = []
-        for o in ORDERS:
-            inte, I = self.bare_voie2(o)
-            inte[np.logical_not(I)] = 0.0
-            res.extend(inte)
-        return np.array(res)
+        return self.non_normalized_intens_2
 
     @property
     def noise_1(self):
