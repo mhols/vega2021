@@ -638,28 +638,31 @@ class Extractor:
     def non_normalized_intens_1(self):
         res = []
         for o in ORDERS:
+            tmp = np.zeros(NROWS)
             inte, I = self.bare_voie1(o)
-            inte[np.logical_not(I)] = 0.0
+            tmp[I] = inte
 
-            res.extend(inte)
+            res.extend(tmp)
         return np.array(res)
 
     @property
     def normalized_intens_1(self):
         res = []
         for o in ORDERS:
+            tmp = np.zeros(NROWS)
             inte, I = self.bare_voie1(o)
-            inte[np.logical_not(I)] = 0.0
-            inte /= inte.max()
-            res.extend(inte)
+            tmp[I] = inte
+            tmp /= tmp.max()
+            res.extend(tmp)
         return np.array(res)
 
     @property
     def non_normalized_intens_2(self):
         res = []
         for o in ORDERS:
-            inte, I = self.bare_voie2(o)
-            inte[np.logical_not(I)] = 0.0
+            inte = np.zeros(NROWS)
+            tmp, I = self.bare_voie2(o)
+            inte[I] = tmp
             res.extend(inte)
         return np.array(res)
 
@@ -667,8 +670,9 @@ class Extractor:
     def normalized_intens_2(self):
         res = []
         for o in ORDERS:
-            inte, I = self.bare_voie2(o)
-            inte[np.logical_not(I)] = 0.0
+            inte = np.zeros(NROWS)
+            tmp, I = self.bare_voie2(o)
+            inte[I] = tmp
             inte /= inte.max() # TODO: quantile filter
             res.extend(inte)
         return np.array(res)

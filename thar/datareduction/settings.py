@@ -146,8 +146,6 @@ palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 7                           # order polynomial in ol
 order_o = 5                            # order polynomial in o
 
-kwargs = {k: v for k, v in globals().items if k[:1]!='_'}
-
 kwargs = { k: v for k, v in globals().items() if 
     (type(v) is str or type(v) is float or type(v) is int or type(v) is list )
 }

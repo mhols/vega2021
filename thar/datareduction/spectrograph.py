@@ -691,7 +691,7 @@ class CCD2d:
         x = np.arange(NROWS)
         for i, o in enumerate(self.all_order()):
             ip = self._map_2D_ol_x_o[o]
-            res[i*NROWS:(i+1)*NROWS] = ip(x) 
+            res[i*NROWS:(i+1)*NROWS] = ip(x)/o 
         return np.array(res)
 
     def get_lambda_map(self):
