@@ -654,7 +654,7 @@ class Extractor:
         res = []
         for o in ORDERS:
             inte = self.bare_voie1(o)
-            I =  self.beams[o].I
+            I =  self.beams[o].II
             inte[np.logical_not(I)] = 0.0
             res.extend(inte)
         return np.array(res)
