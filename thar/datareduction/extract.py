@@ -533,7 +533,7 @@ class Extractor:
             self.logging('computing voie1 and voie2')
             self._compute_voie1et2()
         return self._voie1
-
+    
     @property
     def voie2(self):
         if self._voie2 is None:

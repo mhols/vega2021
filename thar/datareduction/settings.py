@@ -12,15 +12,11 @@ comment = {}  ## this comments will be included into the .fits document
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
 
 STARNAME = 'Vega';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
-# directory layout
 
+## ----- directory layout
 BASEDIR = os.path.join(os.path.dirname(__file__), '../')  # put jour actual base path here
-
 DATADIR = os.path.abspath(os.path.join(BASEDIR, 'datafiles')); 
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
-## TMPFILES = os.path.abspath(os.path.join(BASEDIR, 'tmpfiles'))
-## RESFILES = os.path.abspath(os.path.join(BASEDIR, 'mappings'))
-
 
 ## ----- extractor constants
 NROWS = 4208;           comment['NROWS'] = "number of rows"
@@ -49,7 +45,7 @@ BLAZE_RANGE = range(-OFFSETRED, OFFSETBLUE+1)                     # range for th
 DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
 CLUM = 3e5
 
-## unities 
+## ----- unities 
 M = 1.0         # Meter
 S = 1.0         # Second
 PIXEL = 1       # Pixel unit
@@ -122,9 +118,7 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
 ORDERS = list(CENTRALPOSITION.keys())
 LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
 
-
-
-## ----- snippet constants
+## ------ snippet constants
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
@@ -134,7 +128,7 @@ SEUILR = 800.
 VRANGE = 9.0 * KM/S      # vrange in km/s
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'
 
-## ----- spectrograph paramter  TODO: uppercase
+## ------ spectrograph paramter
 voie_method = VOIE_METHOD
 datadir = DATADIR
 n_bootstrap = 3                        # number of bootstrap experiments
@@ -154,26 +148,9 @@ order_o = 5                            # order polynomial in o
 
 kwargs = {k: v for k, v in globals().items if k[:1]!='_'}
 
-# kwargs = {
-#     'datadir': DATADIR,
-#     'voie_method': VOIE_METHOD,
-#     # ----------------
-
-#     'n_bootstrap': 3,                        # number of bootstrap experiments
-#     'profile': 'gauss',                      # fit profile for bootstrap estimate of centroid
-#     'loss_function': 'loss_1',               # weighted L2-loss for bootstrap estimate of centroid
-#     'epsilon_sigma_bootstrap': 3*PIXEL,      # locations with larger pixel uncertainty are removed
-#     'epsilon_sigma_clipp': 200*M/S,          # sigma clip for 1d polynomial
-#     'epsilon_sigma_clipp_2d' : 200*M/S,      # sigma clip for 2d polynomial
-#     'clipp_method' : 'vrad',                 # 'rel_std' or 'pixerror' or 'est_std'
-#     'n_sigma_clipp' :    100*TIMES,                   # maximal number of sigma clips
-#     'n_sigma_clipp_2d' : 100*TIMES,                # maximal number of sigma clips
-#     'fitweight': 'flux',                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
-#     'sigma_min' : 5,                         # minimial sigma to avoid overfitting
-#     'palette_order': 'gist_rainbow',         # palette of orders
-#     'order_ol': 7,                           # order polynomial in ol
-#     'order_o': 5,                            # order polynomial in o
-# }
+kwargs = { k: v for k, v in globals().items() if 
+    (type(v) is str or type(v) is float or type(v) is int or type(v) is list )
+}
 
 ## the following parameters are included into the fits files header
 PREFIX = 'HOBO_'

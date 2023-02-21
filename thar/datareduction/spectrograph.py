@@ -142,7 +142,7 @@ class CCD2d:
         self._map_2D_ol_x_o = None
         
         self._outlier_removal()
-        self._fit_global_polynomial()
+        self._fit_global_polynomial(full=True)
         self.sigma_clipping()
         
         
@@ -282,7 +282,7 @@ class CCD2d:
 
             self._data.loc[:, 'selected'] = I[:]
             fit_now2 = self._fit_2d_polynomial(weight=self._fit_weight(fit_now2))
-        
+
         self._map_1D_x_ol_o = self._fit_polynomial_order_by_order(weight=self._fit_weight(fit_now2)) 
         self._map_2D_x_ol_o = fit_now2
         self._map_1D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_1D_x_ol_o.items()}
@@ -525,11 +525,11 @@ class CCD2d:
             raise Exception ('problem fitting global polynomial\n')
         return p
 
-    def _fit_global_polynomial(self):
+    def _fit_global_polynomial(self, full=False):
         """
         make frequmap a global polynomial
         """
-        p = self.get_global_polynomial(full=False)
+        p = self.get_global_polynomial(full=full)
         self.polynomial_fit = {
             o: p 
             for o in self.all_order()
@@ -593,7 +593,7 @@ class CCD2d:
                 if sum(I)<n+1:
                     raise Exception('not enough points for fit in order')
                 res[o] = np.polynomial.chebyshev.Chebyshev.fit(
-                    self.l[I]*o, self.x[I],
+                    self.ol[I], self.x[I],
                     domain=domain,
                     deg=n,
                     w = weight[I]
