@@ -136,13 +136,13 @@ class CCD2d:
             self.bootstrap_data()
 
         # basic outlier removal / quality filter
-        self._outlier_removal()
-        self._fit_global_polynomial()
         self._map_1D_x_ol_o = None
         self._map_1D_ol_x_o = None
-        
         self._map_2D_x_ol_o = None
         self._map_2D_ol_x_o = None
+        
+        self._outlier_removal()
+        self._fit_global_polynomial()
         self.sigma_clipping()
         
         
@@ -169,7 +169,6 @@ class CCD2d:
         new_mean_pixel_pos = []
         sigma_new_mean = []
         shit = 0
-        print('\nbootstrapping data...\n')   ## TODO: better logging
         for i, line in self._data.iterrows():
             position = np.nan
             sigma = np.nan
@@ -248,7 +247,6 @@ class CCD2d:
                 raise Exception ('no such method') 
                 # thd = epsilon * np.std(res)
             return thd
-
 
         # order by order fitting first
         epsilon = self.kwargs['epsilon_sigma_clipp']

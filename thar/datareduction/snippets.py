@@ -24,17 +24,16 @@ from settings import *
 
 #NROWS=4208
 #ORDERS=range(21,58)
-CLUM=3e5
 
 #REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
-REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
-EXCLUSION = '../reffiles/excluded.dat'
+#REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
+#EXCLUSION = '../reffiles/excluded.dat'
 #seuil en ADU
 #SEUIL = 2000.
-SEUIL = 0.2
-SEUILR = 800.
+#SEUIL = 0.2
+#SEUILR = 800.
 #vrange in km/s
-VRANGE= 9.
+#VRANGE= 9.
 
 """
 with open(REF_SPECTRUM, 'r') as f:
@@ -107,7 +106,6 @@ def _snippets(extractor,nvoie,order):
     res = []
 
     
-    
     #####
     
     #selectionner les raies de reference dans l'intervalle spectral
@@ -129,7 +127,8 @@ def _snippets(extractor,nvoie,order):
             if l >= exclusion[i,1] and l <= exclusion[i,2]:
                 break
         goodlines.append(l)
-        
+
+
     atlasext=np.array(goodlines)
     #(atlasext)
     """
@@ -142,8 +141,8 @@ def _snippets(extractor,nvoie,order):
     
     # on ne veut choisir que les raies de l'atlas qui se retrouvent dans la zone atlasext[k] +/- vrange, et qui ont un flux max au dessus du seuil. Ca reduit la liste.
         
-    latlasext=atlasext*(1.-VRANGE/CLUM)
-    ratlasext=atlasext*(1.+VRANGE/CLUM)
+    latlasext=atlasext*(1.-VRANGE/C_LIGHT)
+    ratlasext=atlasext*(1.+VRANGE/C_LIGHT)
         
     numlines=atlasext.shape[0]
     maxi = np.zeros (numlines, dtype =  float)
@@ -167,7 +166,7 @@ def _snippets(extractor,nvoie,order):
         inter = refintens[indextr]
         print(c,wave,inte)
         """
-       
+
       
     # selectionner que les raies du ThAr observes au dessus du seuil.
     # pour chaque raie k on determine le maximum de flux
@@ -175,9 +174,12 @@ def _snippets(extractor,nvoie,order):
         goodsnippet = True
    ###     goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
    #     goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
-        goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
+        try:
+            goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
+        except:
+            print('order ', o, 'problem line')
+            continue
         if goodsnippet:
- #           print('goodsnip',c)
             snip.append({
                 "true_order_number": o,
                 "ref_lambda": c ,
@@ -199,10 +201,10 @@ def snippets(extractor,nvoie,orders):
     snipets = []
     
     for o in np.array(orders):
-        print('on order ', o)
-        snipets.append(_snippets(extractor, nvoie, o))
+        tmp = _snippets(extractor, nvoie, o) 
+        snipets.append(tmp)
+        print('snippets: order {} nr of snippets {}'.format(o, len(tmp)) ) 
     return pd.concat(snipets, ignore_index=True, axis=0)
-
 
 
 if __name__ == "__main__":

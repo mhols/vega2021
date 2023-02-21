@@ -28,14 +28,8 @@ if RECOMPUTE_2D_POLYNOMIAL:
         ]
 
         ccd = [
-            spectrograph.CCD2d(
-                data=snip,
-                file_lambda_list = os.path.join(
-                    RESFILES, os.path.basename(f_thar)+".wave2D_{}.dat".format(i)
-                ),
-                **kwargs
-            )
-            for i, snip in enumerate(snippets_voie)
+            spectrograph.CCD2d( data=snip, **kwargs)
+                for i, snip in enumerate(snippets_voie)
         ]
 
         ccds.append( {

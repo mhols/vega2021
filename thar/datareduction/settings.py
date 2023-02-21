@@ -6,36 +6,39 @@ import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
 
+comment = {}  ## this comments will be included into the .fits document
+
 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
 
-STARNAME = 'Vega'  
+STARNAME = 'Vega';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
 # directory layout
 
 BASEDIR = os.path.join(os.path.dirname(__file__), '../')  # put jour actual base path here
 
-DATADIR = os.path.abspath(os.path.join(BASEDIR, 'datafiles'))
-REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles'))
-TMPFILES = os.path.abspath(os.path.join(BASEDIR, 'tmpfiles'))
-RESFILES = os.path.abspath(os.path.join(BASEDIR, 'mappings'))
+DATADIR = os.path.abspath(os.path.join(BASEDIR, 'datafiles')); 
+REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
+## TMPFILES = os.path.abspath(os.path.join(BASEDIR, 'tmpfiles'))
+## RESFILES = os.path.abspath(os.path.join(BASEDIR, 'mappings'))
+
 
 ## ----- extractor constants
-NROWS = 4208        #number of rows
-NCOLS = 4196        #number of columns
-NCROSS = 100        #number of rows or columns in central cross
+NROWS = 4208;           comment['NROWS'] = "number of rows"
+NCOLS = 4196;           comment['NCOLS'] = "number of columns"
+NCROSS = 100;           comment['NCROSS'] = "number of rows/columns in central cross"
 NROWSBLOCK = 2054   #number of rows in individual blocks
 NCOLSBLOCK = 2048   #number of cols in individual blocks
 HIGHEXP = 60
 LOWEXP = 15
 CUTORDER = 35   #means that cutting flats is between 34 and 35
 ABSORPTIONHALFW = 6 # central region beteween orders
-JUMP = 2.     # allowed jump for beam extraction
-SMOOTHWIDTH_BEAM =   101 # width of local polynomial fit
+JUMP = 2.;              comment["JUMP"] = "allowed jump for beam extraction"
+SMOOTHWIDTH_BEAM = 101; comment["SMOOTHWIDTH_BEAM"] = "width of local polynomial fit"
 BACKGROUNDHW = 5                  
-VOIE1WIDTH =   18                 #right of separator
-VOIE2WIDTH =   18                 #left (redwards) of separator
-VOIE3WIDTH =   16
-FLUX_LIMIT =   500                # below, the beam extraction is discarded
+VOIE1WIDTH = 18                 #right of separator
+VOIE2WIDTH = 18                 #left (redwards) of separator
+VOIE3WIDTH = 16
+FLUX_LIMIT = 500                # below, the beam extraction is discarded
 
 SHIFT_MASK_VOIE1 = range(1, VOIE2WIDTH + 2)
 SHIFT_MASK_VOIE2 = range(-VOIE1WIDTH-1, 0)        # realtive indices of extraction mask
@@ -73,7 +76,7 @@ OFFSETCOL: same for column
 """
 
 CENTRALROW = 2161
-CENTRALPOSITION = {
+CENTRALPOSITION = {  ### TODO: move to reffiles...
     21: 824,
     22: 866,
     23: 907,
@@ -124,35 +127,51 @@ REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
-SEUIL = 2000.   # seuil en ADU 
+SEUIL = 0.2   # seuil en ADU 
 SEUILR = 800.
-VRANGE = 9.      # vrange in km/s
+VRANGE = 9.0 * KM/S      # vrange in km/s
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'
- 
+
 ## ----- spectrograph paramter
-kwargs = {
-    'datadir': DATADIR,
-    'voie_method': VOIE_METHOD,
-    # ----------------
+voie_method = VOIE_METHOD
+datadir = DATADIR
+n_bootstrap = 3                        # number of bootstrap experiments
+profile = 'gauss'                      # fit profile for bootstrap estimate of centroid
+loss_function = 'loss_1'               # weighted L2-loss for bootstrap estimate of centroid
+epsilon_sigma_bootstrap = 3*PIXEL      # locations with larger pixel uncertainty are removed
+epsilon_sigma_clipp = 200*M/S          # sigma clip for 1d polynomial
+epsilon_sigma_clipp_2d = 200*M/S      # sigma clip for 2d polynomial
+clipp_method = 'vrad'                 # 'rel_std' or 'pixerror' or 'est_std'
+n_sigma_clipp =  100*TIMES                   # maximal number of sigma clips
+n_sigma_clipp_2d = 100*TIMES                # maximal number of sigma clips
+fitweight = 'flux'                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
+sigma_min = 5                         # minimial sigma to avoid overfitting
+palette_order = 'gist_rainbow'         # palette of orders
+order_ol = 7                           # order polynomial in ol
+order_o = 5                            # order polynomial in o
 
-    'n_bootstrap': 3,                        # number of bootstrap experiments
-    'profile': 'gauss',                      # fit profile for bootstrap estimate of centroid
-    'loss_function': 'loss_1',               # weighted L2-loss for bootstrap estimate of centroid
-    'epsilon_sigma_bootstrap': 3*PIXEL,      # locations with larger pixel uncertainty are removed
-    'epsilon_sigma_clipp': 200*M/S,          # sigma clip for 1d polynomial
-    'epsilon_sigma_clipp_2d' : 200*M/S,      # sigma clip for 2d polynomial
-    'clipp_method' : 'vrad',                 # 'rel_std' or 'pixerror' or 'est_std'
-    'n_sigma_clipp' :    100*TIMES,                   # maximal number of sigma clips
-    'n_sigma_clipp_2d' : 100*TIMES,                # maximal number of sigma clips
-    'fitweight': 'flux',                    # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
-    'sigma_min' : 5 * M/S,                      # minimial sigma to avoid overfitting
-    'palette_order': 'gist_rainbow',         # palette of orders
-    'order_ol': 7,                           # order polynomial in ol
-    'order_o': 5,                            # order polynomial in o
-}
+kwargs = globals()
+# kwargs = {
+#     'datadir': DATADIR,
+#     'voie_method': VOIE_METHOD,
+#     # ----------------
 
-# parameters may be added or changed using kwargs.update('param': value)
+#     'n_bootstrap': 3,                        # number of bootstrap experiments
+#     'profile': 'gauss',                      # fit profile for bootstrap estimate of centroid
+#     'loss_function': 'loss_1',               # weighted L2-loss for bootstrap estimate of centroid
+#     'epsilon_sigma_bootstrap': 3*PIXEL,      # locations with larger pixel uncertainty are removed
+#     'epsilon_sigma_clipp': 200*M/S,          # sigma clip for 1d polynomial
+#     'epsilon_sigma_clipp_2d' : 200*M/S,      # sigma clip for 2d polynomial
+#     'clipp_method' : 'vrad',                 # 'rel_std' or 'pixerror' or 'est_std'
+#     'n_sigma_clipp' :    100*TIMES,                   # maximal number of sigma clips
+#     'n_sigma_clipp_2d' : 100*TIMES,                # maximal number of sigma clips
+#     'fitweight': 'flux',                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
+#     'sigma_min' : 5,                         # minimial sigma to avoid overfitting
+#     'palette_order': 'gist_rainbow',         # palette of orders
+#     'order_ol': 7,                           # order polynomial in ol
+#     'order_o': 5,                            # order polynomial in o
+# }
 
 ## the following parameters are included into the fits files header
 PREFIX = 'HOBO_'
-HEADER_ITEMS = ['CUTORDER', 'FLUX_LIMIT']
+HEADER_ITEMS = [k for k in comment.keys() if k[:2]!='__']
