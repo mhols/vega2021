@@ -150,27 +150,29 @@ palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 7                           # order polynomial in ol
 order_o = 5                            # order polynomial in o
 
-kwargs = globals()
-# kwargs = {
-#     'datadir': DATADIR,
-#     'voie_method': VOIE_METHOD,
-#     # ----------------
+# kwargs = globals()
+# print(kwargs)
 
-#     'n_bootstrap': 3,                        # number of bootstrap experiments
-#     'profile': 'gauss',                      # fit profile for bootstrap estimate of centroid
-#     'loss_function': 'loss_1',               # weighted L2-loss for bootstrap estimate of centroid
-#     'epsilon_sigma_bootstrap': 3*PIXEL,      # locations with larger pixel uncertainty are removed
-#     'epsilon_sigma_clipp': 200*M/S,          # sigma clip for 1d polynomial
-#     'epsilon_sigma_clipp_2d' : 200*M/S,      # sigma clip for 2d polynomial
-#     'clipp_method' : 'vrad',                 # 'rel_std' or 'pixerror' or 'est_std'
-#     'n_sigma_clipp' :    100*TIMES,                   # maximal number of sigma clips
-#     'n_sigma_clipp_2d' : 100*TIMES,                # maximal number of sigma clips
-#     'fitweight': 'flux',                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
-#     'sigma_min' : 5,                         # minimial sigma to avoid overfitting
-#     'palette_order': 'gist_rainbow',         # palette of orders
-#     'order_ol': 7,                           # order polynomial in ol
-#     'order_o': 5,                            # order polynomial in o
-# }
+kwargs = {
+    'datadir': DATADIR,
+    'voie_method': VOIE_METHOD,
+    # ----------------
+
+    'n_bootstrap': 3,                        # number of bootstrap experiments
+    'profile': 'gauss',                      # fit profile for bootstrap estimate of centroid
+    'loss_function': 'loss_1',               # weighted L2-loss for bootstrap estimate of centroid
+    'epsilon_sigma_bootstrap': 3*PIXEL,      # locations with larger pixel uncertainty are removed
+    'epsilon_sigma_clipp': 200*M/S,          # sigma clip for 1d polynomial
+    'epsilon_sigma_clipp_2d' : 200*M/S,      # sigma clip for 2d polynomial
+    'clipp_method' : 'vrad',                 # 'rel_std' or 'pixerror' or 'est_std'
+    'n_sigma_clipp' :    100*TIMES,                   # maximal number of sigma clips
+    'n_sigma_clipp_2d' : 100*TIMES,                # maximal number of sigma clips
+    'fitweight': 'flux',                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
+    'sigma_min' : 5,                         # minimial sigma to avoid overfitting
+    'palette_order': 'gist_rainbow',         # palette of orders
+    'order_ol': 7,                           # order polynomial in ol
+    'order_o': 5,                            # order polynomial in o
+}
 
 ## the following parameters are included into the fits files header
 PREFIX = 'HOBO_'
