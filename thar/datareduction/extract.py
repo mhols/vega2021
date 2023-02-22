@@ -1,3 +1,4 @@
+import util
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
@@ -483,7 +484,8 @@ class Extractor:
         return get_lambda(o)[I], self.voie3[o][I], I
     
     def _compute_voie1et2(self):
-        choice =  self.kwargs.get('voie_method', 'SUM_DIVIDE') 
+        choice =  self.kwargs.get('voie_method', 'SUM_DIVIDE')
+        print("choice for voie is ", choice)
         if choice == 'SUM_DIVIDE':
             self._voie1 = {
                     o: self.beams[o].beam_sum_voie1(self.image) \
@@ -546,18 +548,29 @@ class Extractor:
             self._compute_voie1et2()
         return self._voie2
 
-    @property
-    def voie1_all(self):
+
+    def background_voie1(self, o, nnodes, q, qq, qqq):
+        v = self.voie1[o]
+        l = np.arange(len(v))
+        p = util.background(l,v,nnodes,q,qq,qqq)
+        return p(l) 
+
+    def background_voie2(self, o, nnodes, q, qq, qqq):
+        v = self.voie2[o]
+        l = np.arange(len(v))
+        p = util.background(l,v,nnodes,q,qq,qqq)
+        return p(l) 
+
+    def voie1_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
         res = []
         for o in ORDERS:
-            res.extend(self.voie1[o])
+            res.extend(self.voie1[o]/self.background_voie1(o, nnodes, q, qq, qqq))
         return np.array(res)
 
-    @property
-    def voie2_all(self):
+    def voie2_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
         res = []
         for o in ORDERS:
-            res.extend(self.voie2[o])
+            res.extend(self.voie2[o]/self.background_voie2(o, nnodes, q, qq, qqq))
         return np.array(res)
 
     def bare_voie1(self, o):

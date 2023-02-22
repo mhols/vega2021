@@ -2,6 +2,8 @@ import scipy.special as sps
 import scipy.optimize as sop
 import numpy as np
 import sys
+from numpy.polynomial import Polynomial
+from scipy.interpolate import UnivariateSpline, LSQUnivariateSpline
 
 used_params = {}    # for the documentation of used parameters
                     # pass **kwargs to every method
@@ -113,27 +115,44 @@ def bootstrap_estimate_location(intens, **kwargs):
 
     return np.mean(res), np.std(res)
 
-def sigma_clipping(
-    data, 
-    epsilon=1, 
-    fit=lambda d: 1,
-    **kwargs):
-    """
-    data: list of data records
-    fit: maps data into iterable of floats measuring the deviation
-    epsilon: cutoff for filtering
-    n: number of iterations (<=0 or None means iterate until no change)
-    """
-    i = 0
-    n = kwargs.get('n_sigma_clip', 5)
-    while i < n:
-        I = fit(data)<=epsilon
-        if np.all(I):
-            break
-        data = data[I]
-        i+=1
-    return data
+def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
+    N_MAXITER = 100
+    
+    #s = UnivariateSpline(t, t, s=0)
 
+    I = np.logical_not(np.isnan(v))
+    II = np.logical_and(I, v<np.quantile(v[I],0.95))
+    I = np.logical_and(II, v>np.quantile(v[I],0.05))
+
+    #l = l[I]
+    v = v[I]
+    l = l[I] 
+
+    l = np.arange(len(v))
+    t = np.linspace(l[0], l[-1], nnodes+2, endpoint=True)
+
+    I = np.full(len(l), True)
+    for i in range(N_MAXITER):
+        try:
+            p = LSQUnivariateSpline(l[I], v[I], t[1:-1])
+        except:
+            print('in background ', v, l, t)
+            pass  # TODO log the event...
+        I1 = p(l)-v <= np.quantile(p(l)-v, qq)
+        I2 = p(l)-v >= np.quantile(p(l)-v, q)
+        II = np.logical_and(I1, I2)
+        if np.alltrue(II==I):
+            break
+        I = II
+
+    d = []
+    delt=t[2]-t[0]
+    res = v - p(l)
+    for tt, ttt in zip(t[:-4], t[4:]):
+        J = np.logical_and(l>=tt, l<ttt)
+        d.append( np.quantile(res[J], qqq))
+    pp = UnivariateSpline(t[2:-2], d, s=0)
+    return lambda x: pp(x) + p(x)
 
 
 # The MIT License (MIT)
@@ -166,3 +185,13 @@ def progress(count, total, status=''):
 
     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
     sys.stdout.flush()  # As suggested by Rom Ruben (see: http://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console/27871113#comment50529068_27871113)
+
+
+if __name__ == '__main__':
+
+    d = np.loadtxt('voi35.dat')
+    l = np.arange(len(d))
+    p = background(l,d,nnodes=10,q=0.3, qq=0.7, qqq=0.8)
+
+    plot(l, d)
+    plot(l, p(l))
