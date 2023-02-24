@@ -79,8 +79,11 @@ def load_image_from_fits(fitsfile):
     print('fitsfile ', fitsfile)
     image = np.clip(a[0].data,-100,65535)
     a.close()
-    return removeCross(image)
-
+    if REMOVECROSS:
+        return removeCross(image)
+    else:
+        return image
+        
 def header_info_from_fits(fitsfile, keyword):
     a=pyfits.open(fitsfile)
     try:
@@ -185,6 +188,7 @@ def _followorder(image,xstart,ystart,up=True):
     y are row indices
     orders are "aligned" with columns
     """
+   
     delta = ABSORPTIONHALFW
     if up:
         rows=range(ystart,NROWS)
@@ -332,7 +336,7 @@ class BeamOrder:
         tmp = np.sum(mask * self._masterflat, axis=1)
 
         # TODO tmp = medianfilter(tmp)
-
+        tmp=generic_filter(tmp,lambda x:np.median(x),size=10)
         j = np.argmax(tmp)
         for i in range(j,NROWS):
              if tmp[i] < FLUX_LIMIT:
