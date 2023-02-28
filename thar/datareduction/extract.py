@@ -239,8 +239,11 @@ def get_lambda(order):
     selectedorder = order
     mult = selectedorder - ORDERS[0]
     lamb = artlambda[mult*NROWS:(mult+1)*NROWS]
-    return lamb
-
+    tmp = np.zeros(NROWS)
+    tmp[:NROWS-18]=lamb[18:]
+#    return lamb
+    return tmp
+    
 class BeamOrder:
     """
     the beam along an order

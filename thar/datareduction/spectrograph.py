@@ -141,9 +141,9 @@ class CCD2d:
         self._map_2D_x_ol_o = None
         self._map_2D_ol_x_o = None
         
- #       self._outlier_removal()
- #       self._fit_global_polynomial(full=True)
- #       self.sigma_clipping()
+        self._outlier_removal()
+        self._fit_global_polynomial(full=True)
+        self.sigma_clipping()
         
         
     def generate_fixed_effects(self):
