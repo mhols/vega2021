@@ -35,7 +35,7 @@ from settings import *
 #vrange in km/s
 #VRANGE= 9.
 
-"""
+
 with open(REF_SPECTRUM, 'r') as f:
     lines = f.readlines()
 
@@ -50,7 +50,7 @@ for l in range (0,npt):
     sfr = linefr.split()
     refwave[l] = float(sfr[0])
     refintens[l] = float(sfr[1])
-"""
+
 
 def _snippets(extractor,nvoie,order):
    
@@ -121,18 +121,23 @@ def _snippets(extractor,nvoie,order):
     
     goodlines = []
     for l in atlasext:
+        """
         for i in I:
             if l >= exclusion[i,1] and l <= exclusion[i,2]:
                 break
+        """
         goodlines.append(l)
 
 
     atlasext=np.array(goodlines)
     #(atlasext)
-    """
+    
     plt.figure(figsize=(16,6))
-    plt.plot(lam,flux)
-    plt.plot(refwave,refintens)
+    plt.plot(lam,flux,"k")
+    plt.plot(refwave,refintens,"r")
+    plt.show()
+    
+    """
     for ll in atlasext:
         plt.vlines(ll,0.,20000.,'y')
     """
@@ -188,11 +193,12 @@ def _snippets(extractor,nvoie,order):
                 "flux_values_extract" : bare_inte,
             })
             """
-            plt.vlines(c,0.,20000.,'r')
-            plt.plot(wave,inte,"r")
+            plt.vlines(c,0.,20000.,'b')
+            plt.plot(wave,inte,"g")
             
     plt.show()
     """
+    
     return pd.DataFrame(snip)
   
 def snippets(extractor,nvoie,orders):
