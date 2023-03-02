@@ -679,8 +679,18 @@ class CCD2d:
         self._data["dvrad_1D"] = C_LIGHT * ((self._data['l_1D_x_o']/self._l) -1)/(M/S)
         self._data["dvrad_2D"] = C_LIGHT * ((self._data['l_2D_x_o']/self._l) -1)/(M/S)
 
-       
-            
+    def quality(self):
+        totalrms2D=np.sqrt(np.mean(self.data["dvrad_2D"]**2))
+        totalrms1D=np.sqrt(np.mean(self.data["dvrad_1D"]**2))
+        order_rms2D={}
+        order_rms1D={}
+        nlines={}
+        for o in self.all_order():
+            I=self.index_order(o)
+            nlines[o]=np.sum(I)
+            order_rms2D[o]=np.sqrt(np.mean(self.data[I]["dvrad_2D"]**2))
+            order_rms1D[o]=np.sqrt(np.mean(self.data[I]["dvrad_1D"]**2))
+        return nlines, totalrms2D, order_rms2D, totalrms1D, order_rms1D
    
     def get_lambda_list(self):
         """

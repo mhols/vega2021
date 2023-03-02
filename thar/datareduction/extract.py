@@ -240,7 +240,7 @@ def get_lambda(order):
     mult = selectedorder - ORDERS[0]
     lamb = artlambda[mult*NROWS:(mult+1)*NROWS]
     tmp = np.zeros(NROWS)
-    tmp[:NROWS-18]=lamb[18:]
+    tmp[18:NROWS]=lamb[:NROWS-18]
 #    return lamb
     return tmp
     
