@@ -259,6 +259,9 @@ class BeamOrder:
         self._y = _followorder(masterflat, CENTRALPOSITION[order], CENTRALROW,up=True) +\
                   _followorder(masterflat, CENTRALPOSITION[order], CENTRALROW,up=False)
 
+        self._xx = self._x
+        self._yy = self._y
+
         I = np.logical_not(np.logical_or(np.isnan(self._x), np.isnan(self._y)))
         
         ### first approximation
