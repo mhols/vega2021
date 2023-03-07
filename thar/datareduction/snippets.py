@@ -70,18 +70,21 @@ def _snippets(extractor,nvoie,order):
     #33322.4046  3000.109256  0.450 Ar II  W
     #33319.9704  3000.328442 -0.007 XX 0   P
     #atlasname = 'thar_UVES_MM090311.dat'
+    atlasline = []
     with open(REF_ATLASLINES, 'r') as f:
         alines = f.readlines()
 
-    num_alines=len(alines)
-    npt=num_alines
-    atlasline = np.zeros (npt, dtype =  float)
-    for l in range (0,npt):
-        linear = alines[l]
-        sfr = linear.split()
-        atlasline[l] = float(sfr[1])
+    # extract information...
+    atlasline = [float(l.split()[1]) for l in alines]
+    #num_alines=len(alines)
+    #npt=num_alines
+    #atlasline = np.zeros (npt, dtype =  float)
+    #for l in range (0,npt):
+    #    linear = alines[l]
+    #    sfr = linear.split()
+    #    atlasline[l] = float(sfr[1])
     
-    
+    # atlasline 
      
     o = order
     if nvoie == 1:
@@ -96,10 +99,9 @@ def _snippets(extractor,nvoie,order):
     else:
         raise Exception('no such voie')
         
-    lam = np.zeros(NROWS)
     flux = np.zeros(NROWS)
 
-    lam[I] = _lam
+    lam = _lam
     flux[I] = _flux
 
     res = []
@@ -109,8 +111,10 @@ def _snippets(extractor,nvoie,order):
     
     #selectionner les raies de reference dans l'intervalle spectral
     #lam[-1] deniere valeur de lambda
-    
-    indexx=np.where((lam[I][0] <atlasline) & (atlasline < lam[I][-1]))
+
+    minlambda = np.min(_lam)
+    maxlambda = np.max(_lam)  
+    indexx=np.where((minlambda < atlasline) & (atlasline < maxlambda))
     atlasext=atlasline[indexx]
    
        
@@ -122,16 +126,18 @@ def _snippets(extractor,nvoie,order):
     
     goodlines = []
     for l in atlasext:
-        
-        for i in I:
-            if l >= exclusion[i,1] and l <= exclusion[i,2]:
-                break
+         
+        ##for i in I:
+        ##    if l >= exclusion[i,1] and l <= exclusion[i,2]:
+        ##       break
         
         goodlines.append(l)
 
 
     atlasext=np.array(goodlines)
     #(atlasext)
+
+
     
     plt.figure(figsize=(16,6))
     plt.plot(lam,flux,"b")
@@ -174,12 +180,14 @@ def _snippets(extractor,nvoie,order):
       
     # selectionner que les raies du ThAr observes au dessus du seuil.
     # pour chaque raie k on determine le maximum de flux
-        distmax = 2.   ## TODO: make global constant
+        distmax = 0   ## TODO: make global constant
         goodsnippet = True
    ###     goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
    #     goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
         try:
-            goodsnippet = goodsnippet and (np.argmax(inte)>= distmax) and (np.argmax(inte) <= inte.shape[0]-distmax)
+            goodsnippet = goodsnippet \
+                and (np.argmax(inte)>= distmax) \
+                and (np.argmax(inte) <= inte.shape[0]-distmax)
         except:
             print('order ', o, 'problem line')
             continue
