@@ -75,7 +75,7 @@ def _snippets(extractor,nvoie,order):
         alines = f.readlines()
 
     # extract information...
-    atlasline = [float(l.split()[1]) for l in alines]
+    atlasline = np.array([float(l.split()[1]) for l in alines])
     #num_alines=len(alines)
     #npt=num_alines
     #atlasline = np.zeros (npt, dtype =  float)
