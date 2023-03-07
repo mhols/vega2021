@@ -24,6 +24,7 @@ from settings import *
 
 #NROWS=4208
 #ORDERS=range(21,58)
+ORDERS=range(40,41)
 
 #REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
 #REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
@@ -121,11 +122,11 @@ def _snippets(extractor,nvoie,order):
     
     goodlines = []
     for l in atlasext:
-        """
+        
         for i in I:
             if l >= exclusion[i,1] and l <= exclusion[i,2]:
                 break
-        """
+        
         goodlines.append(l)
 
 
@@ -133,9 +134,9 @@ def _snippets(extractor,nvoie,order):
     #(atlasext)
     
     plt.figure(figsize=(16,6))
-    plt.plot(lam,flux,"k")
-    plt.plot(refwave,refintens,"r")
-    plt.show()
+    plt.plot(lam,flux,"b")
+    plt.plot(refwave,-refintens/np.max(refintens),"r")
+#    plt.show()
     
     """
     for ll in atlasext:
@@ -192,12 +193,12 @@ def _snippets(extractor,nvoie,order):
                 "reduced_flux_values_extract": inte,
                 "flux_values_extract" : bare_inte,
             })
-            """
-            plt.vlines(c,0.,20000.,'b')
-            plt.plot(wave,inte,"g")
+            
+            plt.vlines(c,-10.,10.,'y')
+            plt.plot(wave,inte/np.max(flux),"k")
             
     plt.show()
-    """
+    
     
     return pd.DataFrame(snip)
   
@@ -212,11 +213,11 @@ def snippets(extractor,nvoie,orders):
 
 
 if __name__ == "__main__":
-    myext = extract.Extractor(DATADIR='./../datafiles',VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
-    myext.set_fitsfile('../datafiles/NEO_20220903_191404_th0.fits')
+    myext = extract.Extractor(DATADIR='./../lune_raw',VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
+    myext.set_fitsfile('../lune_raw/NEO_20200202_173811_th0.fits')
 
-    snip =  snippets(myext,1, extract.ORDERS)
-
+#    snip =  snippets(myext,1, extract.ORDERS)
+    snip =  snippets(myext,1, ORDERS)
     
 """"
     #plotten im ipython

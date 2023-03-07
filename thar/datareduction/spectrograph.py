@@ -12,7 +12,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-matplotlib.rcParams['figure.dpi'] = 200
+#matplotlib.rcParams['figure.dpi'] = 200
 
 from settings import *
 
