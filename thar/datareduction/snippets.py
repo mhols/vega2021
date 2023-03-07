@@ -24,7 +24,7 @@ from settings import *
 
 #NROWS=4208
 #ORDERS=range(21,58)
-ORDERS=range(40,41)
+ORDERS=range(50,51)
 
 #REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
 #REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
@@ -110,8 +110,8 @@ def _snippets(extractor,nvoie,order):
     #selectionner les raies de reference dans l'intervalle spectral
     #lam[-1] deniere valeur de lambda
 
-    minlambda = np.min(_lam)
-    maxlambda = np.max(_lam)  
+    minlambda = np.min(lam[I])
+    maxlambda = np.max(lam[I])
     indexx=np.where((minlambda < atlasline) & (atlasline < maxlambda))
     atlasext=atlasline[indexx]
    
@@ -201,7 +201,7 @@ def _snippets(extractor,nvoie,order):
             })
             
             plt.vlines(c,-10.,10.,'y')
-            plt.plot(wave,inte/np.max(flux),"k")
+            plt.plot(wave,inte,"y")
             
     plt.show()
     
