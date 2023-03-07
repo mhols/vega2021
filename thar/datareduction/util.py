@@ -128,7 +128,7 @@ def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
     v = v[I]
     l = l[I] 
 
-    l = np.arange(len(v))
+    #l = np.arange(len(v))
     t = np.linspace(l[0], l[-1], nnodes+2, endpoint=True)
 
     I = np.full(len(l), True)
@@ -141,9 +141,13 @@ def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
         I1 = p(l)-v <= np.quantile(p(l)-v, qq)
         I2 = p(l)-v >= np.quantile(p(l)-v, q)
         II = np.logical_and(I1, I2)
+
+        s = np.std( p(l[I]) -v[I])
+        II = np.abs( p(l) - v) < 3*s 
         if np.alltrue(II==I):
             break
         I = II
+        print(i)
 
     d = []
     delt=t[2]-t[0]
@@ -152,7 +156,7 @@ def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
         J = np.logical_and(l>=tt, l<ttt)
         d.append( np.quantile(res[J], qqq))
     pp = UnivariateSpline(t[2:-2], d, s=0)
-    return lambda x: pp(x) + p(x)
+    return p  ####lambda x: pp(x) + p(x)
 
 
 # The MIT License (MIT)
@@ -191,7 +195,7 @@ if __name__ == '__main__':
 
     d = np.loadtxt('voi35.dat')
     l = np.arange(len(d))
-    p = background(l,d,nnodes=10,q=0.3, qq=0.7, qqq=0.8)
+    p = background(l,d,nnodes=25,q=0.4, qq=0.6, qqq=0.)
 
     plot(l, d)
     plot(l, p(l))

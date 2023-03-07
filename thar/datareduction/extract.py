@@ -235,6 +235,7 @@ def get_lambda(order):
     selectedorder = order
     mult = selectedorder - ORDERS[0]
     lamb = artlambda[mult*NROWS:(mult+1)*NROWS]
+
     return lamb
 
 class BeamOrder:

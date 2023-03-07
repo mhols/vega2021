@@ -33,9 +33,9 @@ if RECOMPUTE_2D_POLYNOMIAL:
         ]
 
         ccds.append( {
-            'fitsfile':os.path.basename(f_thar), 
+            'fitsfile':os.path.basename(f_thar),
             'DATE_JUL': extract.header_info_from_fits(f_thar, 'DATE_JUL'),
-            'ccd': ccd, 
+            'ccd': ccd,
             'snippets': snippets_voie,
             'extract': myext,
         })
@@ -60,7 +60,7 @@ for f in extract.getallstarfits(DATADIR, STARNAME):
 
 list_of_jdc = [c['DATE_JUL'] for c in ccds ]
 
-        
+
 for d, starfits in zip(list_of_jd, list_of_stars):
     i = np.argmin(np.abs(np.array(list_of_jdc) - d))
 
@@ -176,6 +176,6 @@ for d, starfits in zip(list_of_jd, list_of_stars):
     newfits = fits.HDUList(
         [ page1, fitstable ]
     )
-         
+
     newfits.writeto(os.path.join(DATADIR, filename), overwrite=True)
-        
+
