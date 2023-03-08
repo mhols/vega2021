@@ -12,7 +12,7 @@ from astropy.io import fits
 
 if RECOMPUTE_2D_POLYNOMIAL:
     myext = extract.Extractor(**kwargs)
-    ccds = []
+    thars = []
 
     # generate 2-d polynomial for ThAr spectra in DATADIR
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
@@ -32,7 +32,7 @@ if RECOMPUTE_2D_POLYNOMIAL:
                 for i, snip in enumerate(snippets_voie)
         ]
 
-        ccds.append( {
+        thars.append( {
             'fitsfile':os.path.basename(f_thar), 
             'DATE_JUL': extract.header_info_from_fits(f_thar, 'DATE_JUL'),
             'ccd': ccd, 
@@ -40,11 +40,11 @@ if RECOMPUTE_2D_POLYNOMIAL:
             'extract': myext,
         })
 
-    with open('ccds.pickle', 'wb') as f:
-        pickle.dump(ccds, f)
+    with open('thars.pickle', 'wb') as f:
+        pickle.dump(thars, f)
 else:
-    with open('ccds.pickle', 'rb') as f:
-        ccds = pickle.load(f)
+    with open('thars.pickle', 'rb') as f:
+        thars = pickle.load(f)
 
 list_of_stars = []
 list_of_jd = []
@@ -58,15 +58,15 @@ for f in extract.getallstarfits(DATADIR, STARNAME):
     list_of_stars.append(f)
     list_of_jd.append(jd)
 
-list_of_jdc = [c['DATE_JUL'] for c in ccds ]
+list_of_jdc = [c['DATE_JUL'] for c in thars ]
 
         
 for d, starfits in zip(list_of_jd, list_of_stars):
     i = np.argmin(np.abs(np.array(list_of_jdc) - d))
 
 
-    myext = ccds[i]['extract']
-    poly2 = ccds[i]['ccd']
+    myext = thars[i]['extract']
+    poly2 = thars[i]['ccd']
     myext.set_fitsfile(starfits)
 
     filename = os.path.basename(starfits)
