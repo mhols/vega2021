@@ -23,8 +23,8 @@ from settings import *
 #
 
 #NROWS=4208
-#ORDERS=range(21,58)
-ORDERS=range(50,51)
+ORDERS=range(21,58)
+#ORDERS=range(40,51)
 
 #REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
 #REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
@@ -136,11 +136,12 @@ def _snippets(extractor,nvoie,order):
     #(atlasext)
 
 
-    
+    """
     plt.figure(figsize=(16,6))
     plt.plot(lam,flux,"b")
     plt.plot(refwave,-refintens/np.max(refintens),"r")
 #    plt.show()
+    """
     
     """
     for ll in atlasext:
@@ -199,12 +200,12 @@ def _snippets(extractor,nvoie,order):
                 "reduced_flux_values_extract": inte,
                 "flux_values_extract" : bare_inte,
             })
-            
+            """
             plt.vlines(c,-10.,10.,'y')
             plt.plot(wave,inte,"y")
             
     plt.show()
-    
+    """
     
     return pd.DataFrame(snip)
   
