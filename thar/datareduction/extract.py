@@ -235,10 +235,10 @@ def followorder(image,xstart,ystart):
     return res
     
 def get_lambda(order):
-    artlambda = np.loadtxt(LAMBDAFILE)
+    hobolambda = np.loadtxt(LAMBDAFILE)
     selectedorder = order
     mult = selectedorder - ORDERS[0]
-    lamb = artlambda[mult*NROWS:(mult+1)*NROWS]
+    lamb = hobolambda[mult*NROWS:(mult+1)*NROWS]
     tmp = np.zeros(NROWS)
     tmp[18:NROWS]=lamb[:NROWS-18]
 #    return lamb
