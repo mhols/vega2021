@@ -10,7 +10,7 @@ comment = {}  ## this comments will be included into the .fits document
 
 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
-
+REMOVECROSS = True
 STARNAME = 'Vega';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
 
 ## ----- directory layout

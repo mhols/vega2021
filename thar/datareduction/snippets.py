@@ -110,8 +110,8 @@ def _snippets(extractor,nvoie,order):
     #selectionner les raies de reference dans l'intervalle spectral
     #lam[-1] deniere valeur de lambda
 
-    minlambda = np.min(_lam)
-    maxlambda = np.max(_lam)  
+    minlambda = np.min(lam[I])
+    maxlambda = np.max(lam[I])  
     indexx=np.where((minlambda < atlasline) & (atlasline < maxlambda))
     atlasext=atlasline[indexx]
    
@@ -207,7 +207,7 @@ def _snippets(extractor,nvoie,order):
     
     
     return pd.DataFrame(snip)
-  
+
 def snippets(extractor,nvoie,orders):
     snipets = []
     
@@ -218,31 +218,173 @@ def snippets(extractor,nvoie,orders):
     return pd.concat(snipets, ignore_index=True, axis=0)
 
 
+class Snippets:
+
+    def __init__(self, voie, tharfits, **kwargs):
+        self.kwargs = kwargs
+        self.voie = voie
+        self.tharfits = tharfits
+        self._atlasline = None
+        self._lam=None
+        self._I=None
+        self._flux=None
+        self._bare_voie=None
+        self._snippets=None
+
+        self.extractor = extract.Extractor(**kwargs)
+        self.extractor.set_fitsfile(self.tharfits)
+
+    def _prepare(self):
+        self._lam={}
+        self._I={}
+        self._flux={}
+        self._bare_voie={}
+
+        for o in self.kwargs.get('ORDERS', ORDERS):
+            
+            if self.voie == 1:
+                lam, _flux, I = self.extractor.get_lambda_intens1(o)
+                bare_voie = self.extractor.bare_voie1(o)        
+            elif self.voie == 2:
+                lam, _flux, I = self.extractor.get_lambda_intens2(o)
+                bare_voie = self.extractor.bare_voie2(o)        
+            elif self.voie == 3:
+                lam, _flux, I = self.extractor.get_lambda_intens3(o)
+                bare_voie = self.extractor.bare_voie3(o)        
+            else:
+                raise Exception('no such voie')
+
+ 
+            flux = np.zeros(NROWS)
+            flux[I] = _flux[I]
+
+            self._lam[o] = lam
+            self._I[o] = I
+            self._flux[o] = flux
+            self._bare_voie[o] = bare_voie
+
+    @property
+    def atlasline(self):
+        if not self._atlasline is None:
+            return self._atlasline
+        
+        with open(self.kwargs.get('REF_ATLASLINES', REF_ATLASLINES), 'r') as f:
+            alines = f.readlines()
+            
+        # extract information...
+        self._atlasline = np.array([float(l.split()[1]) for l in alines])
+        return self._atlasline
+
+    def atlasext(self, o):
+        """
+        the extracted
+        """
+        minlambda = np.min(self.lam[o][self.I[o]])
+        maxlambda = np.max(self.lam[o][self.I[o]]) 
+        indexx = np.where((minlambda < self.atlasline) & (self.atlasline < maxlambda))
+        tmp = self.atlasline[indexx]                
+        
+        ## use exclusions
+        exclusion = np.loadtxt(self.kwargs.get('EXCLUSION',EXCLUSION))
+        I, = np.where(exclusion[:,0] == o)
+        exc = exclusion[I]
+
+        
+        goodlines = tmp
+        """
+        goodlines = []
+        for i in I:
+            for l in tmp:
+                if l >= exclusion[i,1] and l <= exclusion[i,2]:
+                    continue
+                goodlines.append(l)
+
+        """
+        return np.array(goodlines)
+    
+    @property
+    def flux(self):
+        if self._flux is None:
+            self._prepare()
+        return self._flux
+    
+    @property
+    def lam(self):
+        if self._lam is None:
+            self._prepare()
+        return self._lam
+    
+    @property
+    def bare_voie(self):
+        if self._bare_voie is None:
+            self._prepare()
+        return self._bare_voie
+    
+    @property
+    def I(self):
+        if self._I is None:
+            self._prepare()
+        return self._I
+    
+    def _snippet(self, o):
+        atlasext = self.atlasext(o)
+        latlasext=atlasext*(1.-VRANGE/C_LIGHT)
+        ratlasext=atlasext*(1.+VRANGE/C_LIGHT)
+        
+        numlines=atlasext.shape[0]
+        maxi = np.zeros (numlines, dtype =  float)
+        maxir = np.zeros (numlines, dtype =  float)
+        
+        #ici on selectionne des snippets autour de chaque raie du catalogue
+        #de reference. Il faut que la grille en longueur d'onde soit des le
+        #depart suffisamment bonne pour que la raie observee tombe dans le snippet
+        lam = self.lam[o]
+        flux = self.flux[o]
+        bare_voie = self.bare_voie[o]
+        snip = []
+        prob = [] # problematic snippets
+        for l,c,r in zip(latlasext,atlasext,ratlasext):
+            indext,  =  np.where((lam > l) & (lam < r))
+            wave=lam[indext]
+            inte=flux[indext]
+            bare_inte = bare_voie[indext]
+        
+            # selectionner que les raies du ThAr observes au dessus du seuil.
+            # pour chaque raie k on determine le maximum de flux
+            distmax = 0   ## TODO: make global constant
+            goodsnippet = True
+            # goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
+            # goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
+            try:
+                goodsnippet = goodsnippet \
+                    and (np.argmax(inte)>= distmax) \
+                    and (np.argmax(inte) <= inte.shape[0]-distmax)
+            except:
+                pass
+            sni ={
+                "true_order_number": o,
+                "ref_lambda": c ,
+                "pixels_extract": indext, 
+                "pixel_mean" : np.mean(indext),
+                "wave": wave,
+                "reduced_flux_values_extract": inte,
+                "flux_values_extract" : bare_inte,
+            } 
+            if goodsnippet: 
+                snip.append(sni)
+            else:
+                prob.append(sni)
+        return snip, prob
+
+    @property
+    def snippets(self):
+        if self._snippets is None:
+            tmp = [ pd.DataFrame(self._snippet(o)[0]) 
+                for o in self.kwargs.get('ORDERS', ORDERS)
+            ]
+            self._snippets = pd.concat(tmp, ignore_index=True, axis=0)
+        return self._snippets
+
 if __name__ == "__main__":
-    myext = extract.Extractor(DATADIR='./../lune_raw',VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
-    myext.set_fitsfile('../lune_raw/NEO_20200202_173811_th0.fits')
-
-#    snip =  snippets(myext,1, extract.ORDERS)
-    snip =  snippets(myext,1, ORDERS)
-    
-""""
-    #plotten im ipython
-o=54
-lam,flux = myext.get_lambda_intens1(o)
-plt.plot(lam,flux,"b")
-plt.plot(refwave,refintens,"r")
-plt.show()
-    
-    
-for o in extract.ORDERS:
-   lam,flux = myext.get_lambda_intens1(o)
-   plt.figure(figsize=(16,6))
-   plt.xlim(lam[0],lam[-1])
-   plt.ylim(0.,100000)
-   plt.plot(lam,flux,"b")
-   tit = str(o)
-   plt.title(tit)
-   plt.plot(refwave,refintens,"r")
-   plt.show()
-
-"""
+    import os
+    snip = Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20220903_191404_th0.fits'))
