@@ -13,7 +13,7 @@ Dafür habe ich den seuil von 500 auf 100 runtergesetzt.
 
 Ich sah auch keine riesigen Spektrallinien vom Argon, daher habe ich in 
 Snippets.py den test auf excluded.dat auskommentiert
-	Das Endergebnis ist immer noch genauso desolat, ThAr Linen liegen
+->	Das Endergebnis ist immer noch genauso desolat, ThAr Linen liegen
 nicht richtig übereinander. Nutzen wire in ThAr 2D Polynome? Wie sieht
 das aus? 
 
