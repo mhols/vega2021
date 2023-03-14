@@ -286,8 +286,8 @@ class Snippets:
         """
         the extracted
         """
-        minlambda = np.min(self._lam[o][self._I[o]])
-        maxlambda = np.max(self._lam[o][self._I[o]])
+        minlambda = np.min(self.lam[o][self.I[o]])
+        maxlambda = np.max(self.lam[o][self.I[o]])
         indexx = np.where((minlambda < self.atlasline) & (self.atlasline < maxlambda))
         tmp = self.atlasline[indexx]
 
@@ -334,6 +334,7 @@ class Snippets:
         return self._I
 
     def _snippet(self, o):
+
         atlasext = self.atlasext(o)
         latlasext=atlasext*(1.-VRANGE/C_LIGHT)
         ratlasext=atlasext*(1.+VRANGE/C_LIGHT)
@@ -394,4 +395,4 @@ class Snippets:
 
 if __name__ == "__main__":
     import os
-    snip = Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20200202_173811_th0.fits'))
+    snip = Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20220903_191404_th0.fits'))

@@ -5,6 +5,7 @@ import extract
 import os
 import re
 import pickle
+import numpy as np
 from astropy.io import fits
 
 settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
@@ -13,6 +14,7 @@ try:
     exec('from %s import *'%(settingsmodule,))
 except:
     raise Exception('could not import {settingsmodule}')
+print('using settings from %s.py'%(settingsmodule,))
 
 
 # collection of CCD2d ojects (one for each thar file and for each voie)
@@ -29,14 +31,16 @@ if RECOMPUTE_2D_POLYNOMIAL:
             print (ex)
             continue
 
+        snips = [ snippets.Snippets(voie=i, tharfits=f_thar) for i in [1, 2, ]]  # TODO: voie3
         snippets_voie = [
-            snippets.snippets(myext, i, ORDERS)
-            for i in [1, 2]   # [1, 2, 3]
+            s.snippets for s in snips
+            #snippets.snippets(myext, i, ORDERS)
+            #for i in [1, 2]   # [1, 2, 3]
         ]
 
         ccd = [
             spectrograph.CCD2d( data=snip, **kwargs)
-                for i, snip in enumerate(snippets_voie)
+                for snip in snippets_voie
         ]
 
         thars.append( {
@@ -54,11 +58,13 @@ else:
         thars = pickle.load(f)
 
 # computing average poly2d as new basis
-tmp = []
-for ta in thars:
-    for c in ta['ccd']:
-        tmp.append(c.get_lambda_list())
-np.savetxt(os.path.join(REFFILES, 'hobo.txt'), np.column_stack(tmp).mean(axis=1))
+if SAFE_LAMS:
+
+    tmp = []
+    for ta in thars:
+        for c in ta['ccd']:
+            tmp.append(c.get_lambda_list())
+    np.savetxt(os.path.join(REFFILES, 'hobo.txt'), np.column_stack(tmp).mean(axis=1))
 
 list_of_stars = []
 list_of_jd = []

@@ -13,12 +13,12 @@ from numpy.polynomial import Polynomial
 import pandas as pd
 
 ### all constants are in settings.py
-settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
+SETTINGSMODULE = os.environ.get('SETTINGSMODULE', 'settings')
 
 try:
-    exec('from %s import *'%(settingsmodule,))
+    exec('from %s import *'%(SETTINGSMODULE,))
 except:
-    raise Exception('could not import {settingsmodule}')
+    raise Exception('could not import {SETTINGSMODULE}')
 
 
 
@@ -520,7 +520,7 @@ class Extractor:
         return get_lambda(o), self.voie3[o], I
     
     def _compute_voie1et2(self):
-        choice =  self.kwargs.get('voie_method', 'SUM_DIVIDE')
+        choice =  self.kwargs.get('VOIE_METHOD', VOIE_METHOD)
         print("choice for voie is ", choice)
         if choice == 'SUM_DIVIDE':
             self._voie1 = {

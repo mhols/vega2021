@@ -783,6 +783,7 @@ class FP:
 
 if __name__=='__main__':
 
+    """
     kwargs = {
     "datafile": "NEO_20220219_173048_th2_voie1.json",
     'bootstrap_data': True,
@@ -804,7 +805,7 @@ if __name__=='__main__':
     'sigma_min' : 0.,                    # minimial sigma to avoid overfitting
     'file_lambda_list': 'arturo.dat',
     }
-
-    data = CCD2d(**kwargs)
-#    data.get_lambda_list()
-    sys.exit(0)
+    """
+    import snippets
+    snip=snippets.Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20220903_191404_th0.fits'))
+    data = CCD2d(snip.snippets, **kwargs)

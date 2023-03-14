@@ -119,6 +119,9 @@ ORDERS = list(CENTRALPOSITION.keys())
 LAMBDAFILE = os.environ.get('LAMBDAFILE', 
             os.path.join(REFFILES, 'hobo.txt'))  # TODO to be removed....
 OFFSET_LAMBDA = 0
+SAFE_LAMS = os.environ.get('SAFE_LAMS', 'False') == 'True'
+
+
 ## ------ snippet constants
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
@@ -131,7 +134,6 @@ VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
 voie_method = VOIE_METHOD
-datadir = DATADIR
 n_bootstrap = 3                        # number of bootstrap experiments
 profile = 'gauss'                      # fit profile for bootstrap estimate of centroid
 loss_function = 'loss_1'               # weighted L2-loss for bootstrap estimate of centroid
