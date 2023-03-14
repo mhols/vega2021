@@ -1,0 +1,37 @@
+Todos:
+
+-	Wenn andere files als st0 im folder datafiles (oder lune_raw) sind fliegt das Programm raus!!! Also muss irgendein check eingebaut warden, damit man die einmal produzierten Ergebnisfiles NICHT als inputfiles erkennt, oder aber man schreibt sie in einen anderen results folder
+
+-	Wenn man ein ThAr reduziert, hat es trotzdem die Endung st1…das sollte man ändern. Vielleicht NEO….._hobo.fits
+
+-	Excluded.dat ordernumber+2 sonst no match (beginnt also mit 23)
+
+-	ThAr aus 2020 und heute haben 30’ exptime, gleich starke fluxes.
+Aber: in 2020 ist masterflat so schlecht, dass die Ordnungen sehr “kurz” sind.
+Dafür habe ich den seuil von 500 auf 100 runtergesetzt.
+	FEHLER: er musste auf mindestens 200 sein
+
+Ich sah auch keine riesigen Spektrallinien vom Argon, daher habe ich in 
+Snippets.py den test auf excluded.dat auskommentiert
+->	Das Endergebnis ist immer noch genauso desolat, ThAr Linen liegen
+nicht richtig übereinander. Nutzen wire in ThAr 2D Polynome? Wie sieht
+das aus? 
+
+
+8 mars 2023
+
+-	Thorium (modify settings.py in master branch, vega2021, thar) mit master.py reduced und file produziert HOBO_NEO_20220903_191404_th1.fits, beinhaltet 2D Wellenlängenpolynom.
+
+-	Mit visu.py HOBO_NEO_20220903_191404_th1.fits  eingelesen und zwei outputfiles
+hobolambda1.dat und hobolambda2.dat für voie1 und voie2 produziert
+
+-	LAMBDAFILE pointet nun (in settings.py) auf hobolambda1.dat anstelle artlambda.dat
+
+-	202002 moon Thorium reduced in diesem neuen setup mit “lokalen” Kalibrationsfiles; sehr gute Überlagerung, aber noch Ausreisser zu korrigieren und excluded.dat anzupassen.
+
+-	Kopie von visu.py -> visu_duo.py liest 2 verschiedene Ergebnisfiles th1 (Referenz von 2022 in vega2021/thar/reffiles und ThAr aus moon folder 2020)  ein.
+
+-	Next step: in branch playground jetzt moon reduzieren mit dem neuen setup und anschliessend Arbeit an EW anfangen (siehe EW/moon folder auf Desktop).
+
+
+

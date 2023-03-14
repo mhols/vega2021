@@ -1,4 +1,3 @@
-from settings import *
 import spectrograph
 import snippets
 import extract
@@ -6,45 +5,62 @@ import extract
 import os
 import re
 import pickle
+import numpy as np
 from astropy.io import fits
+
+settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
+
+try:
+    exec('from %s import *'%(settingsmodule,))
+except:
+    raise Exception('could not import {settingsmodule}')
+print('using settings from %s.py'%(settingsmodule,))
+
 
 # collection of CCD2d ojects (one for each thar file and for each voie)
 
 if RECOMPUTE_2D_POLYNOMIAL:
-    myext = extract.Extractor(**kwargs)
-    ccds = []
+    thars = []
 
     # generate 2-d polynomial for ThAr spectra in DATADIR
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
-        try:
-            myext.set_fitsfile(f_thar)
-        except Exception as ex:
-            print (ex)
-            continue
+        myext = extract.Extractor(**kwargs) # every thar gets its own extractor
+        myext.set_fitsfile(f_thar)
 
+        snips = [ snippets.Snippets(voie=i, tharfits=f_thar) for i in [1, 2, ]]  # TODO: voie3
         snippets_voie = [
-            snippets.snippets(myext, i, ORDERS)
-            for i in [1, 2]   # [1, 2, 3]
+            s.snippets for s in snips
+            #snippets.snippets(myext, i, ORDERS)
+            #for i in [1, 2]   # [1, 2, 3]
         ]
 
         ccd = [
             spectrograph.CCD2d( data=snip, **kwargs)
-                for i, snip in enumerate(snippets_voie)
+                for snip in snippets_voie
         ]
 
-        ccds.append( {
+        thars.append( {
             'fitsfile':os.path.basename(f_thar), 
             'DATE_JUL': extract.header_info_from_fits(f_thar, 'DATE_JUL'),
-            'ccd': ccd, 
+            'ccd': ccd,
             'snippets': snippets_voie,
             'extract': myext,
         })
 
-    with open('ccds.pickle', 'wb') as f:
-        pickle.dump(ccds, f)
+    with open('thars.pickle', 'wb') as f:
+        pickle.dump(thars, f)
 else:
-    with open('ccds.pickle', 'rb') as f:
-        ccds = pickle.load(f)
+    with open('thars.pickle', 'rb') as f:
+        thars = pickle.load(f)
+
+# computing average poly2d as new basis
+if SAVE_LAMS:
+
+    tmp = []
+    for ta in thars:
+        for i, c in enumerate(ta['ccd']):
+            np.savetxt(os.path.join(REFFILES, 'hobo_%s.txt'%(i+1)), 
+                   c.get_lambda_list())
 
 list_of_stars = []
 list_of_jd = []
@@ -58,15 +74,15 @@ for f in extract.getallstarfits(DATADIR, STARNAME):
     list_of_stars.append(f)
     list_of_jd.append(jd)
 
-list_of_jdc = [c['DATE_JUL'] for c in ccds ]
+list_of_jdc = [c['DATE_JUL'] for c in thars ]
 
-        
+
 for d, starfits in zip(list_of_jd, list_of_stars):
     i = np.argmin(np.abs(np.array(list_of_jdc) - d))
 
 
-    myext = ccds[i]['extract']
-    poly2 = ccds[i]['ccd']
+    myext = thars[i]['extract']
+    poly2 = thars[i]['ccd']
     myext.set_fitsfile(starfits)
 
     filename = os.path.basename(starfits)
@@ -176,6 +192,5 @@ for d, starfits in zip(list_of_jd, list_of_stars):
     newfits = fits.HDUList(
         [ page1, fitstable ]
     )
-         
+
     newfits.writeto(os.path.join(DATADIR, filename), overwrite=True)
-        

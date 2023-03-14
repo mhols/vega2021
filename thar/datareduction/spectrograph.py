@@ -1,6 +1,7 @@
 import json
 from util import *
 import sys
+import os
 import pandas as pd
 import numpy as np
 import scipy as sp
@@ -12,9 +13,15 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-matplotlib.rcParams['figure.dpi'] = 200
+#matplotlib.rcParams['figure.dpi'] = 200
 
-from settings import *
+### all constants are in settings.py
+settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
+
+try:
+    exec('from %s import *'%(settingsmodule,))
+except:
+    raise Exception('could not import {settingsmodule}')
 
 ##  local units
 M = 1.0         # Meter
@@ -75,12 +82,20 @@ def to_list(x):
 
 def inverse_map(p):   
     nn = 10001
+    """
+    mi, ma = p.domain
+    x = np.linspace(mi, ma, nn, endpoint=True)
+    y = p(x)
+    yy = pseudo_inverse(y)
+    return interpolate_extend(yy, x)
+    """
     mi, ma = p.domain
     x = np.linspace(mi, ma, nn, endpoint=True)
     der = p.deriv(1)
+    ## locate connected region where the functions monoton and hence has an inverse.
     I, = np.where(der(x) > 0)
     II, = np.where(I[1:]-I[:-1] > 1)
-    if len(II)==0:
+    if len(II)<=1:
         xmin, xmax = x[I[0]], x[I[-1]]
     else:
         III = np.argmax(II[1:]-II[:-1])
@@ -90,6 +105,7 @@ def inverse_map(p):
     x = np.linspace(xmin, xmax, nn, endpoint=True)
     y = p(x)
     mi, ma = y.min(), y.max()
+    
     return interpolate_extend(y, x)
        
 def derivate(p):
@@ -132,7 +148,7 @@ class CCD2d:
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['flux_values_extract']])
         self._data['total_flux'] = total_flux
 
-        if self.kwargs.get('bootstrap_data', True):
+        if self.kwargs.get('bootstrap_data', 'True')=='True':
             self.bootstrap_data()
 
         # basic outlier removal / quality filter
@@ -600,9 +616,8 @@ class CCD2d:
                 )
             except Exception as ex:
                 res[o] = pglobal
-                print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
+                # print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
  
-        # self.polynomial_fit = res
         return res
 
     def _fit_2d_polynomial(self, weight):
@@ -679,12 +694,22 @@ class CCD2d:
         self._data["dvrad_1D"] = C_LIGHT * ((self._data['l_1D_x_o']/self._l) -1)/(M/S)
         self._data["dvrad_2D"] = C_LIGHT * ((self._data['l_2D_x_o']/self._l) -1)/(M/S)
 
-       
-            
+    def quality(self):
+        totalrms2D=np.sqrt(np.mean(self.data["dvrad_2D"]**2))
+        totalrms1D=np.sqrt(np.mean(self.data["dvrad_1D"]**2))
+        order_rms2D={}
+        order_rms1D={}
+        nlines={}
+        for o in self.all_order():
+            I=self.index_order(o)
+            nlines[o]=np.sum(I)
+            order_rms2D[o]=np.sqrt(np.mean(self.data[I]["dvrad_2D"]**2))
+            order_rms1D[o]=np.sqrt(np.mean(self.data[I]["dvrad_1D"]**2))
+        return nlines, totalrms2D, order_rms2D, totalrms1D, order_rms1D
    
     def get_lambda_list(self):
         """
-        saves to kwargs['file_lambda_list']
+        returns lambda_mapping of 2D polynomial
         """
         res = np.zeros(len(self.all_order())*NROWS)
         i = 0
@@ -757,6 +782,7 @@ class FP:
 
 if __name__=='__main__':
 
+    """
     kwargs = {
     "datafile": "NEO_20220219_173048_th2_voie1.json",
     'bootstrap_data': True,
@@ -778,7 +804,7 @@ if __name__=='__main__':
     'sigma_min' : 0.,                    # minimial sigma to avoid overfitting
     'file_lambda_list': 'arturo.dat',
     }
-
-    data = CCD2d(**kwargs)
-#    data.get_lambda_list()
-    sys.exit(0)
+    """
+    import snippets
+    snip=snippets.Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20220903_191404_th0.fits'))
+    data = CCD2d(snip.snippets, **kwargs)

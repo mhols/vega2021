@@ -13,7 +13,13 @@ from numpy.polynomial import Polynomial
 import pandas as pd
 
 ### all constants are in settings.py
-from settings import *
+SETTINGSMODULE = os.environ.get('SETTINGSMODULE', 'settings')
+
+try:
+    exec('from %s import *'%(SETTINGSMODULE,))
+except:
+    raise Exception('could not import {SETTINGSMODULE}')
+
 
 
 ##### utility functions
@@ -79,8 +85,11 @@ def load_image_from_fits(fitsfile):
     print('fitsfile ', fitsfile)
     image = np.clip(a[0].data,-100,65535)
     a.close()
-    return removeCross(image)
-
+    if REMOVECROSS:
+        return removeCross(image)
+    else:
+        return image
+        
 def header_info_from_fits(fitsfile, keyword):
     a=pyfits.open(fitsfile)
     try:
@@ -91,16 +100,33 @@ def header_info_from_fits(fitsfile, keyword):
     return key
 
 def is_flatfield(fitsfile):
-    return header_info_from_fits(fitsfile, 'OBJECT') == 'Flat'
+    res = False
+    try:
+        res = header_info_from_fits(fitsfile, 'OBJECT') == 'Flat'
+    except:
+        pass
+    return res
 
 def is_bias(fitsfile):
-    return header_info_from_fits(fitsfile, 'OBJECT') == 'Bias'
-
+    try:
+        return header_info_from_fits(fitsfile, 'OBJECT') == 'Bias'
+    except:
+        return False
+    
 def is_thorium(fitsfile):
-    return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium'
+    try:
+        return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium'
+    except:
+        return False
 
 def is_star(fitsfile, name):
-    return header_info_from_fits(fitsfile, 'OBJECT') == name
+    res = False
+    try:
+        res = header_info_from_fits(fitsfile, 'OBJECT') == name
+    except:
+        pass
+    return res
+
 
 #liste = listallfits('/Users/boehm/Desktop/extract/Vega_2022TBL')
 def listallfits(dirname=DATADIR):
@@ -185,6 +211,7 @@ def _followorder(image,xstart,ystart,up=True):
     y are row indices
     orders are "aligned" with columns
     """
+   
     delta = ABSORPTIONHALFW
     if up:
         rows=range(ystart,NROWS)
@@ -231,11 +258,17 @@ def followorder(image,xstart,ystart):
     return res
     
 def get_lambda(order):
-    artlambda = np.loadtxt(LAMBDAFILE)
-    selectedorder = order
-    mult = selectedorder - ORDERS[0]
-    lamb = artlambda[mult*NROWS:(mult+1)*NROWS]
-    return lamb
+    hobolambda = np.loadtxt(LAMBDAFILE)
+    mult = order - ORDERS[0]
+    tmp = np.zeros(NROWS)
+    lamb = hobolambda[mult*NROWS:(mult+1)*NROWS]
+    if OFFSET_LAMBDA > 0:
+        tmp[OFFSET_LAMBDA:]=lamb[:-OFFSET_LAMBDA]
+    elif OFFSET_LAMBDA < 0:
+        tmp[:OFFSET_LAMBDA] = lamb[-OFFSET_LAMBDA:]
+    else:
+        tmp = lamb
+    return tmp
 
 class BeamOrder:
     """
@@ -251,6 +284,9 @@ class BeamOrder:
         self._x = np.arange(NROWS)
         self._y = _followorder(masterflat, CENTRALPOSITION[order], CENTRALROW,up=True) +\
                   _followorder(masterflat, CENTRALPOSITION[order], CENTRALROW,up=False)
+
+        self._xx = self._x
+        self._yy = self._y
 
         I = np.logical_not(np.logical_or(np.isnan(self._x), np.isnan(self._y)))
         
@@ -332,7 +368,7 @@ class BeamOrder:
         tmp = np.sum(mask * self._masterflat, axis=1)
 
         # TODO tmp = medianfilter(tmp)
-
+        tmp=generic_filter(tmp,lambda x:np.median(x),size=10)
         j = np.argmax(tmp)
         for i in range(j,NROWS):
              if tmp[i] < FLUX_LIMIT:
@@ -473,18 +509,18 @@ class Extractor:
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
-        return get_lambda(o)[I], self.voie1[o][I], I
+        return get_lambda(o), self.voie1[o], I
     
     def get_lambda_intens2(self, o):
         I = self.beams[o].I
-        return get_lambda(o)[I], self.voie2[o][I], I
+        return get_lambda(o), self.voie2[o], I
         
     def get_lambda_intens3(self, o):
         I = self.beams[o].I
-        return get_lambda(o)[I], self.voie3[o][I], I
+        return get_lambda(o), self.voie3[o], I
     
     def _compute_voie1et2(self):
-        choice =  self.kwargs.get('voie_method', 'SUM_DIVIDE')
+        choice =  self.kwargs.get('VOIE_METHOD', VOIE_METHOD)
         print("choice for voie is ", choice)
         if choice == 'SUM_DIVIDE':
             self._voie1 = {
