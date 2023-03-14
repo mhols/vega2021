@@ -121,7 +121,7 @@ ORDERS = list(CENTRALPOSITION.keys())
 #LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
 LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.dat') ) # TODO to be removed....
 OFFSET_LAMBDA=int(os.environ.get('OFFSET_LAMBDA', 0))
-SAFE_LAMS = os.environ.get('SAFE_LAMS', 'False') == 'True'
+SAVE_LAMS = os.environ.get('SAVE_LAMS', 'False') == 'True'
 
 ## ------ snippet constants
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
@@ -145,10 +145,10 @@ epsilon_sigma_clipp_2d = 300*M/S      # sigma clip for 2d polynomial
 clipp_method = 'vrad'                 # 'rel_std' or 'pixerror' or 'est_std'
 n_sigma_clipp =  100*TIMES                   # maximal number of sigma clips
 n_sigma_clipp_2d = 100*TIMES                # maximal number of sigma clips
-fitweight = 'flux'                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
+fitweight = 'sigma'                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
 sigma_min = 5                         # minimial sigma to avoid overfitting
 palette_order = 'gist_rainbow'         # palette of orders
-order_ol = 10                           # order polynomial in ol
+order_ol = 7                           # order polynomial in ol
 order_o = 5                            # order polynomial in o
 
 kwargs = { k: v for k, v in globals().items() if 

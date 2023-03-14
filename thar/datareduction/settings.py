@@ -119,7 +119,7 @@ ORDERS = list(CENTRALPOSITION.keys())
 LAMBDAFILE = os.environ.get('LAMBDAFILE', 
             os.path.join(REFFILES, 'hobo.txt'))  # TODO to be removed....
 OFFSET_LAMBDA = 0
-SAFE_LAMS = os.environ.get('SAFE_LAMS', 'False') == 'True'
+SAVE_LAMS = os.environ.get('SAVE_LAMS', 'False') == 'True'
 
 
 ## ------ snippet constants

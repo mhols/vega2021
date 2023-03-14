@@ -54,13 +54,13 @@ else:
         thars = pickle.load(f)
 
 # computing average poly2d as new basis
-if SAFE_LAMS:
+if SAVE_LAMS:
 
     tmp = []
     for ta in thars:
-        for c in ta['ccd']:
-            tmp.append(c.get_lambda_list())
-    np.savetxt(os.path.join(REFFILES, 'hobo.txt'), np.column_stack(tmp).mean(axis=1))
+        for i, c in enumerate(ta['ccd']):
+            np.savetxt(os.path.join(REFFILES, 'hobo_%s.txt'%(i+1)), 
+                   c.get_lambda_list())
 
 list_of_stars = []
 list_of_jd = []
@@ -194,4 +194,3 @@ for d, starfits in zip(list_of_jd, list_of_stars):
     )
 
     newfits.writeto(os.path.join(DATADIR, filename), overwrite=True)
-
