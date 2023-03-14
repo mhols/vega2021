@@ -27,12 +27,15 @@ if RECOMPUTE_2D_POLYNOMIAL:
         myext = extract.Extractor(**kwargs) # every thar gets its own extractor
         myext.set_fitsfile(f_thar)
 
-        snips = [ snippets.Snippets(voie=i, tharfits=f_thar) for i in [1, 2, ]]  # TODO: voie3
-        snippets_voie = [
-            s.snippets for s in snips
-            #snippets.snippets(myext, i, ORDERS)
-            #for i in [1, 2]   # [1, 2, 3]
-        ]
+        try:
+            snips = [ snippets.Snippets(voie=i, tharfits=f_thar) for i in [1, 2, ]]  # TODO: voie3
+            snippets_voie = [
+                s.snippets for s in snips
+                #snippets.snippets(myext, i, ORDERS)
+                #for i in [1, 2]   # [1, 2, 3]
+            ]
+        except:
+            continue
 
         ccd = [
             spectrograph.CCD2d( data=snip, **kwargs)

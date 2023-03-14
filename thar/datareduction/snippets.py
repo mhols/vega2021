@@ -395,4 +395,4 @@ class Snippets:
 
 if __name__ == "__main__":
     import os
-    snip = Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20220903_191404_th0.fits'))
+    snip = Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20200202_173811_th0.fits'))
