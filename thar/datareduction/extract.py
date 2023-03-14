@@ -13,7 +13,13 @@ from numpy.polynomial import Polynomial
 import pandas as pd
 
 ### all constants are in settings.py
-from settings import *
+settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
+
+try:
+    exec('from %s import *'%(settingsmodule,))
+except:
+    raise Exception('could not import {settingsmodule}')
+
 
 
 ##### utility functions
@@ -94,16 +100,33 @@ def header_info_from_fits(fitsfile, keyword):
     return key
 
 def is_flatfield(fitsfile):
-    return header_info_from_fits(fitsfile, 'OBJECT') == 'Flat'
+    res = False
+    try:
+        res = header_info_from_fits(fitsfile, 'OBJECT') == 'Flat'
+    except:
+        pass
+    return res
 
 def is_bias(fitsfile):
-    return header_info_from_fits(fitsfile, 'OBJECT') == 'Bias'
-
+    try:
+        return header_info_from_fits(fitsfile, 'OBJECT') == 'Bias'
+    except:
+        return False
+    
 def is_thorium(fitsfile):
-    return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium'
+    try:
+        return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium'
+    except:
+        return False
 
 def is_star(fitsfile, name):
-    return header_info_from_fits(fitsfile, 'OBJECT') == name
+    res = False
+    try:
+        res = header_info_from_fits(fitsfile, 'OBJECT') == name
+    except:
+        pass
+    return res
+
 
 #liste = listallfits('/Users/boehm/Desktop/extract/Vega_2022TBL')
 def listallfits(dirname=DATADIR):
@@ -236,14 +259,17 @@ def followorder(image,xstart,ystart):
     
 def get_lambda(order):
     hobolambda = np.loadtxt(LAMBDAFILE)
-    selectedorder = order
-    mult = selectedorder - ORDERS[0]
-    lamb = hobolambda[mult*NROWS:(mult+1)*NROWS]
+    mult = order - ORDERS[0]
     tmp = np.zeros(NROWS)
-    tmp[18:NROWS]=lamb[:NROWS-18]
-#    return lamb
+    lamb = hobolambda[mult*NROWS:(mult+1)*NROWS]
+    if OFFSET_LAMBDA > 0:
+        tmp[OFFSET_LAMBDA:]=lamb[:-OFFSET_LAMBDA]
+    elif OFFSET_LAMBDA < 0:
+        tmp[:OFFSET_LAMBDA] = lamb[-OFFSET_LAMBDA:]
+    else:
+        tmp = lamb
     return tmp
-    
+
 class BeamOrder:
     """
     the beam along an order

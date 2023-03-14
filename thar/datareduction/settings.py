@@ -116,8 +116,9 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
     # 59:3302}  TODO make robust for empty beams
 
 ORDERS = list(CENTRALPOSITION.keys())
-LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
-
+LAMBDAFILE = os.environ.get('LAMBDAFILE', 
+            os.path.join(REFFILES, 'hobo.txt'))  # TODO to be removed....
+OFFSET_LAMBDA = 0
 ## ------ snippet constants
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')

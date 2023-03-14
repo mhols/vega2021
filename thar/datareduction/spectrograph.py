@@ -1,6 +1,7 @@
 import json
 from util import *
 import sys
+import os
 import pandas as pd
 import numpy as np
 import scipy as sp
@@ -14,7 +15,13 @@ from matplotlib import cm
 
 #matplotlib.rcParams['figure.dpi'] = 200
 
-from settings import *
+### all constants are in settings.py
+settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
+
+try:
+    exec('from %s import *'%(settingsmodule,))
+except:
+    raise Exception('could not import {settingsmodule}')
 
 ##  local units
 M = 1.0         # Meter
@@ -75,12 +82,20 @@ def to_list(x):
 
 def inverse_map(p):   
     nn = 10001
+    """
+    mi, ma = p.domain
+    x = np.linspace(mi, ma, nn, endpoint=True)
+    y = p(x)
+    yy = pseudo_inverse(y)
+    return interpolate_extend(yy, x)
+    """
     mi, ma = p.domain
     x = np.linspace(mi, ma, nn, endpoint=True)
     der = p.deriv(1)
+    ## locate connected region where the functions monoton and hence has an inverse.
     I, = np.where(der(x) > 0)
     II, = np.where(I[1:]-I[:-1] > 1)
-    if len(II)==0:
+    if len(II)<=1:
         xmin, xmax = x[I[0]], x[I[-1]]
     else:
         III = np.argmax(II[1:]-II[:-1])
@@ -90,6 +105,7 @@ def inverse_map(p):
     x = np.linspace(xmin, xmax, nn, endpoint=True)
     y = p(x)
     mi, ma = y.min(), y.max()
+    
     return interpolate_extend(y, x)
        
 def derivate(p):
@@ -132,7 +148,7 @@ class CCD2d:
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['flux_values_extract']])
         self._data['total_flux'] = total_flux
 
-        if self.kwargs.get('bootstrap_data', True):
+        if self.kwargs.get('bootstrap_data', 'True')=='True':
             self.bootstrap_data()
 
         # basic outlier removal / quality filter
@@ -694,7 +710,7 @@ class CCD2d:
    
     def get_lambda_list(self):
         """
-        saves to kwargs['file_lambda_list']
+        returns lambda_mapping of 2D polynomial
         """
         res = np.zeros(len(self.all_order())*NROWS)
         i = 0

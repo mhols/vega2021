@@ -11,7 +11,7 @@ comment = {}  ## this comments will be included into the .fits document
 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
 
-STARNAME = 'Moon';      comment["STARNAME"] = "Name of object, used to select the starfiles"
+STARNAME = 'Moon';   comment["STARNAME"] = "Name of object, used to select the starfiles"
 
 ## ----- directory layout
 BASEDIR = os.path.join(os.path.dirname(__file__), '../')  # put jour actual base path here
@@ -119,7 +119,8 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
 
 ORDERS = list(CENTRALPOSITION.keys())
 #LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
-LAMBDAFILE = os.path.join(REFFILES, 'hobolambda1.dat')  # TODO to be removed....
+LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.dat') ) # TODO to be removed....
+OFFSET_LAMBDA=int(os.environ.get('OFFSET_LAMBDA', 0))
 
 ## ------ snippet constants
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
@@ -138,15 +139,15 @@ n_bootstrap = 3                        # number of bootstrap experiments
 profile = 'gauss'                      # fit profile for bootstrap estimate of centroid
 loss_function = 'loss_1'               # weighted L2-loss for bootstrap estimate of centroid
 epsilon_sigma_bootstrap = 3*PIXEL      # locations with larger pixel uncertainty are removed
-epsilon_sigma_clipp = 200*M/S          # sigma clip for 1d polynomial
-epsilon_sigma_clipp_2d = 200*M/S      # sigma clip for 2d polynomial
+epsilon_sigma_clipp = 300*M/S          # sigma clip for 1d polynomial
+epsilon_sigma_clipp_2d = 300*M/S      # sigma clip for 2d polynomial
 clipp_method = 'vrad'                 # 'rel_std' or 'pixerror' or 'est_std'
 n_sigma_clipp =  100*TIMES                   # maximal number of sigma clips
 n_sigma_clipp_2d = 100*TIMES                # maximal number of sigma clips
 fitweight = 'flux'                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
 sigma_min = 5                         # minimial sigma to avoid overfitting
 palette_order = 'gist_rainbow'         # palette of orders
-order_ol = 7                           # order polynomial in ol
+order_ol = 10                           # order polynomial in ol
 order_o = 5                            # order polynomial in o
 
 kwargs = { k: v for k, v in globals().items() if 

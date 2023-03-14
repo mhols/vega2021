@@ -1,4 +1,3 @@
-from settings import *
 import spectrograph
 import snippets
 import extract
@@ -7,6 +6,14 @@ import os
 import re
 import pickle
 from astropy.io import fits
+
+settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
+
+try:
+    exec('from %s import *'%(settingsmodule,))
+except:
+    raise Exception('could not import {settingsmodule}')
+
 
 # collection of CCD2d ojects (one for each thar file and for each voie)
 
@@ -35,7 +42,7 @@ if RECOMPUTE_2D_POLYNOMIAL:
         thars.append( {
             'fitsfile':os.path.basename(f_thar), 
             'DATE_JUL': extract.header_info_from_fits(f_thar, 'DATE_JUL'),
-            'ccd': ccd, 
+            'ccd': ccd,
             'snippets': snippets_voie,
             'extract': myext,
         })
@@ -45,6 +52,13 @@ if RECOMPUTE_2D_POLYNOMIAL:
 else:
     with open('thars.pickle', 'rb') as f:
         thars = pickle.load(f)
+
+# computing average poly2d as new basis
+tmp = []
+for ta in thars:
+    for c in ta['ccd']:
+        tmp.append(c.get_lambda_list())
+np.savetxt(os.path.join(REFFILES, 'hobo.txt'), np.column_stack(tmp).mean(axis=1))
 
 list_of_stars = []
 list_of_jd = []
@@ -60,7 +74,7 @@ for f in extract.getallstarfits(DATADIR, STARNAME):
 
 list_of_jdc = [c['DATE_JUL'] for c in thars ]
 
-        
+
 for d, starfits in zip(list_of_jd, list_of_stars):
     i = np.argmin(np.abs(np.array(list_of_jdc) - d))
 
@@ -176,6 +190,6 @@ for d, starfits in zip(list_of_jd, list_of_stars):
     newfits = fits.HDUList(
         [ page1, fitstable ]
     )
-         
+
     newfits.writeto(os.path.join(DATADIR, filename), overwrite=True)
-        
+
