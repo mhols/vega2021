@@ -20,16 +20,12 @@ print('using settings from %s.py'%(settingsmodule,))
 # collection of CCD2d ojects (one for each thar file and for each voie)
 
 if RECOMPUTE_2D_POLYNOMIAL:
-    myext = extract.Extractor(**kwargs)
     thars = []
 
     # generate 2-d polynomial for ThAr spectra in DATADIR
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
-        try:
-            myext.set_fitsfile(f_thar)
-        except Exception as ex:
-            print (ex)
-            continue
+        myext = extract.Extractor(**kwargs) # every thar gets its own extractor
+        myext.set_fitsfile(f_thar)
 
         snips = [ snippets.Snippets(voie=i, tharfits=f_thar) for i in [1, 2, ]]  # TODO: voie3
         snippets_voie = [

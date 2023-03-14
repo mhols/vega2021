@@ -121,6 +121,7 @@ ORDERS = list(CENTRALPOSITION.keys())
 #LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
 LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.dat') ) # TODO to be removed....
 OFFSET_LAMBDA=int(os.environ.get('OFFSET_LAMBDA', 0))
+SAFE_LAMS = os.environ.get('SAFE_LAMS', 'False') == 'True'
 
 ## ------ snippet constants
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')

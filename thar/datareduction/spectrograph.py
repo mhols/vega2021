@@ -616,9 +616,8 @@ class CCD2d:
                 )
             except Exception as ex:
                 res[o] = pglobal
-                print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
+                # print('------------\nAt order {} the following error occured\n-------\n'.format(o),ex)
  
-        # self.polynomial_fit = res
         return res
 
     def _fit_2d_polynomial(self, weight):
