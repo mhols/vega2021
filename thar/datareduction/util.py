@@ -105,8 +105,12 @@ function_map = {
 def bootstrap_estimate_location(intens, **kwargs):
     g = function_map[kwargs['profile']]
     size = kwargs['n_bootstrap']
+        
     fun = function_map[kwargs['loss_function']]
     intens = intens - min(0, np.min(intens))
+    if size <= 1:
+        return estimate_location(intens, fun, g)[1], np.sqrt(sum(intens))
+     
     p = intens / np.sum(intens)
 
     n = int(np.sum(intens))

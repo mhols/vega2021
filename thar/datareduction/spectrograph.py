@@ -148,8 +148,8 @@ class CCD2d:
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['flux_values_extract']])
         self._data['total_flux'] = total_flux
 
-        if self.kwargs.get('bootstrap_data', 'True')=='True':
-            self.bootstrap_data()
+        #if self.kwargs.get('bootstrap_data', 'True')=='True':
+        self.bootstrap_data()
 
         # basic outlier removal / quality filter
         self._map_1D_x_ol_o = None
@@ -158,7 +158,6 @@ class CCD2d:
         self._map_2D_ol_x_o = None
         
         self._outlier_removal()
-        self._fit_global_polynomial(full=True)
         self.sigma_clipping()
         
         
@@ -265,6 +264,7 @@ class CCD2d:
             return thd
 
         # order by order fitting first
+        # self._fit_global_polynomial(full=True)  ## just to have a start
         epsilon = self.kwargs['epsilon_sigma_clipp']
         thd = epsilon 
         self._data['selected'] = True   ## start with all data
@@ -362,32 +362,32 @@ class CCD2d:
 
         self._report_fitresult()
 
-    def _delta_lam_over_lam_factor(self, l, o):
-        """
+    # def _delta_lam_over_lam_factor(self, l, o):
+    #     """
+    #     """
+    #     dl / l = (dl / dx) * x / l * dx = (dx / dl)^{-1} * x / l * dx
+    #     at o we have x = p(ol) => dx/dl = p'(ol) * o
+    #     returns (dx / dl)^{-1} * x / l 
+    #     """
+    #     p = self.polynomial_fit[o]
+    #     dp = p.deriv()
+    #     x = p(o*l)
+    #     factor = (o * dp(o*l))**(-1) * x / l
+    #     return factor
 
-        dl / l = (dl / dx) * x / l * dx = (dx / dl)^{-1} * x / l * dx
-        at o we have x = p(ol) => dx/dl = p'(ol) * o
-        returns (dx / dl)^{-1} * x / l 
-        """
-        p = self.polynomial_fit[o]
-        dp = p.deriv()
-        x = p(o*l)
-        factor = (o * dp(o*l))**(-1) * x / l
-        return factor
 
-
-    def delta_radial_velocity_model(self):
-        res = {}
-        for o in self.all_order():
-            I = self.index_order(o)
-            p = self.polynomial_fit[o]
-            dp = p.deriv()
-            dxdl = o*dp(o*self.l[I])
-            dx = p(o*self.l[I]) - self.x[I]
-            factor = dxdl**(-1) / self.l[I]
-            tmp = C_LIGHT * factor * dx / (M/S) 
-            res[o] = np.sqrt(np.mean(tmp)**2+np.var(tmp))
-        return res
+    # def delta_radial_velocity_model(self):
+    #     res = {}
+    #     for o in self.all_order():
+    #         I = self.index_order(o)
+    #         p = self.polynomial_fit[o]
+    #         dp = p.deriv()
+    #         dxdl = o*dp(o*self.l[I])
+    #         dx = p(o*self.l[I]) - self.x[I]
+    #         factor = dxdl**(-1) / self.l[I]
+    #         tmp = C_LIGHT * factor * dx / (M/S) 
+    #         res[o] = np.sqrt(np.mean(tmp)**2+np.var(tmp))
+    #     return res
 
     def delta_l_over_l(self):
         lmaps = self.lambda_maps()
@@ -415,31 +415,31 @@ class CCD2d:
 
         return lam
 
-    def lambda_at_x_o(self, x, o):
-        nn = 10001
-        olams = np.linspace(self.ol.min()/1.05, self.ol.max()*1.05, nn, endpoint=True)
-        p = interp1d(
-            self.polynomial_fit[o] (olams),
-            olams)
-        return p(x)/o
+    # def lambda_at_x_o(self, x, o):
+    #     nn = 10001
+    #     olams = np.linspace(self.ol.min()/1.05, self.ol.max()*1.05, nn, endpoint=True)
+    #     p = interp1d(
+    #         self.polynomial_fit[o] (olams),
+    #         olams)
+    #     return p(x)/o
 
-    def _inverse_map_at_o(self, p, o):
-        nn = 10001
-        # p = self.polynomial_fit[o]
-        olams = np.linspace(self._ol.min(), self._ol.max(), nn, endpoint=True)
-        der = p.deriv()
-        I, = np.where(der(olams) > 0)
-        II, = np.where(I[1:]-I[:-1] > 1)
-        if len(II)==0:
-            olmin, olmax = olams[I[0]], olams[I[-1]]
-        else:
-            III = np.argmax(II[1:]-II[:-1])
-            olmin = olams[I[II[III]]]
-            olmax = olams[I[II[III-1]]]
+    # def _inverse_map_at_o(self, p, o):
+    #     nn = 10001
+    #     # p = self.polynomial_fit[o]
+    #     olams = np.linspace(self._ol.min(), self._ol.max(), nn, endpoint=True)
+    #     der = p.deriv()
+    #     I, = np.where(der(olams) > 0)
+    #     II, = np.where(I[1:]-I[:-1] > 1)
+    #     if len(II)==0:
+    #         olmin, olmax = olams[I[0]], olams[I[-1]]
+    #     else:
+    #         III = np.argmax(II[1:]-II[:-1])
+    #         olmin = olams[I[II[III]]]
+    #         olmax = olams[I[II[III-1]]]
 
-        olams = np.linspace(olmin, olmax, nn, endpoint=True)
-        xx = self.polynomial_fit[o](olams)
-        return interpolate_extend(xx, olams/o)
+    #     olams = np.linspace(olmin, olmax, nn, endpoint=True)
+    #     xx = self.polynomial_fit[o](olams)
+    #     return interpolate_extend(xx, olams/o)
        
 
     # """
@@ -541,15 +541,15 @@ class CCD2d:
             raise Exception ('problem fitting global polynomial\n')
         return p
 
-    def _fit_global_polynomial(self, full=False):
-        """
-        make frequmap a global polynomial
-        """
-        p = self.get_global_polynomial(full=full)
-        self.polynomial_fit = {
-            o: p 
-            for o in self.all_order()
-        }
+    # def _fit_global_polynomial(self, full=False):
+    #     """
+    #     make frequmap a global polynomial
+    #     """
+    #     p = self.get_global_polynomial(full=full)
+    #     self.polynomial_fit = {
+    #         o: p 
+    #         for o in self.all_order()
+    #     }
 
     def _fit_weight(self, p):  ## TODO: change name to fit_weight_x_ol_o
         tmp =self.kwargs.get('fitweight', 'sigma') 

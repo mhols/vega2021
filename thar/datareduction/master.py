@@ -26,15 +26,16 @@ if RECOMPUTE_2D_POLYNOMIAL:
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
         myext = extract.Extractor(**kwargs) # every thar gets its own extractor
         myext.set_fitsfile(f_thar)
-
+        
         try:
             snips = [ snippets.Snippets(voie=i, tharfits=f_thar) for i in [1, 2, ]]  # TODO: voie3
             snippets_voie = [
                 s.snippets for s in snips
-                #snippets.snippets(myext, i, ORDERS)
-                #for i in [1, 2]   # [1, 2, 3]
+                # snippets.snippets(myext, i, ORDERS)
+                # for i in [1, 2]   # [1, 2, 3]
             ]
-        except:
+        except Exception as ex:
+            print(f_thar, ex)
             continue
 
         ccd = [
@@ -47,7 +48,7 @@ if RECOMPUTE_2D_POLYNOMIAL:
             'DATE_JUL': extract.header_info_from_fits(f_thar, 'DATE_JUL'),
             'ccd': ccd,
             'snippets': snippets_voie,
-            'extract': myext,
+            # 'extract': myext,
         })
 
     with open('thars.pickle', 'wb') as f:
