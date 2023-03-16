@@ -264,7 +264,7 @@ class CCD2d:
             return thd
 
         # order by order fitting first
-        # self._fit_global_polynomial(full=True)  ## just to have a start
+        self._fit_global_polynomial(full=True)  ## just to have a start
         epsilon = self.kwargs['epsilon_sigma_clipp']
         thd = epsilon 
         self._data['selected'] = True   ## start with all data
@@ -299,7 +299,7 @@ class CCD2d:
             self._data.loc[:, 'selected'] = I[:]
             fit_now2 = self._fit_2d_polynomial(weight=self._fit_weight(fit_now2))
 
-        self._map_1D_x_ol_o = self._fit_polynomial_order_by_order(weight=self._fit_weight(fit_now2)) 
+        self._map_1D_x_ol_o = fit_now #self._fit_polynomial_order_by_order(weight=self._fit_weight(fit_now2)) 
         self._map_2D_x_ol_o = fit_now2
         self._map_1D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_1D_x_ol_o.items()}
         self._map_2D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_2D_x_ol_o.items()}
@@ -541,15 +541,15 @@ class CCD2d:
             raise Exception ('problem fitting global polynomial\n')
         return p
 
-    # def _fit_global_polynomial(self, full=False):
-    #     """
-    #     make frequmap a global polynomial
-    #     """
-    #     p = self.get_global_polynomial(full=full)
-    #     self.polynomial_fit = {
-    #         o: p 
-    #         for o in self.all_order()
-    #     }
+    def _fit_global_polynomial(self, full=False):
+        """
+        make frequmap a global polynomial
+        """
+        p = self.get_global_polynomial(full=full)
+        self.polynomial_fit = {
+            o: p 
+            for o in self.all_order()
+        }
 
     def _fit_weight(self, p):  ## TODO: change name to fit_weight_x_ol_o
         tmp =self.kwargs.get('fitweight', 'sigma') 
@@ -589,13 +589,31 @@ class CCD2d:
             tmp[I] = dofmaps[o](xol[I])
         return tmp
 
+    def get_polynomial_fit_of_order(self, o, weight=None, full=False):
+        I = self.index_order_unselected(o) if full else self.index_order(o)
+        if weight is None:
+            weight = 1./self._sigma if full else 1./self.sigma
+        w = weight[I]
+        x = self._x[I]  if full else self.x[I]
+        l = self._l[I]  if full else self.l[I]
+        n = self.kwargs['order_ol']
+        return np.polynomial.chebyshev.Chebyshev.fit(
+                    o*l, x,
+                    domain= (np.min(o*l)*0.99, np.max(o*l)*1.01),
+                    deg=n,
+                    w = w
+                )
 
-    def _fit_polynomial_order_by_order(self, weight):
+
+
+    def _fit_polynomial_order_by_order(self, weight=None):
         """
         x = P_o(ol)
         """
+        if weight is None:
+            weight = 1./self.sigma
         ENLARGEMENT_FACTOR = 1.01
-        n = kwargs['order_ol']
+        n = self.kwargs['order_ol']
         res = {}
         ol = self.o * self.l
         domain = [ol.min()/ENLARGEMENT_FACTOR, ol.max()*ENLARGEMENT_FACTOR]
@@ -700,8 +718,14 @@ class CCD2d:
         order_rms2D={}
         order_rms1D={}
         nlines={}
+        res = {}
         for o in self.all_order():
             I=self.index_order(o)
+            res[o]= (
+                    np.sum(I), 
+                    np.sqrt(np.mean(self.data[I]["dvrad_2D"]**2)),
+                    np.sqrt(np.mean(self.data[I]["dvrad_1D"]**2)) 
+            )
             nlines[o]=np.sum(I)
             order_rms2D[o]=np.sqrt(np.mean(self.data[I]["dvrad_2D"]**2))
             order_rms1D[o]=np.sqrt(np.mean(self.data[I]["dvrad_1D"]**2))

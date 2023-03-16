@@ -9,7 +9,7 @@ load_dotenv()
 comment = {}  ## this comments will be included into the .fits document
 
 
-RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
+RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'True') == 'True')
 
 # STARNAME = 'Moon';   comment["STARNAME"] = "Name of object, used to select the starfiles"
 STARNAME = 'Thorium';   comment["STARNAME"] = "Name of object, used to select the starfiles"
@@ -26,7 +26,7 @@ NCOLS = 4196;           comment['NCOLS'] = "number of columns"
 NCROSS = 100;           comment['NCROSS'] = "number of rows/columns in central cross"
 NROWSBLOCK = 2054   #number of rows in individual blocks
 NCOLSBLOCK = 2048   #number of cols in individual blocks
-REMOVECROSS = False
+REMOVECROSS = int(False)
 HIGHEXP = 15
 LOWEXP = 4
 CUTORDER = 35   #means that cutting flats is between 34 and 35
@@ -39,12 +39,12 @@ VOIE2WIDTH = 18                 #left (redwards) of separator
 VOIE3WIDTH = 16
 FLUX_LIMIT = 500                # (usual: 500) below, the beam extraction is discarded
 
-SHIFT_MASK_VOIE1 = range(1, VOIE2WIDTH + 2)
-SHIFT_MASK_VOIE2 = range(-VOIE1WIDTH-1, 0)        # realtive indices of extraction mask
+SHIFT_MASK_VOIE1 = list(range(1, VOIE2WIDTH + 2))
+SHIFT_MASK_VOIE2 = list(range(-VOIE1WIDTH-1, 0))        # realtive indices of extraction mask
 OFFSETRED=16
 OFFSETBLUE=16
 MEMORY_POSITION = 0.7  # memory of AR1 process for line following
-BLAZE_RANGE = range(-OFFSETRED, OFFSETBLUE+1)                     # range for the blase function
+BLAZE_RANGE = list(range(-OFFSETRED, OFFSETBLUE+1))                     # range for the blase function
 DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
 CLUM = 3e5
 
@@ -121,7 +121,7 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
 ORDERS = list(CENTRALPOSITION.keys())
 #LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
 LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.dat') ) # TODO to be removed....
-OFFSET_LAMBDA=int(os.environ.get('OFFSET_LAMBDA', 0))
+OFFSET_LAMBDA=int(os.environ.get('OFFSET_LAMBDA', 18))
 SAVE_LAMS = os.environ.get('SAVE_LAMS', 'False') == 'True'
 
 ## ------ snippet constants
@@ -131,7 +131,7 @@ EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
 SEUIL = 0.2 * ADU   # seuil en ADU 
 SEUILR = 800.
-VRANGE = 13.0 * KM/S      # vrange in km/s
+VRANGE = 9.0 * KM/S      # vrange in km/s
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
@@ -149,11 +149,11 @@ n_sigma_clipp_2d = 100*TIMES                # maximal number of sigma clips
 fitweight = 'flux'                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
 sigma_min = 5                         # minimial sigma to avoid overfitting
 palette_order = 'gist_rainbow'         # palette of orders
-order_ol = 10                           # order polynomial in ol
+order_ol = 7                           # order polynomial in ol
 order_o = 5                            # order polynomial in o
 
-kwargs = { k: v for k, v in globals().items() if 
-    (type(v) is str or type(v) is float or type(v) is int or type(v) is list )
+kwargs = { k: v for k, v in globals().items() if '_'!=k[0] and 
+    (type(v) is str or type(v) is float or type(v) is int or type(v) is list or type(v) is dict)
 }
 
 ## the following parameters are included into the fits files header

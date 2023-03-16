@@ -13,19 +13,23 @@ from numpy.polynomial import Polynomial
 import pandas as pd
 
 ### all constants are in settings.py
-SETTINGSMODULE = os.environ.get('SETTINGSMODULE', 'settings')
+# SETTINGSMODULE = os.environ.get('SETTINGSMODULE', 'settings')
 
-try:
-    exec('from %s import *'%(SETTINGSMODULE,))
-except:
-    raise Exception('could not import {SETTINGSMODULE}')
-
-
+#try:
+#    exec('from %s import *'%(SETTINGSMODULE,))
+#except:
+#    raise Exception('could not import { SETTINGSMODULE }')
+#
+#print('SETTINGSMODULE=', SETTINGSMODULE)
 
 ##### utility functions
 
 
-def removeCross(image):
+def removeCross(image, **kwargs):
+
+    NCROSS = kwargs['NCROSS']
+    NROWSBLOCK = kwargs['NROWSBLOCK']
+    NCOLSBLOCK = kwargs['NCOLSBLOCK']
 
     img1=np.zeros(image.shape)
     img1[:NCROSS,:] = image[NROWSBLOCK:NROWSBLOCK+NCROSS,:]
@@ -80,13 +84,14 @@ def secondpoly(xx,yy):
     
     return refposi, c[2]
 
-def load_image_from_fits(fitsfile):
+def load_image_from_fits(fitsfile, **kwargs):
+    REMOVECROSS=kwargs['REMOVECROSS']==int(True)
     a=pyfits.open(fitsfile)
     print('fitsfile ', fitsfile)
     image = np.clip(a[0].data,-100,65535)
     a.close()
     if REMOVECROSS:
-        return removeCross(image)
+        return removeCross(image, **kwargs)
     else:
         return image
         
@@ -129,49 +134,54 @@ def is_star(fitsfile, name):
 
 
 #liste = listallfits('/Users/boehm/Desktop/extract/Vega_2022TBL')
-def listallfits(dirname=DATADIR):
+def listallfits(dirname):
     filelist = []
     for f in os.listdir(dirname):
         if f.endswith('.fits'):
             filelist.append(os.path.join(dirname,f))
     return filelist
 
-def getallflatfits(dirname=DATADIR,texp=HIGHEXP):
+def getallflatfits(dirname,texp):
     for f in listallfits(dirname):
         if is_flatfield(f) and header_info_from_fits(f, 'EXPTIME')==texp:
             yield f
 
-def getallbiasfits(dirname=DATADIR):
+def getallbiasfits(dirname):
     for f in listallfits(dirname):
         if is_bias(f):
             yield f
 
-def getallthoriumfits(dirname=DATADIR):
+def getallthoriumfits(dirname):
     for f in listallfits(dirname):
         if is_thorium(f):
             yield f
 
-def getallstarfits(dirname=DATADIR, name=''):
+def getallstarfits(dirname, name=''):
     for f in listallfits(dirname):
         if is_star(f, name):
             yield f
 
-def meanfits(*fitsfiles):
-    sum = 0.0
+def meanfits(*fitsfiles, **kwargs):
+    su = 0.0
     for f in fitsfiles:
-        sum += load_image_from_fits(f)
-    return sum / len(fitsfiles)
+        su += load_image_from_fits(f, **kwargs)
+    return su / len(fitsfiles)
     
 
-def masterbias(dirname=DATADIR):
+def masterbias(dirname, **kwargs):
 
-    bia = meanfits(*getallbiasfits(dirname))
+    bia = meanfits(*getallbiasfits(dirname), **kwargs)
     return bia
 
 
-def masterflat(dirname=DATADIR):
-    high = meanfits(*getallflatfits(dirname,HIGHEXP))
-    low = meanfits(*getallflatfits(dirname,LOWEXP))
+def masterflat(dirname, **kwargs):
+    HIGHEXP = kwargs["HIGHEXP"]
+    LOWEXP = kwargs["LOWEXP"]
+    CUTORDER = kwargs['CUTORDER']
+    NROWS = kwargs['NROWS']
+
+    high = meanfits(*getallflatfits(dirname,HIGHEXP), **kwargs)
+    low = meanfits(*getallflatfits(dirname,LOWEXP), **kwargs)
 
     pblue = beamfit(high, CUTORDER)
     pred =  beamfit(low, CUTORDER-1)
@@ -179,9 +189,9 @@ def masterflat(dirname=DATADIR):
     masklow = np.zeros(high.shape)
     for i in range(NROWS):
         masklow[i,0:int(np.round(0.5*(pblue(i)+pred(i))))]=1
-    masterflat=masklow*low + (1.-masklow)*high
+    mf=masklow*low + (1.-masklow)*high
 
-    return masterflat
+    return mf
 
 
 def index_along_offset(y, x, delta=[0]):
@@ -191,10 +201,13 @@ def index_along_offset(y, x, delta=[0]):
     B = x[:,np.newaxis] + delta
     return A[:, np.newaxis], B
 
-def mask_along_offset(y, x, delta=[0]):
+def mask_along_offset(y, x, delta=[0], **kwargs):
     """
     returns a mask along and offset
     """
+    NROWS = kwargs['NROWS']
+    NCOLS = kwargs['NCOLS']
+
     I = np.full((NROWS, NCOLS), False, dtype=bool)
     A, B = index_along_offset(y, x, delta)
     I[A, B] = True
@@ -205,14 +218,18 @@ def extract_along_offset(image, y, x, delta=[0]):
     return image[A, B]
 
 
-def _followorder(image,xstart,ystart,up=True):
+def _followorder(image,xstart,ystart,up=True, **kwargs):
     """
     x are column indices
     y are row indices
     orders are "aligned" with columns
     """
    
-    delta = ABSORPTIONHALFW
+    delta = kwargs['ABSORPTIONHALFW']
+    NROWS = kwargs['NROWS']
+    NCROSS = kwargs['NCROSS']
+    JUMP = kwargs['JUMP']
+
     if up:
         rows=range(ystart,NROWS)
         IC = range(0, ystart) # complement
@@ -249,7 +266,8 @@ def _followorder(image,xstart,ystart,up=True):
     res[IC] = 0
     return res
     
-def followorder(image,xstart,ystart):
+def followorder(image,xstart,ystart, **kwargs):
+    # SMOOTHWIDTH_BEAM =  kwargs['SMOOTHWIDTH_BEAM']
     res = _followorder(image,xstart,ystart,up=True) + _followorder(image, xstart,ystart,up=False)
     res = generic_filter(res, 
         lambda x: Polynomial.fit(np.arange(len(x)), x, deg=4)(len(x)/2), size=SMOOTHWIDTH_BEAM
@@ -257,8 +275,12 @@ def followorder(image,xstart,ystart):
 
     return res
     
-def get_lambda(order):
-    hobolambda = np.loadtxt(LAMBDAFILE)
+def get_lambda(order, **kwargs):
+    ORDERS=kwargs['ORDERS']
+    NROWS=kwargs['NROWS']
+    OFFSET_LAMBDA=kwargs['OFFSET_LAMBDA']
+
+    hobolambda = np.loadtxt(kwargs['LAMBDAFILE'])
     mult = order - ORDERS[0]
     tmp = np.zeros(NROWS)
     lamb = hobolambda[mult*NROWS:(mult+1)*NROWS]
@@ -277,13 +299,24 @@ class BeamOrder:
     DELTA_BEAM_INTERP = 10
     DEGREE_BEAM_INTERP = 4
 
-    def __init__(self, order, masterflat, final=False):
+    def __init__(self, order, masterflat, final=False, **kwargs):
         self._masterflat = masterflat
+        self.kwargs = kwargs
         self._order = order
+        self.NROWS = kwargs['NROWS']
+        self.CENTRALROW = kwargs['CENTRALROW']
+        self.NROWS = kwargs['NROWS']
+        self.CENTRALPOSITION = kwargs['CENTRALPOSITION']
+        self.NCROSS = kwargs['NCROSS']
+        self.SHIFT_MASK_VOIE1 = kwargs['SHIFT_MASK_VOIE1']
+        self.SHIFT_MASK_VOIE2 = kwargs['SHIFT_MASK_VOIE2']
+        self.FLUX_LIMIT = kwargs['FLUX_LIMIT']
+        self.BLAZE_RANGE = kwargs['BLAZE_RANGE']
+        self.DEGREEBLAZE = kwargs['DEGREEBLAZE']
 
-        self._x = np.arange(NROWS)
-        self._y = _followorder(masterflat, CENTRALPOSITION[order], CENTRALROW,up=True) +\
-                  _followorder(masterflat, CENTRALPOSITION[order], CENTRALROW,up=False)
+        self._x = np.arange(self.NROWS)
+        self._y = _followorder(masterflat, self.CENTRALPOSITION[order], self.CENTRALROW,up=True, **kwargs) +\
+                  _followorder(masterflat, self.CENTRALPOSITION[order], self.CENTRALROW,up=False, **kwargs)
 
         self._xx = self._x
         self._yy = self._y
@@ -294,9 +327,9 @@ class BeamOrder:
         self._xx = self._x[I]
         self._yy = self._y[I]
 
-        self._lower, self._upper = 0, NROWS
+        self._lower, self._upper = 0, self.NROWS
         self._evaluator = lambda x: np.interp(x, self._xx, self._yy)
-        self._x = np.arange(NROWS)
+        self._x = np.arange(self.NROWS)
         self._y = self(self._x)
 
         if not final:
@@ -332,32 +365,32 @@ class BeamOrder:
         return np.arange(self._lower, self._upper) 
 
     def II(self):
-        tmp = np.full(NROWS, False)
+        tmp = np.full(self.NROWS, False)
         tmp[self.I] = True
         return tmp
 
     def mask_central_voie12(self):
-        x=np.arange(NCROSS+1, NROWS)
-        return mask_along_offset(x, self(x), [0])
+        x=np.arange(self.NCROSS+1, self.NROWS)
+        return mask_along_offset(x, self(x), [0], **self.kwargs)
 
     def mask_voie1(self):
-        x=np.arange(NCROSS+1, NROWS)
-        return mask_along_offset(x, self(x), SHIFT_MASK_VOIE1)
+        x=np.arange(self.NCROSS+1, self.NROWS)
+        return mask_along_offset(x, self(x), self.SHIFT_MASK_VOIE1, **self.kwargs)
 
     def mask_voie2(self):
-        x=np.arange(NCROSS+1, NROWS)
-        return mask_along_offset(x, self(x), SHIFT_MASK_VOIE2)
+        x=np.arange(self.NCROSS+1, self.NROWS)
+        return mask_along_offset(x, self(x), self.SHIFT_MASK_VOIE2, **self.kwargs)
 
     def beam_sum_voie1(self, image):
         #addition of 0.5 to take into account true start and end of pixel -0.5:+0.5
-        y = 0.5+ self(np.arange(NROWS))   ### TODO: check limits
+        y = 0.5+ self(np.arange(self.NROWS))   ### TODO: check limits
         voie_part_1 = (np.ceil(y)-y) * np.sum(image*self.mask_central_voie12(), axis=1)
         
         return voie_part_1 + np.sum(self.mask_voie1() * image, axis=1)
         
 
     def beam_sum_voie2(self, image):
-        y = 0.5+self(np.arange(NROWS))   ### TODO: check limits
+        y = 0.5+self(np.arange(self.NROWS))   ### TODO: check limits
         voie_part_2 = (y -np.floor(y)) * np.sum(image*self.mask_central_voie12(), axis=1)
 
         return voie_part_2 + np.sum(self.mask_voie2() * image, axis=1)
@@ -370,20 +403,20 @@ class BeamOrder:
         # TODO tmp = medianfilter(tmp)
         tmp=generic_filter(tmp,lambda x:np.median(x),size=10)
         j = np.argmax(tmp)
-        for i in range(j,NROWS):
-             if tmp[i] < FLUX_LIMIT:
+        for i in range(j,self.NROWS):
+             if tmp[i] < self.FLUX_LIMIT:
                 break
         upper = i
         j = np.argmax(tmp)
-        for i in range(j,NCROSS-1,-1):
-             if tmp[i] < FLUX_LIMIT:
+        for i in range(j,self.NCROSS-1,-1):
+             if tmp[i] < self.FLUX_LIMIT:
                 break
         lower = i
         return lower, upper
                
 
     def mask_blaze(self):
-        return mask_along_offset(np.arange(NROWS), self(np.arange(NROWS)), BLAZE_RANGE)
+        return mask_along_offset(np.arange(self.NROWS), self(np.arange(self.NROWS)), self.BLAZE_RANGE, **self.kwargs)
 
     def beam_sum_blaze(self, image=None):
         if image is None:
@@ -397,7 +430,7 @@ class BeamOrder:
         """
         returns: polynomial proxy for blaze
         """
-        return Polynomial.fit(self.I, self.beam_sum_blaze(image)[self.I], deg=DEGREEBLAZE) # TODO check if polynom is good proxy
+        return Polynomial.fit(self.I, self.beam_sum_blaze(image)[self.I], deg=self.DEGREEBLAZE) # TODO check if polynom is good proxy
 
     @property
     def blaze_along_beam(self):
@@ -408,9 +441,13 @@ class BeamOrder:
             self._evaluator(x), 0)
 
 
-def beamfit(image, order, extractor=None):
+def beamfit(image, order, extractor=None, **kwargs):
+    CENTRALPOSITION = kwargs['CENTRALPOSITION']
+    CENTRALROW = kwargs['CENTRALROW']
+    NROWS = kwargs['NROWS']
+
     y = followorder(image, CENTRALPOSITION[order], CENTRALROW)
-    return BeamOrder(order, np.arange(NROWS), y, extractor=extractor)
+    return BeamOrder(order, np.arange(NROWS), y, extractor=extractor, **kwargs)
 
 class Extractor:
     """
@@ -432,6 +469,9 @@ class Extractor:
         self.kwargs = kwargs
         self._fitsfile = fitsfile
         # all properties can be lasily evaluated
+        self.ORDERS = kwargs['ORDERS']
+        self.NROWS = kwargs['NROWS']
+        self.CENTRALROW = kwargs['CENTRALROW']
 
         # masterflat and masterbias can be computed or passed
         self._masterflat = kwargs.get('masterflat', None)
@@ -470,12 +510,12 @@ class Extractor:
     fitsfile = property(get_fitsfile, set_fitsfile)
 
     def loadimage(self):
-        return load_image_from_fits(self.fitsfile)
+        return load_image_from_fits(self.fitsfile, **self.kwargs)
 
     @property
     def bare_image(self):
         if self._bare_image is None:
-            self._bare_image = load_image_from_fits(self.fitsfile)
+            self._bare_image = load_image_from_fits(self.fitsfile, **self.kwargs)
         return self._bare_image
 
     @property
@@ -495,7 +535,7 @@ class Extractor:
         if self._masterbias is None:
             try:
                 self.logging('computing masterbias')
-                self._masterbias = masterbias(self.kwargs.get('DATADIR', DATADIR))
+                self._masterbias = masterbias(self.kwargs['DATADIR'], **self.kwargs)
             except:
                 raise Exception('please specify DATADIR or MASTERBIAS')
         return self._masterbias
@@ -509,60 +549,60 @@ class Extractor:
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
-        return get_lambda(o), self.voie1[o], I
+        return get_lambda(o, **self.kwargs), self.voie1[o], I
     
     def get_lambda_intens2(self, o):
         I = self.beams[o].I
-        return get_lambda(o), self.voie2[o], I
+        return get_lambda(o, **self.kwargs), self.voie2[o], I
         
     def get_lambda_intens3(self, o):
         I = self.beams[o].I
-        return get_lambda(o), self.voie3[o], I
+        return get_lambda(o, **self.kwargs), self.voie3[o], I
     
     def _compute_voie1et2(self):
-        choice =  self.kwargs.get('VOIE_METHOD', VOIE_METHOD)
+        choice =  self.kwargs['VOIE_METHOD']
         print("choice for voie is ", choice)
         if choice == 'SUM_DIVIDE':
             self._voie1 = {
                     o: self.beams[o].beam_sum_voie1(self.image) \
-                    / self.beams[o].beam_sum_voie1(self.masterflat) for o in ORDERS
+                    / self.beams[o].beam_sum_voie1(self.masterflat) for o in self.ORDERS
                 }
             self._voie2 = {
                 o: self.beams[o].beam_sum_voie2(self.image) \
-                / self.beams[o].beam_sum_voie2(self.masterflat) for o in ORDERS
+                / self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
             }
         elif choice == 'DIVIDE_SUM':
             image = self.image / (self.masterflat + 1)
         
             self._voie1 = {
-                o: self.beams[o].beam_sum_voie1(image) for o in ORDERS
+                o: self.beams[o].beam_sum_voie1(image) for o in self.self.ORDERS
             }
 
             self._voie2 = {
-                o: self.beams[o].beam_sum_voie2(image) for o in ORDERS
+                o: self.beams[o].beam_sum_voie2(image) for o in self.ORDERS
             }
         elif choice == 'DIVIDE_BLAZE':
             self._voie1 = {
                 o: self.beams[o].beam_sum_voie1(self.image) \
-                    / self.blaze(o)(np.arange(NROWS)) \
-                    for o in ORDERS
+                    / self.blaze(o)(np.arange(self.NROWS)) \
+                    for o in self.ORDERS
             }
             self._voie2 = {
                 o: self.beams[o].beam_sum_voie2(self.image) \
-                    / self.blaze(o)(np.arange(NROWS)) \
-                    for o in ORDERS
+                    / self.blaze(o)(np.arange(self.NROWS)) \
+                    for o in self.ORDERS
             }
 
         elif choice == "SUM_DIVIDE_CENTRALROW":
             self._voie1 = {
                     o: self.beams[o].beam_sum_voie1(self.image) \
-                    * self.blaze(o)(CENTRALROW) \
-                    / self.beams[o].beam_sum_voie1(self.masterflat) for o in ORDERS
+                    * self.blaze(o)(self.CENTRALROW) \
+                    / self.beams[o].beam_sum_voie1(self.masterflat) for o in self.ORDERS
                 }
             self._voie2 = {
                 o: self.beams[o].beam_sum_voie2(self.image) \
-                * self.blaze(o)(CENTRALROW) \
-                / self.beams[o].beam_sum_voie2(self.masterflat) for o in ORDERS
+                * self.blaze(o)(self.CENTRALROW) \
+                / self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
             }
         else:
             raise Exception('no such method ' + choice)
@@ -599,13 +639,13 @@ class Extractor:
 
     def voie1_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
         res = []
-        for o in ORDERS:
+        for o in self.ORDERS:
             res.extend(self.voie1[o]/self.background_voie1(o, nnodes, q, qq, qqq))
         return np.array(res)
 
     def voie2_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
         res = []
-        for o in ORDERS:
+        for o in self.ORDERS:
             res.extend(self.voie2[o]/self.background_voie2(o, nnodes, q, qq, qqq))
         return np.array(res)
 
@@ -615,12 +655,16 @@ class Extractor:
     def bare_voie2(self, o):
         return self.beams[o].beam_sum_voie2(self.image)
 
-    def _compute_masterflat(self, dirname=DATADIR):
+    def _compute_masterflat(self, dirname):
         """
         Bias removed flat
         """
-        high = meanfits(*getallflatfits(dirname,HIGHEXP))
-        low = meanfits(*getallflatfits(dirname,LOWEXP))
+        HIGHEXP = self.kwargs['HIGHEXP']
+        LOWEXP = self.kwargs['LOWEXP']
+        CUTORDER = self.kwargs['CUTORDER']
+
+        high = meanfits(*getallflatfits(dirname,HIGHEXP), **self.kwargs)
+        low = meanfits(*getallflatfits(dirname,LOWEXP), **self.kwargs)
 
         high -= self.masterbias
         low -= self.masterbias
@@ -628,12 +672,12 @@ class Extractor:
         high -= self._estimate_background(high)
         low -= self._estimate_background(low)
 
-        pb = BeamOrder(CUTORDER, high)    #beamfit(high, CUTORDER)
-        pr = BeamOrder(CUTORDER-1, low)    #beamfit(low, CUTORDER-1)
+        pb = BeamOrder(CUTORDER, high, **self.kwargs)    #beamfit(high, CUTORDER)
+        pr = BeamOrder(CUTORDER-1, low, **self.kwargs)    #beamfit(low, CUTORDER-1)
         
         masklow = np.zeros(high.shape)
 
-        for i in range(NROWS):
+        for i in range(self.NROWS):
             I = np.arange( int( round(0.5 * ( pb(i) + pr(i)))))
             masklow[i,I]=1
 
@@ -644,7 +688,7 @@ class Extractor:
         if self._masterflat is None:
             self.logging('computing masterflat')
             try:
-                DIR = self.kwargs.get('DATADIR', DATADIR)
+                DIR = self.kwargs['DATADIR']
             except:
                 raise Exception('no masterflat and no DATADIR specified...')
             self._masterflat = self._compute_masterflat(DIR)
@@ -655,9 +699,6 @@ class Extractor:
         convenince function to extract header info
         """
         return header_info_from_fits(self.fitsfile, keyword)
-
-    def extimage(self):
-        return self.image[NCROSS:,NCROSS:]
 
     def blaze(self,order):
         """
@@ -672,16 +713,16 @@ class Extractor:
     def beams(self):
         if self._beams is None:
             self.logging('computing beams')
-            self._beams = { o: BeamOrder(o, self.masterflat, final=True) for o in ORDERS}
+            self._beams = { o: BeamOrder(o, self.masterflat, final=True, **self.kwargs) for o in self.ORDERS}
         return self._beams
 
     def _compute_flat_voie1et2(self):
         self.logging('computing flat_voie1 and flat_voie2')
         self._flat_voie1 = {
-            o: self.beams[o].beam_sum_voie1(self.masterflat) for o in ORDERS
+            o: self.beams[o].beam_sum_voie1(self.masterflat) for o in self.ORDERS
         }
         self._flat_voie2 = {
-            o: self.beams[o].beam_sum_voie2(self.masterflat) for o in ORDERS
+            o: self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
         }
          
 
@@ -701,7 +742,7 @@ class Extractor:
     @property
     def non_normalized_intens_1(self):
         res = []
-        for o in ORDERS:
+        for o in self.ORDERS:
             inte = self.bare_voie1(o)
             I =  self.beams[o].II
             inte[np.logical_not(I)] = 0.0
@@ -711,7 +752,7 @@ class Extractor:
     @property
     def non_normalized_intens_2(self):
         res = []
-        for o in ORDERS:
+        for o in self.ORDERS:
             inte = self.bare_voie2(o)
             I = self.beams[o].II
             inte[np.logical_not(I)] = 0
@@ -766,8 +807,8 @@ class Extractor:
         v1 = []
         v2 = []
 
-        for o in ORDERS:
-            for i in range(NROWS):
+        for o in self.ORDERS:
+            for i in range(self.NROWS):
                 os.append(o)
                 pix.append(i)
                 v1.append(self.voie1[o][i])
