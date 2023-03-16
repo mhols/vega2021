@@ -10,13 +10,10 @@ comment = {}  ## this comments will be included into the .fits document
 
 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
-<<<<<<< HEAD
 
-STARNAME = 'Vega';      comment["STARNAME"] = "Name of object, used to select the starfiles"
-=======
 REMOVECROSS = True
-STARNAME = 'Vega';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
->>>>>>> f7c57b17787cb5eb7a17bdd63e570fa4460d9c89
+STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select the starfiles"
+
 
 ## ----- directory layout
 BASEDIR = os.path.join(os.path.dirname(__file__), '../')  # put jour actual base path here

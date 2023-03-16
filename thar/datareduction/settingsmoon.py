@@ -119,7 +119,7 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
 
 ORDERS = list(CENTRALPOSITION.keys())
 #LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
-LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.dat') ) # TODO to be removed....
+LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.txt') ) # TODO to be removed....
 OFFSET_LAMBDA=int(os.environ.get('OFFSET_LAMBDA', 0))
 SAVE_LAMS = os.environ.get('SAVE_LAMS', 'False') == 'True'
 
@@ -130,6 +130,7 @@ EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
 SEUIL = 0.2 * ADU   # seuil en ADU 
 SEUILR = 800.
+#VRANGE = 13.0 * KM/S      # vrange in km/s
 VRANGE = 13.0 * KM/S      # vrange in km/s
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
