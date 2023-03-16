@@ -27,22 +27,6 @@ try:
     exec('from %s import *'%(settingsmodule,))
 except:
     raise Exception('could not import {settingsmodule}')
-#
-
-#NROWS=4208
-ORDERS=range(21,58)
-#ORDERS=range(40,51)
-
-#REF_SPECTRUM = '../reffiles/thar_spec_MM201006.dat'
-#REF_ATLASLINES = '../reffiles/thar_UVES_MM090311.dat'
-#EXCLUSION = '../reffiles/excluded.dat'
-#seuil en ADU
-#SEUIL = 2000.
-#SEUIL = 0.2
-#SEUILR = 800.
-#vrange in km/s
-#VRANGE= 9.
-
 
 with open(REF_SPECTRUM, 'r') as f:
     lines = f.readlines()
@@ -228,7 +212,7 @@ def snippets(extractor,nvoie,orders):
 
 class Snippets:
 
-    def __init__(self, voie, tharfits, **kwargs):
+    def __init__(self, voie, tharfits, extractor=None, **kwargs):
         self.kwargs = kwargs
         self.voie = voie
         self.tharfits = tharfits
@@ -239,7 +223,9 @@ class Snippets:
         self._bare_voie=None
         self._snippets=None
 
-        self.extractor = extract.Extractor(**kwargs)
+        self.ORDERS = kwargs['ORDERS']
+        self.NROWS = kwargs['NROWS']
+        self.extractor = extractor if not extractor is None else extract.Extractor(**kwargs)
         self.extractor.set_fitsfile(self.tharfits)
 
     def _prepare(self):
@@ -248,7 +234,7 @@ class Snippets:
         self._flux={}
         self._bare_voie={}
 
-        for o in self.kwargs.get('ORDERS', ORDERS):
+        for o in self.kwargs.get('ORDERS', self.ORDERS):
 
             if self.voie == 1:
                 lam, _flux, I = self.extractor.get_lambda_intens1(o)
@@ -263,7 +249,7 @@ class Snippets:
                 raise Exception('no such voie')
 
 
-            flux = np.zeros(NROWS)
+            flux = np.zeros(self.NROWS)
             flux[I] = _flux[I]
 
             self._lam[o] = lam
@@ -276,7 +262,7 @@ class Snippets:
         if not self._atlasline is None:
             return self._atlasline
 
-        with open(self.kwargs.get('REF_ATLASLINES', REF_ATLASLINES), 'r') as f:
+        with open(self.kwargs['REF_ATLASLINES'], 'r') as f:
             alines = f.readlines()
 
         # extract information...
@@ -293,13 +279,12 @@ class Snippets:
         tmp = self.atlasline[indexx]
 
         ## use exclusions
-        exclusion = np.loadtxt(self.kwargs.get('EXCLUSION',EXCLUSION))
+        exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
         I, = np.where(exclusion[:,0] == o)
-        exc = exclusion[I]
+        # exc = exclusion[I]
 
 
-        goodlines = tmp
-        """
+        # goodlines = tmp
         goodlines = []
         for i in I:
             for l in tmp:
@@ -307,7 +292,6 @@ class Snippets:
                     continue
                 goodlines.append(l)
 
-        """
         return np.array(goodlines)
 
     @property
@@ -337,8 +321,8 @@ class Snippets:
     def _snippet(self, o):
 
         atlasext = self.atlasext(o)
-        latlasext=atlasext*(1.-VRANGE/C_LIGHT)
-        ratlasext=atlasext*(1.+VRANGE/C_LIGHT)
+        latlasext=atlasext*(1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
+        ratlasext=atlasext*(1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
 
         numlines=atlasext.shape[0]
         maxi = np.zeros (numlines, dtype =  float)
@@ -389,11 +373,11 @@ class Snippets:
     def snippets(self):
         if self._snippets is None:
             tmp = [ pd.DataFrame(self._snippet(o)[0])
-                for o in self.kwargs.get('ORDERS', ORDERS)
+                for o in self.kwargs['ORDERS']
             ]
             self._snippets = pd.concat(tmp, ignore_index=True, axis=0)
         return self._snippets
 
 if __name__ == "__main__":
     import os
-    snip = Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20200202_173811_th0.fits'))
+    snip = Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20200202_173811_th0.fits'), **kwargs)

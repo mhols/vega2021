@@ -11,8 +11,8 @@ comment = {}  ## this comments will be included into the .fits document
 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
 
-REMOVECROSS = True
-STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select the starfiles"
+REMOVECROSS = int(True)
+STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
 
 
 ## ----- directory layout
@@ -38,12 +38,12 @@ VOIE2WIDTH = 18                 #left (redwards) of separator
 VOIE3WIDTH = 16
 FLUX_LIMIT = 500                # below, the beam extraction is discarded
 
-SHIFT_MASK_VOIE1 = range(1, VOIE2WIDTH + 2)
-SHIFT_MASK_VOIE2 = range(-VOIE1WIDTH-1, 0)        # realtive indices of extraction mask
+SHIFT_MASK_VOIE1 = list(range(1, VOIE2WIDTH + 2))
+SHIFT_MASK_VOIE2 = list(range(-VOIE1WIDTH-1, 0))        # realtive indices of extraction mask
 OFFSETRED=16
 OFFSETBLUE=16
 MEMORY_POSITION = 0.7  # memory of AR1 process for line following
-BLAZE_RANGE = range(-OFFSETRED, OFFSETBLUE+1)                     # range for the blase function
+BLAZE_RANGE = list(range(-OFFSETRED, OFFSETBLUE+1))                     # range for the blase function
 DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
 CLUM = 3e5
 
@@ -151,9 +151,10 @@ palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 7                           # order polynomial in ol
 order_o = 5                            # order polynomial in o
 
-kwargs = { k: v for k, v in globals().items() if 
-    (type(v) is str or type(v) is float or type(v) is int or type(v) is list )
+kwargs = { k: v for k, v in globals().items() if '_'!=k[0] and
+    (type(v) is str or type(v) is float or type(v) is int or type(v) is list or type(v) is dict)
 }
+
 
 ## the following parameters are included into the fits files header
 PREFIX = 'HOBO_'

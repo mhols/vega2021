@@ -19,22 +19,23 @@ print('using settings from %s.py'%(settingsmodule,))
 
 # collection of CCD2d ojects (one for each thar file and for each voie)
 
-if RECOMPUTE_2D_POLYNOMIAL:
+if True: #RECOMPUTE_2D_POLYNOMIAL:
     thars = []
+
+    myext = extract.Extractor(**kwargs) # every thar gets its own extractor
 
     # generate 2-d polynomial for ThAr spectra in DATADIR
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
-        myext = extract.Extractor(**kwargs) # every thar gets its own extractor
-        myext.set_fitsfile(f_thar)
-
+        
         try:
-            snips = [ snippets.Snippets(voie=i, tharfits=f_thar) for i in [1, 2, ]]  # TODO: voie3
+            snips = [ snippets.Snippets(voie=i, tharfits=f_thar, extractor=myext, **kwargs) for i in [1, 2, ]]  # TODO: voie3
             snippets_voie = [
                 s.snippets for s in snips
-                #snippets.snippets(myext, i, ORDERS)
-                #for i in [1, 2]   # [1, 2, 3]
+                # snippets.snippets(myext, i, ORDERS)
+                # for i in [1, 2]   # [1, 2, 3]
             ]
-        except:
+        except Exception as ex:
+            print('oooooops', f_thar, ex)
             continue
 
         ccd = [
@@ -58,11 +59,9 @@ else:
 
 # computing average poly2d as new basis
 if SAVE_LAMS:
-
-    tmp = []
     for ta in thars:
         for i, c in enumerate(ta['ccd']):
-            np.savetxt(os.path.join(REFFILES, 'hobo_%s.txt'%(i+1)), 
+            np.savetxt(os.path.join(REFFILES, 'hoboe_%s_%s.txt'%(ta['fitsfile'], i+1)), 
                    c.get_lambda_list())
 
 list_of_stars = []
@@ -85,8 +84,8 @@ for d, starfits in zip(list_of_jd, list_of_stars):
 
 
     myext = thars[i]['extract']
-    poly2 = thars[i]['ccd']
     myext.set_fitsfile(starfits)
+    poly2 = thars[i]['ccd']
 
     filename = os.path.basename(starfits)
     filename = PREFIX + filename[:-8]+'st1.fits'
