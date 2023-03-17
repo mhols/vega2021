@@ -21,7 +21,10 @@ from scipy.optimize import curve_fit
 import extract
 
 ### all constants are in settings.py
-settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
+try:
+    settingsmodule = os.environ['SETTINGSMODULE']
+except:
+    raise Exception('wrong SETTINGSMODULE')
 
 try:
     exec('from %s import *'%(settingsmodule,))
@@ -212,10 +215,9 @@ def snippets(extractor,nvoie,orders):
 
 class Snippets:
 
-    def __init__(self, voie, tharfits, extractor=None, **kwargs):
+    def __init__(self, voie, extractor=None, **kwargs):
         self.kwargs = kwargs
         self.voie = voie
-        self.tharfits = tharfits
         self._atlasline = None
         self._lam=None
         self._I=None
@@ -230,7 +232,6 @@ class Snippets:
             self.extractor.set_fitsfile(self.tharfits)
         else:
             self.extractor = extractor
-            self.extractor.set_fitsfile(self.tharfits)
 
     def _prepare(self):
         self._lam={}
