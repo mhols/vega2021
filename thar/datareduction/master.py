@@ -28,7 +28,7 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
         
         try:
-            snips = [ snippets.Snippets(voie=i, tharfits=f_thar, extractor=myext, **kwargs) for i in [1, 2, ]]  # TODO: voie3
+            snips = [ snippets.Snippets(voie=i, tharfits=f_thar, extractor=myext, **kwargs) for i in [1, ]]  # TODO: voie3
             snippets_voie = [
                 s.snippets for s in snips
                 # snippets.snippets(myext, i, ORDERS)

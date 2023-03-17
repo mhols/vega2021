@@ -264,33 +264,40 @@ class Snippets:
         with open(self.kwargs['REF_ATLASLINES'], 'r') as f:
             alines = f.readlines()
 
+
         # extract information...
-        self._atlasline = np.array([float(l.split()[1]) for l in alines])
+        atlaslines =  np.array([float(l.split()[1]) for l in alines])
+        self._atlasline = atlaslines
+        self._data = pd.DataFrame({'atlas_lines': atlaslines})
         return self._atlasline
 
     def atlasext(self, o):
         """
-        the extracted
+        the extracted lines of atlas
         """
-        minlambda = np.min(self.lam[o][self.I[o]])
-        maxlambda = np.max(self.lam[o][self.I[o]])
-        indexx = np.where((minlambda < self.atlasline) & (self.atlasline < maxlambda))
+        minlambda = np.min(self.lam[o][self.I[o]])   ## min lambda of good lams in order
+        maxlambda = np.max(self.lam[o][self.I[o]])   ## max lambda of good lams in order
+
+        indexx, = np.where((minlambda < self.atlasline) & (self.atlasline < maxlambda))
         tmp = self.atlasline[indexx]
 
         ## use exclusions
         exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
         I, = np.where(exclusion[:,0] == o)
-        # exc = exclusion[I]
+        exc = exclusion[I]
 
 
         # goodlines = tmp
-        goodlines = []
-        for i in I:
-            for l in tmp:
-                if l >= exclusion[i,1] and l <= exclusion[i,2]:
-                    continue
-                goodlines.append(l)
+        #goodlines = []
+        #for i in I:
+        #    for l in tmp:
+        #        if l >= exclusion[i,1] and l <= exclusion[i,2]:
+        #            continue
+        #        goodlines.append(l)
 
+        ## excluding lines in exc
+        goodlines = [l for l in tmp 
+            if np.all( np.logical_or( l < exc[:,1], l > exc[:,2]))]
         return np.array(goodlines)
 
     @property
@@ -324,8 +331,8 @@ class Snippets:
         ratlasext=atlasext*(1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
 
         numlines=atlasext.shape[0]
-        maxi = np.zeros (numlines, dtype =  float)
-        maxir = np.zeros (numlines, dtype =  float)
+        #maxi = np.zeros (numlines, dtype =  float)
+        #maxir = np.zeros (numlines, dtype =  float)
 
         #ici on selectionne des snippets autour de chaque raie du catalogue
         #de reference. Il faut que la grille en longueur d'onde soit des le
@@ -336,23 +343,23 @@ class Snippets:
         snip = []
         prob = [] # problematic snippets
         for l,c,r in zip(latlasext,atlasext,ratlasext):
-            indext,  =  np.where((lam > l) & (lam < r))
+            indext,  =  np.where((lam >= l) & (lam <= r))
             wave=lam[indext]
             inte=flux[indext]
             bare_inte = bare_voie[indext]
 
             # selectionner que les raies du ThAr observes au dessus du seuil.
             # pour chaque raie k on determine le maximum de flux
-            distmax = 0   ## TODO: make global constant
+            distmax = 1   ## TODO: make global constant
             goodsnippet = True
             # goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
             # goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
             try:
                 goodsnippet = goodsnippet \
                     and (np.argmax(inte)>= distmax) \
-                    and (np.argmax(inte) <= inte.shape[0]-distmax)
+                    and (np.argmax(inte) <= inte.shape[0]-distmax-1)
             except:
-                pass
+                goodsnippet = False
             sni ={
                 "true_order_number": o,
                 "ref_lambda": c ,
