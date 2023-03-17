@@ -230,6 +230,7 @@ class Snippets:
             self.extractor.set_fitsfile(self.tharfits)
         else:
             self.extractor = extractor
+            self.extractor.set_fitsfile(self.tharfits)
 
     def _prepare(self):
         self._lam={}

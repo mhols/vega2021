@@ -5,7 +5,7 @@ import extract
 import os
 import re
 import pickle
-import shelve
+# import shelve
 import numpy as np
 from astropy.io import fits
 
@@ -20,17 +20,17 @@ print('using settings from %s.py'%(settingsmodule,))
 
 # collection of CCD2d ojects (one for each thar file and for each voie)
 
-store = shelve.open('store.db', writeback=True)  ## to avoid recomputation of objects...
+## store = shelve.open('store.db', writeback=True)  ## to avoid recomputation of objects...
 
-def get_ext(f_thar):
-    try:
-        myext = store['f_thar']
-        print('retrieving precomputed object for ',  f_thar)
-    except:
-        myext = extract.Extractor(**kwargs)
-        myext.set_fitsfile(f_thar)
-        store['f_thar'] = myext
-    return myext
+#def get_ext(f_thar):
+#    try:
+#        myext = pickle.load('f_thar'+'_precompute.picke', 'b')
+#        print('retrieving precomputed object for ',  f_thar)
+#    except:
+#        myext = extract.Extractor(**kwargs)
+#        myext.set_fitsfile(f_thar)
+#        store['f_thar'] = myext
+#    return myext
 
 
 if True: #RECOMPUTE_2D_POLYNOMIAL:
@@ -39,7 +39,8 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
     # generate 2-d polynomial for ThAr spectra in DATADIR
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
 
-        myext = get_ext(f_thar)
+        myext = extract.Extractor(**kwargs)
+        myext.set_fitsfile(f_thar)
         
         try:
             snips = [ snippets.Snippets(voie=i, tharfits=f_thar, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
@@ -52,7 +53,7 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
             print('oooooops', f_thar, ex)
             continue
 
-    
+
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
         ccd = [
             spectrograph.CCD2d( data=snip, **kwargs)
@@ -67,7 +68,7 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
             'extract': myext,
         })
 
-    store.close()
+    # store.close()
 
     print('store close for reuse')
     with open('thars.pickle', 'wb') as f:
