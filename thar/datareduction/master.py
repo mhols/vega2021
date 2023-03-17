@@ -25,7 +25,7 @@ store = shelve.open('store.db', writeback=True)  ## to avoid recomputation of ob
 def get_ext(f_thar):
     try:
         myext = store['f_thar']
-        print('retrieving precomputed object for ' f_thar)
+        print('retrieving precomputed object for ',  f_thar)
     except:
         myext = extract.Extractor(**kwargs)
         myext.set_fitsfile(f_thar)
