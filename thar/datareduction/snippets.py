@@ -269,7 +269,7 @@ class Snippets:
         # extract information...
         atlaslines =  np.array([float(l.split()[1]) for l in alines])
         self._atlasline = atlaslines
-        self._data = pd.DataFrame({'atlas_lines': atlaslines, 'in_atlas_sni'})
+        #self._data = pd.DataFrame({'atlas_lines': atlaslines, 'in_atlas_sni'})
         return self._atlasline
 
     def atlasext(self, o):
@@ -282,17 +282,17 @@ class Snippets:
         indexx, = np.where((minlambda < self.atlasline) & (self.atlasline < maxlambda))
         tmp = self.atlasline[indexx]
 
-        self._data['in_atlas_snippet'] \
-            = (minlambda < self._data['atlas_lines']) & (maxlambda > self._data['atlas_lines'])
+        #self._data['in_atlas_snippet'] \
+        #    = (minlambda < self._data['atlas_lines']) & (maxlambda > self._data['atlas_lines'])
 
         ## use exclusions
         exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
         I, = np.where(exclusion[:,0] == o)
         exc = exclusion[I]
 
-        self._data['excluded'] = \
-            [np.all( np.logical_or( l < exc[:,1], l > exc[:,2])) 
-             for l in self._data['atlas_lines']]
+        #self._data['excluded'] = \
+        #    [np.all( np.logical_or( l < exc[:,1], l > exc[:,2]))
+        #     for l in self._data['atlas_lines']]
 
         # goodlines = tmp
         #goodlines = []
@@ -303,7 +303,7 @@ class Snippets:
         #        goodlines.append(l)
 
         ## excluding lines in exc
-        goodlines = [l for l in tmp 
+        goodlines = [l for l in tmp
             if np.all( np.logical_or( l < exc[:,1], l > exc[:,2]))]
         return np.array(goodlines)
 

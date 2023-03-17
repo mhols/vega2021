@@ -26,9 +26,9 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
 
     # generate 2-d polynomial for ThAr spectra in DATADIR
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
-        
+
         try:
-            snips = [ snippets.Snippets(voie=i, tharfits=f_thar, extractor=myext, **kwargs) for i in [1, ]]  # TODO: voie3
+            snips = [ snippets.Snippets(voie=i, tharfits=f_thar, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
             snippets_voie = [
                 s.snippets for s in snips
                 # snippets.snippets(myext, i, ORDERS)
@@ -44,7 +44,7 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
         ]
 
         thars.append( {
-            'fitsfile':os.path.basename(f_thar), 
+            'fitsfile':os.path.basename(f_thar),
             'DATE_JUL': extract.header_info_from_fits(f_thar, 'DATE_JUL'),
             'ccd': ccd,
             'snippets': snippets_voie,
@@ -61,7 +61,7 @@ else:
 if SAVE_LAMS:
     for ta in thars:
         for i, c in enumerate(ta['ccd']):
-            np.savetxt(os.path.join(REFFILES, 'hoboe_%s_%s.txt'%(ta['fitsfile'], i+1)), 
+            np.savetxt(os.path.join(REFFILES, 'hoboe_%s_%s.txt'%(ta['fitsfile'], i+1)),
                    c.get_lambda_list())
 
 list_of_stars = []
