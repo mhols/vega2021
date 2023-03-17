@@ -1,0 +1,5 @@
+export LAMBDAFILE=../reffiles/artlambda2254correct.dat
+export SAVE_LAMS=True
+export SETTINGSMODULE=settings
+export OFFSET_LAMBDA=0
+export RECOMPUTE_2D_POLYNOMIAL=True
