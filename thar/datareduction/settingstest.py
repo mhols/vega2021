@@ -10,14 +10,18 @@ comment = {}  ## this comments will be included into the .fits document
 
 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
+REMOVECROSS = True
+SAVE_LAMS=True
 
-REMOVECROSS = int(True)
-STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
 
+
+
+STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select the starfiles"
 
 ## ----- directory layout
 BASEDIR = os.path.join(os.path.dirname(__file__), '../')  # put jour actual base path here
-DATADIR = os.path.abspath(os.path.join(BASEDIR, 'datafiles')); 
+DATADIR = os.path.abspath(os.path.join(BASEDIR, 'datafiles'));
+#DATADIR = os.path.abspath(os.path.join(BASEDIR, 'lune_raw'));
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
 
 ## ----- extractor constants
@@ -26,24 +30,25 @@ NCOLS = 4196;           comment['NCOLS'] = "number of columns"
 NCROSS = 100;           comment['NCROSS'] = "number of rows/columns in central cross"
 NROWSBLOCK = 2054   #number of rows in individual blocks
 NCOLSBLOCK = 2048   #number of cols in individual blocks
-HIGHEXP = 60
-LOWEXP = 15
+REMOVECROSS = False
+HIGHEXP = 15
+LOWEXP = 4
 CUTORDER = 35   #means that cutting flats is between 34 and 35
 ABSORPTIONHALFW = 6 # central region beteween orders
-JUMP = 2.;              comment["JUMP"] = "allowed jump for beam extraction"
+JUMP = 4.;              comment["JUMP"] = "allowed jump for beam extraction"
 SMOOTHWIDTH_BEAM = 101; comment["SMOOTHWIDTH_BEAM"] = "width of local polynomial fit"
 BACKGROUNDHW = 5                  
 VOIE1WIDTH = 18                 #right of separator
 VOIE2WIDTH = 18                 #left (redwards) of separator
 VOIE3WIDTH = 16
-FLUX_LIMIT = 500                # below, the beam extraction is discarded
+FLUX_LIMIT = 500                # (usual: 500) below, the beam extraction is discarded
 
-SHIFT_MASK_VOIE1 = list(range(1, VOIE2WIDTH + 2))
-SHIFT_MASK_VOIE2 = list(range(-VOIE1WIDTH-1, 0))        # realtive indices of extraction mask
+SHIFT_MASK_VOIE1 = range(1, VOIE2WIDTH + 2)
+SHIFT_MASK_VOIE2 = range(-VOIE1WIDTH-1, 0)        # realtive indices of extraction mask
 OFFSETRED=16
 OFFSETBLUE=16
 MEMORY_POSITION = 0.7  # memory of AR1 process for line following
-BLAZE_RANGE = list(range(-OFFSETRED, OFFSETBLUE+1))                     # range for the blase function
+BLAZE_RANGE = range(-OFFSETRED, OFFSETBLUE+1)                     # range for the blase function
 DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
 CLUM = 3e5
 
@@ -114,14 +119,15 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
     55:2885,
     56:2984,
     57:3086,}
+    
     # 58:3192,} TODO make snipets not to break ...
     # 59:3302}  TODO make robust for empty beams
 
 ORDERS = list(CENTRALPOSITION.keys())
-LAMBDAFILE = os.environ.get('LAMBDAFILE', 
-            os.path.join(REFFILES, 'hobo.txt'))  # TODO to be removed....
-OFFSET_LAMBDA = 0
-SAVE_LAMS = os.environ.get('SAVE_LAMS', 'False') == 'True'
+#ORDERS=range(21,57)
+#LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
+#LAMBDAFILE = os.path.join(REFFILES, 'hobolambda1improved.dat')  # TODO to be removed....
+
 
 
 ## ------ snippet constants
@@ -129,13 +135,14 @@ REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
-SEUIL = 0.2 * ADU   # seuil en ADU 
+SEUIL = 1500   # seuil en ADU 
 SEUILR = 800.
-VRANGE = 9.0 * KM/S      # vrange in km/s
+VRANGE = 13.0 * KM/S      # vrange in km/s
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
 voie_method = VOIE_METHOD
+datadir = DATADIR
 n_bootstrap = 3                        # number of bootstrap experiments
 profile = 'gauss'                      # fit profile for bootstrap estimate of centroid
 loss_function = 'loss_1'               # weighted L2-loss for bootstrap estimate of centroid
@@ -151,10 +158,9 @@ palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 7                           # order polynomial in ol
 order_o = 5                            # order polynomial in o
 
-kwargs = { k: v for k, v in globals().items() if '_'!=k[0] and
-    (type(v) is str or type(v) is float or type(v) is int or type(v) is list or type(v) is dict)
+kwargs = { k: v for k, v in globals().items() if 
+    (type(v) is str or type(v) is float or type(v) is int or type(v) is list )
 }
-
 
 ## the following parameters are included into the fits files header
 PREFIX = 'HOBO_'
