@@ -54,6 +54,7 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
             continue
 
         store.save()
+
         ccd = [
             spectrograph.CCD2d( data=snip, **kwargs)
                 for snip in snippets_voie
