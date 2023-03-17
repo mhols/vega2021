@@ -52,7 +52,7 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
             print('oooooops', f_thar, ex)
             continue
 
-    store.close()
+    
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
         ccd = [
             spectrograph.CCD2d( data=snip, **kwargs)
