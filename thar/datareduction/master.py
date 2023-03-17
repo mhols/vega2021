@@ -5,7 +5,6 @@ import extract
 import os
 import re
 import pickle
-import shelve
 import numpy as np
 from astropy.io import fits
 
