@@ -16,8 +16,10 @@ from matplotlib import cm
 #matplotlib.rcParams['figure.dpi'] = 200
 
 ### all constants are in settings.py
-settingsmodule = os.environ.get('SETTINGSMODULE', 'settings')
-
+try:
+    settingsmodule = os.environ['SETTINGSMODULE']
+except:
+    raise Exception('wrong SETTINGSMODULE')
 try:
     exec('from %s import *'%(settingsmodule,))
 except:
