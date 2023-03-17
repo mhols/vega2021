@@ -225,8 +225,11 @@ class Snippets:
 
         self.ORDERS = kwargs['ORDERS']
         self.NROWS = kwargs['NROWS']
-        self.extractor = extractor if not extractor is None else extract.Extractor(**kwargs)
-        self.extractor.set_fitsfile(self.tharfits)
+        if extractor is None:
+            self.extractor = extract.Extractor(**kwargs)
+            self.extractor.set_fitsfile(self.tharfits)
+        else:
+            self.extractor = extractor
 
     def _prepare(self):
         self._lam={}

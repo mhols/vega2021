@@ -11,6 +11,7 @@ from scipy.interpolate import UnivariateSpline, bisplrep, bisplev
 from scipy.signal import convolve2d
 from numpy.polynomial import Polynomial
 import pandas as pd
+import shelve
 
 ### all constants are in settings.py
 # SETTINGSMODULE = os.environ.get('SETTINGSMODULE', 'settings')
