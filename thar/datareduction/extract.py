@@ -7,11 +7,12 @@ import os
 import sys
 from scipy.ndimage import minimum_filter1d, generic_filter
 from scipy.optimize import curve_fit
-from scipy.interpolate import UnivariateSpline, bisplrep, bisplev
+from scipy.interpolate import interp1d, UnivariateSpline, bisplrep, bisplev
 from scipy.signal import convolve2d
 from numpy.polynomial import Polynomial
 import pandas as pd
 import shelve
+from astropy.utils.decorators import lazyproperty
 
 ### all constants are in settings.py
 # SETTINGSMODULE = os.environ.get('SETTINGSMODULE', 'settings')
@@ -154,7 +155,7 @@ def getallbiasfits(dirname):
 
 def getallthoriumfits(dirname):
     for f in listallfits(dirname):
-        if is_thorium(f):
+        if is_thorium(f) and f.endswith('_th0.fits'):
             yield f
 
 def getallstarfits(dirname, name=''):
@@ -466,19 +467,19 @@ class Extractor:
         dir: path to folder containing all fits files
 
         """
-        self._restart()
+        self._total_reset()
         self.kwargs = kwargs
         self._fitsfile = fitsfile
-        # all properties can be lasily evaluated
         self.ORDERS = kwargs['ORDERS']
         self.NROWS = kwargs['NROWS']
         self.CENTRALROW = kwargs['CENTRALROW']
 
+        # all properties can be lasily evaluated
+        # self._lazy = []
         # masterflat and masterbias can be computed or passed
         self._masterflat = kwargs.get('masterflat', None)
         self._masterbias = kwargs.get('masterbias', None)
         self._beams = None
-        self._order_bounds = None
         self._Blaze = None
 
     def logging(self, message):
@@ -490,10 +491,17 @@ class Extractor:
         self._bare_image = None
         self._voie1 = None
         self._voie2 = None
+
+    def _total_reset(self):
+        self._restart()
         self._flat_voie1 = None
         self._flat_voie2 = None
         self._bias_voie1 = None
         self._bias_voie2 = None
+
+        #for a in self._lazy:
+        #    del a
+        # self._lazy = []
 
     def get_fitsfile(self):
         """
@@ -548,6 +556,17 @@ class Extractor:
     def bias_voie2(self, o):
         return self.beams[o].beam_sum_voie2(self.masterbias) 
 
+
+    @lazyproperty
+    def pix_to_lambda_map(self):
+        tmp = { o: interp1d(np.arange(self.NROWS), get_lambda(o, **self.kwargs)) 
+                for o in self.ORDERS }
+        return tmp
+    
+    def lam_to_o(self, lam):
+        return [ o for o in self.ORDERS if 
+                self.pix_to_lambda_map[o](0) <= lam and lam <= self.pix_to_lambda_map[o](self.NROWS-1)]
+
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
         return get_lambda(o, **self.kwargs), self.voie1[o], I
@@ -562,6 +581,7 @@ class Extractor:
     
     def _compute_voie1et2(self):
         choice =  self.kwargs['VOIE_METHOD']
+        print("fitsfile is ", self._fitsfile)
         print("choice for voie is ", choice)
         if choice == 'SUM_DIVIDE':
             self._voie1 = {
@@ -651,11 +671,75 @@ class Extractor:
         return np.array(res)
 
     def bare_voie1(self, o):
-        return self.beams[o].beam_sum_voie1(self.image)
+        v = self.beams[o].beam_sum_voie1(self.image)
+        v[np.isnan(v)] = 0
+        return v
 
     def bare_voie2(self, o):
-        return self.beams[o].beam_sum_voie2(self.image)
+        v = self.beams[o].beam_sum_voie1(self.image)
+        v[np.isnan(v)] = 0
+        return v
 
+    def bare_voie3(self, o):
+        return [0] # TODO
+
+    @lazyproperty
+    def ba_voie1(self):
+        if not hasattr(self, '_ba_voie1') or self._ba_voie1 is None:
+            self._ba_voie1 = {o: self.bare_voie1(o) for o in self.ORDERS}  
+        return self._ba_voie1
+
+    @lazyproperty    
+    def ba_voie2(self):
+        return {o: self.bare_voie2(o) for o in self.ORDERS}
+
+    @lazyproperty    
+    def ba_voie3(self):
+        return {o: self.bare_voie3(o) for o in self.ORDERS}
+  
+    def _lines(self, v):
+        NMAX_LINES = 300 # maximal number of lines to extract
+        lm = util.local_maxima(v)
+        bs = []
+        for i,xab in enumerate ( lm[:min(NMAX_LINES, len(lm))]):
+            x, a, b = xab
+            s = v[np.arange(a,b+1)]
+            m, st= util.bootstrap_estimate_location(s, **self.kwargs)
+            bs.append( { 
+                'index_pixel_snippet': i, 
+                'posmax': x,
+                'left': a, 
+                'right': b, 
+                'pixel_mean': a+m, 
+                'pixel_std' : st,
+                'pixel_sum_intens': np.sum(s),
+                'pixel_max_intens': v[x]
+            })
+        return pd.DataFrame(bs)
+
+    @lazyproperty
+    def lines_voie1(self):
+        self.logging('estimating locations voie1')
+        res ={}
+        for i, o in enumerate(self.ORDERS):
+            util.progress(i, len(self.ORDERS))
+            res[o] =self._lines(self.ba_voie1[o])
+        return res
+        #return {o: self._lines(self.ba_voie1[o]) for o in self.ORDERS}
+
+    @lazyproperty
+    def lines_voie2(self):
+        self.logging('estimating locations voie2')
+        res = {}
+        for i, o in enumerate(self.ORDERS):
+            util.progress(i, len(self.ORDERS))
+            res[o] = self._lines(self.ba_voie2[o])
+        return res
+
+    @lazyproperty
+    def lines_voie3(self):
+        return {o: self._lines(self.ba_voie3[o]) for o in self.ORDERS}
+             
     def _compute_masterflat(self, dirname):
         """
         Bias removed flat

@@ -103,18 +103,33 @@ function_map = {
 
 
 def bootstrap_estimate_location(intens, **kwargs):
+    if np.any(np.isnan(intens)):
+        return np.NaN, np.NaN
+
+    if len(intens) == 0:
+        return np.NaN, np.NaN
+    if len(intens) == 1:
+        return 0,  np.NaN
     g = function_map[kwargs['profile']]
     size = kwargs['n_bootstrap']
         
     fun = function_map[kwargs['loss_function']]
     intens = intens - min(0, np.min(intens))
     if size <= 1:
-        return estimate_location(intens, fun, g)[1], np.sqrt(sum(intens))
-     
+        try:
+            return estimate_location(intens, fun, g)[1], np.sqrt(np.sum(intens))
+        except:
+            return np.NaN, np.NaN
+    
     p = intens / np.sum(intens)
 
     n = int(np.sum(intens))
-    intens = np.random.multinomial(n, p, size)
+    try:
+        intens = np.random.multinomial(n, p, size)
+    except Exception as ex:
+        print (ex)
+        return np.NaN, np.NaN
+
     res = [ estimate_location(inte, fun, g)[1] for inte in intens]
 
     return np.mean(res), np.std(res)
@@ -180,7 +195,36 @@ def pseudo_inverse(x, increasing=True):
         tmp = -tmp
     return tmp
 
-    
+def local_maxima(vv):
+    """
+    top down detection of local maxima
+    """
+    v = np.array(vv)
+
+    lm = []
+    n = len(v)
+    progress = True
+    low = 0
+    up = n-1
+    while(progress):
+        oldsum = np.sum(v)
+        i = np.argmax(v)
+        for j in range(i, 0, -1):
+            if v[j] > v[j-1]:
+                v[j] = 0
+            else:
+                low = j-1
+                break
+        for j in range(i+1, n-1):
+            if v[j] > v[j+1]:
+                v[j] = 0
+            else:
+                up = j
+                break
+        lm.append([i, low, up])
+        v[i] = 0
+        progress = np.sum(v) < oldsum
+    return np.array(lm)
 
 
 # The MIT License (MIT)
@@ -213,6 +257,7 @@ def progress(count, total, status=''):
 
     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
     sys.stdout.flush()  # As suggested by Rom Ruben (see: http://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console/27871113#comment50529068_27871113)
+
 
 
 if __name__ == '__main__':

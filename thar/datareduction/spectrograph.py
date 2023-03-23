@@ -12,7 +12,9 @@ import matplotlib
 ## matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import cm
-
+import cvxopt as cx
+from cvxopt.blas import dot
+from cvxopt.solvers import qp
 #matplotlib.rcParams['figure.dpi'] = 200
 
 ### all constants are in settings.py
@@ -136,30 +138,28 @@ class CCD2d:
     """
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
-    def __init__(self, data=None, **kwargs):
+    def __init__(self, data, mdata=None, **kwargs):
         self.kwargs = kwargs  # saving for later use
-        if data is None:
-            try:
-                data = pd.DataFrame(pd.read_json(kwargs['datafile']))
-            except:
-                raise Exception('could not read datafile. Does it exist ?')
-        
-        self._data = data
-
+       
+        self._data = data     # reference data
+        self._mdata = mdata   # matching data
         self._data['selected'] = True # we are using only this subset
-        total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['flux_values_extract']])
+        self._mdata['selected'] = True # matching data
+        total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
         self._data['total_flux'] = total_flux
 
         #if self.kwargs.get('bootstrap_data', 'True')=='True':
-        self.bootstrap_data()
+        # self.bootstrap_data()
 
-        # basic outlier removal / quality filter
         self._map_1D_x_ol_o = None
         self._map_1D_ol_x_o = None
         self._map_2D_x_ol_o = None
         self._map_2D_ol_x_o = None
         
+        # basic outlier removal / quality filter
+        print('before outlier removal', self.ndata)
         self._outlier_removal()
+        print('after outlier removal left ', self.ndata)
         self.sigma_clipping()
         
         
@@ -364,18 +364,16 @@ class CCD2d:
 
         self._report_fitresult()
 
-    # def _delta_lam_over_lam_factor(self, l, o):
-    #     """
-    #     """
-    #     dl / l = (dl / dx) * x / l * dx = (dx / dl)^{-1} * x / l * dx
-    #     at o we have x = p(ol) => dx/dl = p'(ol) * o
-    #     returns (dx / dl)^{-1} * x / l 
-    #     """
-    #     p = self.polynomial_fit[o]
-    #     dp = p.deriv()
-    #     x = p(o*l)
-    #     factor = (o * dp(o*l))**(-1) * x / l
-    #     return factor
+    def delta_lam_over_lam_factor(self, l, o):
+        """
+        dl / l = (dl / dx)  dx / l = ((dx / dl)^{-1} / l) * dx
+        at o we have x = p(ol) => dx/dl = p'(ol) * o
+        returns (dx / dl)^{-1} * x / l 
+        """
+        p = self.polynomial_fit[o]
+        dp = p.deriv(1)
+        factor = (o * dp(o*l))**(-1) / l
+        return self.kwargs['C_LIGHT'] * factor
 
 
     # def delta_radial_velocity_model(self):
@@ -460,7 +458,7 @@ class CCD2d:
 
     @property
     def _x(self):
-       return self._data['new_mean_pixel_pos']
+       return self._data['pixel_mean']
 
     @property
     def _l(self):
@@ -476,16 +474,39 @@ class CCD2d:
 
     @property
     def _sigma(self):
-        return self._data['sigma_new_mean']    
+        return self._data['pixel_std']    
+
+    @property
+    def _mx(self):
+       return self._mdata['pixel_mean']
+
+    @property
+    def _ml(self):
+        return self._mdata['ref_lambda'] 
+
+    @property
+    def _mo(self):
+        return self._mdata['true_order_number_o']
+
+    @property
+    def _moo(self):
+        return self._mdata['true_order_number_oo']
+
+    @property
+    def _msigmao(self):
+        return self._data['pixel_std_o']    
+
+    @property
+    def _msigmaoo(self):
+        return self._data['pixel_std_oo']    
 
     @property
     def x(self):
-        return self._data['new_mean_pixel_pos'][self._data['selected']]
+        return self._data['pixel_mean'][self._data['selected']]
         
-
     @property
     def sigma(self):
-        return self._data['sigma_new_mean'][self._data['selected']]
+        return self._data['pixel_std'][self._data['selected']]
 
     @property
     def l(self):
@@ -626,12 +647,10 @@ class CCD2d:
         for o in orders:
             I = self.index_order(o)
             try:
-                if sum(I)<n+1:
-                    raise Exception('not enough points for fit in order')
                 res[o] = np.polynomial.chebyshev.Chebyshev.fit(
                     self.ol[I], self.x[I],
                     domain=domain,
-                    deg=n,
+                    deg=min(n, max(0, len(I)-1)),
                     w = weight[I]
                 )
             except Exception as ex:
@@ -644,18 +663,30 @@ class CCD2d:
         """
         # computes a polynomial proxy
         """
-        ENLARGEMENT_FACTOR = 1.01
+        ENLARGEMENT_FACTOR = 1.1
 
         Nol = self.kwargs['order_ol']+1
         No  = self.kwargs['order_o'] +1
 
-        o = self.o
-        l = self.l
+        o = self.o.to_numpy()
+        l = self.l.to_numpy()
+        x = self.x.to_numpy()
+        s = weight
+
+        mo = self.mo.to_numpy()
+        moo = self.moo.to_numpy()
+        mx = self.mx.to_numpy()
+        mxx = self.mxx.to_numpy()        
 
         olrange = [(o*l).min() / ENLARGEMENT_FACTOR, (o*l).max() * ENLARGEMENT_FACTOR]
         orange = [o.min(), o.max()]
+
+        mxrange = [-200, self.kwargs['NORDER']+200]
+
+
         nolko = [(n, k) for n in range(Nol) for k in range(No)]
 
+        ## preparing basis functions for P(ol,o)
         Tshebol = [np.polynomial.chebyshev.Chebyshev.basis(
                     window=[-1,1],
                     domain=olrange,
@@ -667,18 +698,62 @@ class CCD2d:
                     deg=n) for n in range(No)]
 
         G = np.zeros((self.ndata, len(nolko)))
-        o = self.o.to_numpy()
-        l = self.l.to_numpy()
-        x = self.x.to_numpy()
-        s = weight
+
         s = np.sqrt(s**2 + self.kwargs['sigma_min']**2)
 
         for i in range(self.ndata):
             for j, (nol, no) in enumerate(nolko):
                 G[i,j] = Tshebol[nol](o[i]*l[i]) * Tshebo[no](o[i])
 
-        G = (1./ s)[:, np.newaxis] * G
-        coeffs = np.linalg.lstsq(G, (1./s) * x, rcond=None)[0]
+        #G = (1./ s)[:, np.newaxis] * G
+        #xs = (1./s) * x
+        ### preparing matrix for pixel map
+
+        TshebolF = [np.polynomial.chebyshev.Chebyshev.basis(
+                    window=[-1,1],
+                    domain=mxrange,
+                    deg=n) for n in range(2)] 
+
+        TsheboF = [np.polynomial.chebyshev.Chebyshev.basis(
+                    window=[-1,1],
+                    domain=orange,
+                    deg=n) for n in range(10)]
+        
+        enumbasis = [ (n, m) for n in range(2) for m in range(10)]        
+        basis = [ lambda x, o: TshebolF[n](x) * TsheboF[m](o) for n,m in enumbasis]
+
+        H = np.zeros((self.ndata, len(enumbasis)))
+        for j, b in enumerate(enumbasis):
+            H[:,j] = -b(x, o)
+        
+        L = np.zeros((self.noverlap, len(enumbasis)))
+        for j, b in enumerate(enumbasis):
+            L[:, j] = b(mx, mo) - b(mxx, moo)
+
+        o0 = int(np.median(self.kwargs['ORDERS'])) ## central order
+        I0 = self.mdata['true_order_number'] == o0
+
+        A = np.zeros((np.count_nonzero(I0), len(enumbasis)))
+        for j, b in enumerate(enumbasis):
+            A[:,j] = b(mx[I0], o0)
+        A = cx.matrix(A)
+
+        Xi = np.row_stack(np.column_stack( G, -H ), 
+                          np.column_stack( np.zeros((self.noverlap, len(nolko))), L ))
+        sig = np.column_stack(1./s, np.full(1e4, len(enumbasis)))
+        Xi = sig[:,None] * Xi
+        Xi = np.dot(Xi.T, Xi)
+        Xi = cx.matrix(Xi)
+
+        nab = len(nolko) + len(enumbasis)
+        coeffs = qt( Xi, cx.matrix(0., (1,nab)),   ## quadratic cost function
+            cx.matrix(0., (1, nab)), cx.matrix(0, (1,1)), # lienear inequality
+            A, b)['x']                        ## linear constraint
+
+
+
+
+        coeffs = np.linalg.lstsq(G, xs, rcond=None)[0]
 
         ## compute restriction to each order of 2d polynomial
         res = {

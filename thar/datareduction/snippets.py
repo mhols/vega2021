@@ -224,6 +224,7 @@ class Snippets:
         self._flux=None
         self._bare_voie=None
         self._snippets=None
+        self._lines_voie=None
 
         self.ORDERS = kwargs['ORDERS']
         self.NROWS = kwargs['NROWS']
@@ -238,18 +239,22 @@ class Snippets:
         self._I={}
         self._flux={}
         self._bare_voie={}
+        self._lines_voie={}
 
         for o in self.kwargs.get('ORDERS', self.ORDERS):
 
             if self.voie == 1:
                 lam, _flux, I = self.extractor.get_lambda_intens1(o)
-                bare_voie = self.extractor.bare_voie1(o)
+                bare_voie = self.extractor.ba_voie1[o]
+                lines_voie = self.extractor.lines_voie1[o]
             elif self.voie == 2:
                 lam, _flux, I = self.extractor.get_lambda_intens2(o)
-                bare_voie = self.extractor.bare_voie2(o)
+                bare_voie = self.extractor.ba_voie2[o]
+                lines_voie = self.extractor.lines_voie2[o]
             elif self.voie == 3:
                 lam, _flux, I = self.extractor.get_lambda_intens3(o)
-                bare_voie = self.extractor.bare_voie3(o)
+                bare_voie = self.extractor.ba_voie3[o]
+                lines_voie = self.extractor.lines_voie3[o]
             else:
                 raise Exception('no such voie')
 
@@ -261,6 +266,7 @@ class Snippets:
             self._I[o] = I
             self._flux[o] = flux
             self._bare_voie[o] = bare_voie
+            self._lines_voie[o] = lines_voie
 
     @property
     def atlasline(self):
@@ -272,9 +278,9 @@ class Snippets:
 
 
         # extract information...
-        atlaslines =  np.array([float(l.split()[1]) for l in alines])
-        self._atlasline = atlaslines
-        #self._data = pd.DataFrame({'atlas_lines': atlaslines, 'in_atlas_sni'})
+        atlaslines =  [float(l.split()[1]) for l in alines]
+        # self._atlasline = atlaslines
+        self._atlasline = pd.DataFrame({'atlas_line': pd.Series(atlaslines)})
         return self._atlasline
 
     def atlasext(self, o):
@@ -284,14 +290,16 @@ class Snippets:
         minlambda = np.min(self.lam[o][self.I[o]])   ## min lambda of good lams in order
         maxlambda = np.max(self.lam[o][self.I[o]])   ## max lambda of good lams in order
 
-        indexx, = np.where((minlambda < self.atlasline) & (self.atlasline < maxlambda))
+        indexx = (minlambda < self.atlasline['atlas_line']) & (self.atlasline['atlas_line'] < maxlambda)
         tmp = self.atlasline[indexx]
 
         #self._data['in_atlas_snippet'] \
         #    = (minlambda < self._data['atlas_lines']) & (maxlambda > self._data['atlas_lines'])
 
         ## use exclusions
+
         exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
+
         I, = np.where(exclusion[:,0] == o)
         exc = exclusion[I]
 
@@ -308,9 +316,13 @@ class Snippets:
         #        goodlines.append(l)
 
         ## excluding lines in exc
-        goodlines = [l for l in tmp
-            if np.all( np.logical_or( l < exc[:,1], l > exc[:,2]))]
-        return np.array(goodlines)
+        #goodlines = [l for l in tmp
+        #    if np.all( np.logical_or( l < exc[:,1], l > exc[:,2]))]
+        
+        j = pd.Series(True, index=tmp.index)
+        for e in exc:
+            j = j & ( (tmp['atlas_line'] < e[1]) | (tmp['atlas_line'] > e[2]) )
+        return tmp[j]
 
     @property
     def flux(self):
@@ -331,6 +343,12 @@ class Snippets:
         return self._bare_voie
 
     @property
+    def lines_voie(self):
+        if self._lines_voie is None:
+            self._prepare()
+        return self._lines_voie
+    
+    @property
     def I(self):
         if self._I is None:
             self._prepare()
@@ -339,63 +357,90 @@ class Snippets:
     def _snippet(self, o):
 
         atlasext = self.atlasext(o)
-        latlasext=atlasext*(1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
-        ratlasext=atlasext*(1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
-
-        numlines=atlasext.shape[0]
-        #maxi = np.zeros (numlines, dtype =  float)
-        #maxir = np.zeros (numlines, dtype =  float)
-
-        #ici on selectionne des snippets autour de chaque raie du catalogue
-        #de reference. Il faut que la grille en longueur d'onde soit des le
-        #depart suffisamment bonne pour que la raie observee tombe dans le snippet
-        lam = self.lam[o]
-        flux = self.flux[o]
         bare_voie = self.bare_voie[o]
-        snip = []
-        prob = [] # problematic snippets
-        for l,c,r in zip(latlasext,atlasext,ratlasext):
-            indext,  =  np.where((lam >= l) & (lam <= r))
-            wave=lam[indext]
-            inte=flux[indext]
-            bare_inte = bare_voie[indext]
+        lines_voie = self.lines_voie[o]
 
-            # selectionner que les raies du ThAr observes au dessus du seuil.
-            # pour chaque raie k on determine le maximum de flux
-            distmax = 1   ## TODO: make global constant
-            goodsnippet = True
-            # goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
-            # goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
-            try:
-                goodsnippet = goodsnippet \
-                    and (np.argmax(inte)>= distmax) \
-                    and (np.argmax(inte) <= inte.shape[0]-distmax-1)
-            except:
-                goodsnippet = False
+        lams = self.extractor.pix_to_lambda_map[o](lines_voie['pixel_mean'].values)
+
+        snips = []
+        for ic, c in atlasext.itertuples():
+
+
+            l = (1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT']) * c
+            r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT']) * c
+            
+            I, = np.where( np.logical_and ( l <= lams, lams <= r))
+            goodlam = len(I) == 1 ## exacly one peak in interval
+            goodlam = goodlam and True ## SEUIL in extract TODO
+
+            if not goodlam:
+                continue
+
+            i = I[0]
+
+            a = lines_voie['left'].loc[i]
+            b = lines_voie['right'].loc[i]
             sni ={
                 "true_order_number": o,
                 "ref_lambda": c ,
-                "pixels_extract": indext,
-                "pixel_mean" : np.mean(indext),
-                "wave": wave,
-                "reduced_flux_values_extract": inte,
-                "flux_values_extract" : bare_inte,
-            }
-            if goodsnippet:
-                snip.append(sni)
-            else:
-                prob.append(sni)
-        return snip, prob
+                "pixel_mean": lines_voie['pixel_mean'].loc[i],
+                "pixel_std": lines_voie['pixel_std'].loc[i],
+                "pixel_left": lines_voie['left'].loc[i],
+                "pixel_right": lines_voie['right'].loc[i],
+                "bare_voie": bare_voie[a:b+1], 
+                "catalog_index": ic,
+                }
+            snips.append(sni)
+        return snips
+
 
     @property
     def snippets(self):
         if self._snippets is None:
-            tmp = [ pd.DataFrame(self._snippet(o)[0])
+            tmp = [ pd.DataFrame(self._snippet(o))
                 for o in self.kwargs['ORDERS']
             ]
             self._snippets = pd.concat(tmp, ignore_index=True, axis=0)
         return self._snippets
 
+    @property
+    def overlapping_snippets(self):
+        tmp = []
+        for o, oo in zip(self.kwargs['ORDERS'][:-1], self.kwargs['ORDERS'][1:]):
+            pp1 = self.lines_voie[o]['pixel_mean']
+            pp2 = self.lines_voie[oo]['pixel_mean']
+
+
+            p1 = self.extractor.pix_to_lambda_map[o](pp1)
+            p2 = self.extractor.pix_to_lambda_map[oo](pp2)
+
+            # TODO add global constant
+            f = 0.2*self.kwargs['VRANGE']/self.kwargs['C_LIGHT']
+
+            d = abs(p1[:, np.newaxis]-p2[np.newaxis,:])
+
+            mm = (d < f*p1[:,np.newaxis])  &  (d < f * p2[np.newaxis,:])
+            mm = mm & (np.count_nonzero(mm, axis=1)==1)[:, np.newaxis] & (np.count_nonzero(mm, axis=0)==1)[np.newaxis, :]
+            I, J = np.where( mm )
+
+            tmp.append(pd.DataFrame({
+                'true_order_number_o': o,
+                'true_order_number_oo': oo,
+                'index_line_o':  I,
+                'index_line_oo': J,
+                'pixel_mean_o' :pp1.values[I],
+                'pixel_mean_oo': pp2.values[J],
+                'pixel_std_o': self.lines_voie[o]['pixel_std'].values[I],
+                'pixel_std_oo': self.lines_voie[oo]['pixel_std'].values[J]
+                }
+            ))
+
+        return pd.concat(tmp).reset_index(drop=True)
+
+
 if __name__ == "__main__":
     import os
-    snip = Snippets(voie=1, tharfits=os.path.join(DATADIR,'NEO_20200202_173811_th0.fits'), **kwargs)
+    import regal
+    store = regal.Store()
+    myext = store.get('/home/hols/vega2021/thar/lune_raw/NEO_20200202_173811_th0.fits')
+    snip = Snippets(voie=1, extractor=myext, **kwargs)
