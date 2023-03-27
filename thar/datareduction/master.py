@@ -35,23 +35,23 @@ def get_ext(f_thar):
     return myext
 
 
-if True: #RECOMPUTE_2D_POLYNOMIAL:
+if RECOMPUTE_2D_POLYNOMIAL:
     thars = []
 
     # generate 2-d polynomial for ThAr spectra in DATADIR
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
 
         myext = get_ext(f_thar) 
-        # try
-        snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
-        snippets_voie = [
-        s.snippets for s in snips
+        try:
+            snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
+            snippets_voie = [
+                s.snippets for s in snips
                 # snippets.snippets(myext, i, ORDERS)
                 # for i in [1, 2]   # [1, 2, 3]
             ]
-        #except Exception as ex:
-        #    print('oooooops', f_thar, ex)
-        #    continue
+        except Exception as ex:
+            print('oooooops', f_thar, ex)
+            continue
 
         store.save()
 
@@ -68,8 +68,9 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
             'extract': myext,
         })
 
-
+        store.save()
     print('store close for reuse')
+
     with open('thars.pickle', 'wb') as f:
         pickle.dump(thars, f)
 else:
