@@ -45,9 +45,52 @@ OFFSETBLUE=16
 MEMORY_POSITION = 0.7  # memory of AR1 process for line following
 BLAZE_RANGE = list(range(-OFFSETRED, OFFSETBLUE+1))                     # range for the blase function
 DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
-CLUM = 3e5
 
-## ----- unities 
+from settings import kwargs as kwargsref
+REFKWARGS = kwargsref
+REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
+REFLOWEXP = 15
+REFCENTRALPOSITION = {  ### TODO: move to reffiles...
+    21: 824,
+    22: 866,
+    23: 907,
+    24: 948,
+    25: 990,
+    26:1032,
+    27:1074,
+    28:1117,
+    29:1161,
+    30:1206,
+    31:1252,
+    32:1299,
+    33:1347,
+    34:1398,
+    35:1449,
+    36:1501,
+    37:1555,
+    38:1611,
+    39:1669,
+    40:1728,
+    41:1789,
+    42:1852,
+    43:1918,
+    44:1985,
+    45:2054,
+    46:2126,
+    47:2200,
+    48:2276,
+    49:2355,
+    50:2436,
+    51:2520,
+    52:2606,
+    53:2697,
+    54:2789,
+    55:2885,
+    56:2984,
+    57:3086,}
+
+
+## ----- units 
 M = 1.0         # Meter
 S = 1.0         # Second
 PIXEL = 1       # Pixel unit
@@ -76,6 +119,8 @@ OFFSETCOL: same for column
 """
 
 CENTRALROW = 2161
+ESTIMATE_CENTRALPOSITION = str(True)
+"""
 CENTRALPOSITION = {  ### TODO: move to reffiles...
     21: 849,
     22: 891,
@@ -118,6 +163,7 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
     # 59:3302}  TODO make robust for empty beams
 
 ORDERS = list(CENTRALPOSITION.keys())
+"""
 #LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
 
 LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.dat') ) # TODO to be removed....

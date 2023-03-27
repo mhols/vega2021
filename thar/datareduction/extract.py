@@ -89,7 +89,7 @@ def secondpoly(xx,yy):
 def load_image_from_fits(fitsfile, **kwargs):
     REMOVECROSS=kwargs['REMOVECROSS']==int(True)
     a=pyfits.open(fitsfile)
-    print('fitsfile ', fitsfile)
+    # print('fitsfile ', fitsfile)
     image = np.clip(a[0].data,-100,65535)
     a.close()
     if REMOVECROSS:
@@ -301,14 +301,14 @@ class BeamOrder:
     DELTA_BEAM_INTERP = 10
     DEGREE_BEAM_INTERP = 4
 
-    def __init__(self, order, masterflat, final=False, **kwargs):
+    def __init__(self, order, masterflat, centralposition, final=False, **kwargs):
         self._masterflat = masterflat
         self.kwargs = kwargs
         self._order = order
         self.NROWS = kwargs['NROWS']
         self.CENTRALROW = kwargs['CENTRALROW']
         self.NROWS = kwargs['NROWS']
-        self.CENTRALPOSITION = kwargs['CENTRALPOSITION']
+        self.CENTRALPOSITION = centralposition #self.kwargs.get('CENTRALPOSITION')
         self.NCROSS = kwargs['NCROSS']
         self.SHIFT_MASK_VOIE1 = kwargs['SHIFT_MASK_VOIE1']
         self.SHIFT_MASK_VOIE2 = kwargs['SHIFT_MASK_VOIE2']
@@ -443,13 +443,13 @@ class BeamOrder:
             self._evaluator(x), 0)
 
 
-def beamfit(image, order, extractor=None, **kwargs):
-    CENTRALPOSITION = kwargs['CENTRALPOSITION']
-    CENTRALROW = kwargs['CENTRALROW']
-    NROWS = kwargs['NROWS']
+#def beamfit(image, order, extractor, **kwargs):
+#    CENTRALPOSITION = extractor.CENTRALPOSITION
+#    CENTRALROW = kwargs['CENTRALROW']
+#    NROWS = kwargs['NROWS']
 
-    y = followorder(image, CENTRALPOSITION[order], CENTRALROW)
-    return BeamOrder(order, np.arange(NROWS), y, extractor=extractor, **kwargs)
+#    y = followorder(image, CENTRALPOSITION[order], CENTRALROW)
+#    return BeamOrder(order, np.arange(NROWS), y, extractor=extractor, **kwargs)
 
 class Extractor:
     """
@@ -470,8 +470,6 @@ class Extractor:
         self._total_reset()
         self.kwargs = kwargs
         self._fitsfile = fitsfile
-        self.ORDERS = kwargs['ORDERS']
-        self.NROWS = kwargs['NROWS']
         self.CENTRALROW = kwargs['CENTRALROW']
 
         # all properties can be lasily evaluated
@@ -481,7 +479,8 @@ class Extractor:
         self._masterbias = kwargs.get('masterbias', None)
         self._beams = None
         self._Blaze = None
-
+        self.NROWS = kwargs['NROWS']
+ 
     def logging(self, message):
         print('Extractor: ' + message)
 
@@ -520,6 +519,10 @@ class Extractor:
 
     def loadimage(self):
         return load_image_from_fits(self.fitsfile, **self.kwargs)
+
+    @property
+    def ORDERS(self):
+        return self.CENTRALPOSITION.keys()
 
     @property
     def bare_image(self):
@@ -739,7 +742,17 @@ class Extractor:
     @lazyproperty
     def lines_voie3(self):
         return {o: self._lines(self.ba_voie3[o]) for o in self.ORDERS}
-             
+
+
+    @property
+    def masterflat_high(self):
+        return meanfits(*getallflatfits(self.kwargs['DATADIR'],self.kwargs['HIGHEXP']), **self.kwargs)
+
+    @property
+    def masterflat_low(self):
+        return meanfits(*getallflatfits(self.kwargs['DATADIR'],self.kwargs['LOWEXP']), **self.kwargs)
+
+
     def _compute_masterflat(self, dirname):
         """
         Bias removed flat
@@ -748,11 +761,11 @@ class Extractor:
         LOWEXP = self.kwargs['LOWEXP']
         CUTORDER = self.kwargs['CUTORDER']
 
-        high = meanfits(*getallflatfits(dirname,HIGHEXP), **self.kwargs)
-        low = meanfits(*getallflatfits(dirname,LOWEXP), **self.kwargs)
+        high = self.masterflat_high
+        low = self.masterflat_low
 
-        self.masterflat_high = high
-        self.masterfla_low = low
+        # self.masterflat_high = high
+        # self.masterflat_low = low
 
         high -= self.masterbias
         low -= self.masterbias
@@ -760,8 +773,8 @@ class Extractor:
         high -= self._estimate_background(high)
         low -= self._estimate_background(low)
 
-        pb = BeamOrder(CUTORDER, high, **self.kwargs)    #beamfit(high, CUTORDER)
-        pr = BeamOrder(CUTORDER-1, low, **self.kwargs)    #beamfit(low, CUTORDER-1)
+        pb = BeamOrder(CUTORDER, high, self.CENTRALPOSITION, **self.kwargs)    #beamfit(high, CUTORDER)
+        pr = BeamOrder(CUTORDER-1, low,  self.CENTRALPOSITION, **self.kwargs)    #beamfit(low, CUTORDER-1)
         
         masklow = np.zeros(high.shape)
 
@@ -770,6 +783,66 @@ class Extractor:
             masklow[i,I]=1
 
         return masklow*low + (1.-masklow)*high
+
+
+    @lazyproperty
+    def CENTRALPOSITION(self):
+        """
+        extraction of orders and their positions
+        """
+        if self.kwargs.get('ESTIMATE_CENTRALPOSITION', str(False))==str(False):
+            return self.kwargs['CENTRALPOSITION']
+        OVER = 32
+        tmpext = Extractor(**self.kwargs['REFKWARGS'])
+
+        #tmpext.masterflat
+        #self.masterflat
+        reflow = tmpext.masterflat_low[tmpext.CENTRALROW,:]
+        mylow = self.masterflat_low[self.CENTRALROW,:]
+        
+        Nr = reflow.shape[0]
+        Nm = mylow.shape[0]
+
+        nr = np.arange(Nr)
+        nm = np.arange(Nm)
+
+        nnr = np.linspace(0, Nr-1, OVER*Nr+1) ## for oversampling
+        nnm = np.linspace(0, Nm-1, OVER*Nm+1)
+
+        Nnr = len(nnr)
+        Nmm = len(nnm)
+
+        # self.masterflat ## TDOD self.masterflat_low
+
+        freflow = interp1d(nr, reflow, bounds_error=False, fill_value=0)
+        fmylow = interp1d(nm, mylow, bounds_error=False, fill_value=0)
+
+        smylow = fmylow(nnm)
+        
+        dilrange = np.linspace(0.98, 1.02, 64)
+        tmp = []
+        for i, l in enumerate(dilrange):
+            tmp.append(np.max(
+                np.correlate(
+                smylow,
+                np.where(l*nnr<=Nr-1, freflow(l*nnr), 0),
+                'full')
+            ))
+            util.progress(i, len(dilrange))
+
+        j = np.argmax(tmp)
+        l = dilrange[j]
+        print(l)
+        i = np.argmax( np.correlate(smylow, 
+                        np.where(l*nnr <= Nr-1, freflow(l*nnr), 0), 'full')) - Nnr+1
+        
+        d = i / OVER 
+        print (d, l)
+        res = {}
+        for o, p in tmpext.CENTRALPOSITION.items():
+            res[o] = int(np.round((p+d)/l))
+        return res    
+
 
     @property
     def masterflat(self):
@@ -801,7 +874,7 @@ class Extractor:
     def beams(self):
         if self._beams is None:
             self.logging('computing beams')
-            self._beams = { o: BeamOrder(o, self.masterflat, final=True, **self.kwargs) for o in self.ORDERS}
+            self._beams = { o: BeamOrder(o, self.masterflat, self.CENTRALPOSITION, final=True, **self.kwargs) for o in self.ORDERS}
         return self._beams
 
     def _compute_flat_voie1et2(self):
