@@ -277,13 +277,12 @@ def followorder(image,xstart,ystart, **kwargs):
 
     return res
     
-def get_lambda(order, **kwargs):
-    ORDERS=kwargs['ORDERS']
+def get_lambda(order, ORDERS, **kwargs):
     NROWS=kwargs['NROWS']
     OFFSET_LAMBDA=kwargs['OFFSET_LAMBDA']
 
     hobolambda = np.loadtxt(kwargs['LAMBDAFILE'])
-    mult = order - ORDERS[0]
+    mult = order - min(ORDERS)
     tmp = np.zeros(NROWS)
     lamb = hobolambda[mult*NROWS:(mult+1)*NROWS]
     if OFFSET_LAMBDA > 0:
@@ -522,7 +521,7 @@ class Extractor:
 
     @property
     def ORDERS(self):
-        return self.CENTRALPOSITION.keys()
+        return list(self.CENTRALPOSITION.keys())
 
     @property
     def bare_image(self):
@@ -562,7 +561,7 @@ class Extractor:
 
     @lazyproperty
     def pix_to_lambda_map(self):
-        tmp = { o: interp1d(np.arange(self.NROWS), get_lambda(o, **self.kwargs)) 
+        tmp = { o: interp1d(np.arange(self.NROWS), get_lambda(o, self.ORDERS, **self.kwargs)) 
                 for o in self.ORDERS }
         return tmp
     
@@ -572,11 +571,11 @@ class Extractor:
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
-        return get_lambda(o, **self.kwargs), self.voie1[o], I
+        return get_lambda(o, self.ORDERS, **self.kwargs), self.voie1[o], I
     
     def get_lambda_intens2(self, o):
         I = self.beams[o].I
-        return get_lambda(o, **self.kwargs), self.voie2[o], I
+        return get_lambda(o, self.ORDERS, **self.kwargs), self.voie2[o], I
         
     def get_lambda_intens3(self, o):
         I = self.beams[o].I

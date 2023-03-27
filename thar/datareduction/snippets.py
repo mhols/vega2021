@@ -240,7 +240,7 @@ class Snippets:
         self._flux={}
         self._bare_voie={}
 
-        for o in self.kwargs.get('ORDERS', self.ORDERS):
+        for o in self.ORDERS:
 
             if self.voie == 1:
                 lam, _flux, I = self.extractor.get_lambda_intens1(o)
@@ -392,7 +392,7 @@ class Snippets:
     def snippets(self):
         if self._snippets is None:
             tmp = [ pd.DataFrame(self._snippet(o)[0])
-                for o in self.kwargs['ORDERS']
+                for o in self.ORDERS
             ]
             self._snippets = pd.concat(tmp, ignore_index=True, axis=0)
         return self._snippets

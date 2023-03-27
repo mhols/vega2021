@@ -136,7 +136,7 @@ class CCD2d:
     """
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
-    def __init__(self, data=None, **kwargs):
+    def __init__(self, data=None, extractor=None, **kwargs):
         self.kwargs = kwargs  # saving for later use
         if data is None:
             try:
@@ -145,6 +145,7 @@ class CCD2d:
                 raise Exception('could not read datafile. Does it exist ?')
         
         self._data = data
+        self.ORDERS = extractor.ORDERS
 
         self._data['selected'] = True # we are using only this subset
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['flux_values_extract']])
@@ -514,7 +515,7 @@ class CCD2d:
         return self._data['true_order_number']==o
 
     def all_order(self):
-        return self.kwargs.get('ORDERS', ORDERS)
+        return self.ORDERS
 
     def get_orders_in_data(self):
         orders = list(set(self._data['true_order_number'][self._data['selected']]))

@@ -56,7 +56,7 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
         store.save()
 
         ccd = [
-            spectrograph.CCD2d( data=snip, **kwargs)
+            spectrograph.CCD2d( data=snip, extractor=myext, **kwargs)
                 for snip in snippets_voie
         ]
 
@@ -111,7 +111,7 @@ for d, starfits in zip(list_of_jd, list_of_stars):
 
 
     order = []
-    for o in ORDERS:
+    for o in myext.ORDERS:
         for n in range(NROWS):
             order.append(o)
 
@@ -136,7 +136,7 @@ for d, starfits in zip(list_of_jd, list_of_stars):
         fits.Column(
             name="wavelength_3",
             format="E",
-            array=np.zeros(len(ORDERS)*NROWS)
+            array=np.zeros(len(myext.ORDERS)*NROWS)
         ),
         fits.Column(
             name='flux_1',
