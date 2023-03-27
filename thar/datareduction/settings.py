@@ -24,6 +24,7 @@ REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES
 NROWS = 4208;           comment['NROWS'] = "number of rows"
 NCOLS = 4196;           comment['NCOLS'] = "number of columns"
 NCROSS = 100;           comment['NCROSS'] = "number of rows/columns in central cross"
+REMOVECROSS = int(True)
 NROWSBLOCK = 2054   #number of rows in individual blocks
 NCOLSBLOCK = 2048   #number of cols in individual blocks
 HIGHEXP = 60

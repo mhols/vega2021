@@ -73,7 +73,7 @@ def estimate_location(intens, fun, g):
 
     sigma = len(intens)
     sigmamax = 4*sigma
-    sigmamin = 0.1
+    sigmamin = 0.0001
 
     y_offset_min = 0
     y_offset_max = 10 + max(0, np.min(intens))
