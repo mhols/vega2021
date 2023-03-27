@@ -226,13 +226,14 @@ class Snippets:
         self._snippets=None
         self._lines_voie=None
 
-        self.ORDERS = kwargs['ORDERS']
         self.NROWS = kwargs['NROWS']
         if extractor is None:
             self.extractor = extract.Extractor(**kwargs)
             self.extractor.set_fitsfile(self.tharfits)
         else:
             self.extractor = extractor
+
+        self.ORDERS = self.extractor.ORDERS
 
     def _prepare(self):
         self._lam={}
@@ -241,7 +242,7 @@ class Snippets:
         self._bare_voie={}
         self._lines_voie={}
 
-        for o in self.kwargs.get('ORDERS', self.ORDERS):
+        for o in self.ORDERS:
 
             if self.voie == 1:
                 lam, _flux, I = self.extractor.get_lambda_intens1(o)
@@ -398,7 +399,7 @@ class Snippets:
     def snippets(self):
         if self._snippets is None:
             tmp = [ pd.DataFrame(self._snippet(o))
-                for o in self.kwargs['ORDERS']
+                   for o in self.ORDERS
             ]
             self._snippets = pd.concat(tmp, ignore_index=True, axis=0)
         return self._snippets
@@ -406,7 +407,7 @@ class Snippets:
     @property
     def overlapping_snippets(self):
         tmp = []
-        for o, oo in zip(self.kwargs['ORDERS'][:-1], self.kwargs['ORDERS'][1:]):
+        for o, oo in zip(self.ORDERS[:-1], self.ORDERS[1:]):
             pp1 = self.lines_voie[o]['pixel_mean']
             pp2 = self.lines_voie[oo]['pixel_mean']
 

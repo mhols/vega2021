@@ -138,11 +138,22 @@ class CCD2d:
     """
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
-    def __init__(self, data, mdata=None, **kwargs):
+    def __init__(self, data, extractor, mdata=None, **kwargs):
         self.kwargs = kwargs  # saving for later use
        
         self._data = data     # reference data
         self._mdata = mdata   # matching data
+        self._extractor = extractor
+        self.kwargs = kwargs  # saving for later use
+        if data is None:
+            try:
+                data = pd.DataFrame(pd.read_json(kwargs['datafile']))
+            except:
+                raise Exception('could not read datafile. Does it exist ?')
+        
+        self._data = data
+        self.ORDERS = extractor.ORDERS
+
         self._data['selected'] = True # we are using only this subset
         self._mdata['selected'] = True # matching data
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
@@ -245,6 +256,10 @@ class CCD2d:
             I = self.index_order_unselected(o) if full else self.index_order(o)
             tmp[o] = sum(I)
         return tmp
+
+    @property
+    def noverlap(self):
+        return len(self.mo)
 
     def sigma_clipping(self):
         # sigma clipping for x=P_o(ol) (i.e. 1D) and x = P(ol, o) (i.e. 2D)
@@ -478,7 +493,11 @@ class CCD2d:
 
     @property
     def _mx(self):
-       return self._mdata['pixel_mean']
+       return self._mdata['pixel_mean_o']
+
+    @property
+    def _mxx(self):
+       return self._mdata['pixel_mean_oo']
 
     @property
     def _ml(self):
@@ -521,12 +540,32 @@ class CCD2d:
         return self.o * self.l
 
     @property
+    def mo(self):
+        return self._mo[self._mdata['selected']]
+
+    @property
+    def mx(self):
+        return self._mx[self._mdata['selected']]
+
+    @property
+    def moo(self):
+        return self._moo[self._mdata['selected']]
+
+    @property
+    def mxx(self):
+        return self._mxx[self._mdata['selected']]
+
+    @property
     def total_flux(self):
         return self._data['total_flux'][self._data['selected']]
 
     @property
     def data(self):
         return self._data[self._data['selected']]
+
+    @property
+    def mdata(self):
+        return self._mdata[self._mdata['selected']]
 
     def index_order(self, o):
         return self._data['true_order_number'][self._data['selected']]==o
@@ -535,7 +574,7 @@ class CCD2d:
         return self._data['true_order_number']==o
 
     def all_order(self):
-        return self.kwargs.get('ORDERS', ORDERS)
+        return self.ORDERS
 
     def get_orders_in_data(self):
         orders = list(set(self._data['true_order_number'][self._data['selected']]))
@@ -681,7 +720,7 @@ class CCD2d:
         olrange = [(o*l).min() / ENLARGEMENT_FACTOR, (o*l).max() * ENLARGEMENT_FACTOR]
         orange = [o.min(), o.max()]
 
-        mxrange = [-200, self.kwargs['NORDER']+200]
+        mxrange = [-200, self.kwargs['NROWS']+200]
 
 
         nolko = [(n, k) for n in range(Nol) for k in range(No)]
@@ -705,8 +744,8 @@ class CCD2d:
             for j, (nol, no) in enumerate(nolko):
                 G[i,j] = Tshebol[nol](o[i]*l[i]) * Tshebo[no](o[i])
 
-        #G = (1./ s)[:, np.newaxis] * G
-        #xs = (1./s) * x
+        G = (1./ s)[:, np.newaxis] * G
+        xs = (1./s) * x
         ### preparing matrix for pixel map
 
         TshebolF = [np.polynomial.chebyshev.Chebyshev.basis(
@@ -723,32 +762,34 @@ class CCD2d:
         basis = [ lambda x, o: TshebolF[n](x) * TsheboF[m](o) for n,m in enumbasis]
 
         H = np.zeros((self.ndata, len(enumbasis)))
-        for j, b in enumerate(enumbasis):
+        for j, b in enumerate(basis):
             H[:,j] = -b(x, o)
         
         L = np.zeros((self.noverlap, len(enumbasis)))
-        for j, b in enumerate(enumbasis):
+        for j, b in enumerate(basis):
             L[:, j] = b(mx, mo) - b(mxx, moo)
 
-        o0 = int(np.median(self.kwargs['ORDERS'])) ## central order
-        I0 = self.mdata['true_order_number'] == o0
+        o0 = int(np.median(self.ORDERS)) ## central order
+        I0 = self.mdata['true_order_number_o'] == o0
 
         A = np.zeros((np.count_nonzero(I0), len(enumbasis)))
-        for j, b in enumerate(enumbasis):
+        for j, b in enumerate(basis):
             A[:,j] = b(mx[I0], o0)
         A = cx.matrix(A)
 
-        Xi = np.row_stack(np.column_stack( G, -H ), 
-                          np.column_stack( np.zeros((self.noverlap, len(nolko))), L ))
-        sig = np.column_stack(1./s, np.full(1e4, len(enumbasis)))
-        Xi = sig[:,None] * Xi
-        Xi = np.dot(Xi.T, Xi)
-        Xi = cx.matrix(Xi)
+        Xi = np.row_stack((np.column_stack( [G, -H] ), 
+                          np.column_stack( [np.zeros((self.noverlap, len(nolko))), L ])))
+        
+        #### TODO BELOW
+        #sig = np.column_stack((1./s, np.full(len(enumbasis), 1e4)))
+        #Xi = sig[:,None] * Xi
+        #Xi = np.dot(Xi.T, Xi)
+        #Xi = cx.matrix(Xi)
 
-        nab = len(nolko) + len(enumbasis)
-        coeffs = qt( Xi, cx.matrix(0., (1,nab)),   ## quadratic cost function
-            cx.matrix(0., (1, nab)), cx.matrix(0, (1,1)), # lienear inequality
-            A, b)['x']                        ## linear constraint
+        #nab = len(nolko) + len(enumbasis)
+        #coeffs = qt( Xi, cx.matrix(0., (1,nab)),   ## quadratic cost function
+        #    cx.matrix(0., (1, nab)), cx.matrix(0, (1,1)), # lienear inequality
+        #    A, b)['x']                        ## linear constraint
 
 
 

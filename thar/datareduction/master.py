@@ -25,6 +25,13 @@ print('using settings from %s.py'%(settingsmodule,))
 store = regal.Store()
 
 def get_ext(f_thar):
+    
+    #myext = store.get(f_thar)
+    #print('retrieving precomputed object for ',  f_thar)
+   
+    #myext = extract.Extractor(**kwargs)
+    #myext.set_fitsfile(f_thar)
+    #store.store(f_thar, myext)
     try:
         myext = store.get(f_thar)
         print('retrieving precomputed object for ',  f_thar)
@@ -35,13 +42,21 @@ def get_ext(f_thar):
     return myext
 
 
-if True: #RECOMPUTE_2D_POLYNOMIAL:
+if RECOMPUTE_2D_POLYNOMIAL:
     thars = []
 
     # generate 2-d polynomial for ThAr spectra in DATADIR
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
 
         myext = get_ext(f_thar) 
+        
+        snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
+        snippets_voie = [
+            (s.snippets, s.overlapping_snippets) for s in snips
+                # snippets.snippets(myext, i, ORDERS)
+                # for i in [1, 2]   # [1, 2, 3]
+        ]
+        """
         try:
             snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
             snippets_voie = [
@@ -52,11 +67,11 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
         except Exception as ex:
             print('oooooops', f_thar, ex)
             continue
-
+        """
         store.save()
 
         ccd = [
-            spectrograph.CCD2d( data=snip, **kwargs)
+            spectrograph.CCD2d( data=snip[0], mdata=snip[1], extractor=myext, **kwargs)
                 for snip in snippets_voie
         ]
 
@@ -68,8 +83,9 @@ if True: #RECOMPUTE_2D_POLYNOMIAL:
             'extract': myext,
         })
 
-
+        store.save()
     print('store close for reuse')
+
     with open('thars.pickle', 'wb') as f:
         pickle.dump(thars, f)
 else:
@@ -90,8 +106,13 @@ for f in extract.getallstarfits(DATADIR, STARNAME):
     with fits.open(f) as fi:
         header = fi[0].header
         jd = header['DATE_JUL']
-        if header.get(PREFIX+"LEVEL", 0)>0:
+        try:
+            level = header.get(PREFIX+"LEVEL", 0)
+        except:
             continue
+        if level>0:
+            continue
+
     list_of_stars.append(f)
     list_of_jd.append(jd)
 
@@ -111,7 +132,7 @@ for d, starfits in zip(list_of_jd, list_of_stars):
 
 
     order = []
-    for o in ORDERS:
+    for o in myext.ORDERS:
         for n in range(NROWS):
             order.append(o)
 
@@ -136,7 +157,7 @@ for d, starfits in zip(list_of_jd, list_of_stars):
         fits.Column(
             name="wavelength_3",
             format="E",
-            array=np.zeros(len(ORDERS)*NROWS)
+            array=np.zeros(len(myext.ORDERS)*NROWS)
         ),
         fits.Column(
             name='flux_1',
