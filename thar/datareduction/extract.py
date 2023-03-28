@@ -277,10 +277,10 @@ def followorder(image,xstart,ystart, **kwargs):
 
     return res
     
-def get_lambda(order, ORDERS, **kwargs):
+def get_lambda(order, orders, **kwargs):
     NROWS=kwargs['NROWS']
     OFFSET_LAMBDA=kwargs['OFFSET_LAMBDA']
-
+    ORDERS = orders
     hobolambda = np.loadtxt(kwargs['LAMBDAFILE'])
     mult = order - min(ORDERS)
     tmp = np.zeros(NROWS)
