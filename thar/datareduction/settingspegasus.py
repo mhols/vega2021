@@ -11,20 +11,19 @@ comment = {}  ## this comments will be included into the .fits document
 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
 
-REMOVECROSS = int(False)
+REMOVECROSS = int(True)
 STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
 
 
 ## ----- directory layout
 BASEDIR = os.path.join(os.path.dirname(__file__), '../')  # put jour actual base path here
-DATADIR = os.path.abspath(os.path.join(BASEDIR, '../../pegasus_51/2020_0912')); 
+DATADIR = os.path.abspath(os.path.join(BASEDIR, '51Peg_raw/2020_0912'));
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
 
 ## ----- extractor constants
 NROWS = 4208;           comment['NROWS'] = "number of rows"
 NCOLS = 4196;           comment['NCOLS'] = "number of columns"
 NCROSS = 100;           comment['NCROSS'] = "number of rows/columns in central cross"
-REMOVECROSS = int(True)
 NROWSBLOCK = 2054   #number of rows in individual blocks
 NCOLSBLOCK = 2048   #number of cols in individual blocks
 HIGHEXP = 60
