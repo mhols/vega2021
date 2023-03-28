@@ -13,7 +13,7 @@ from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import interp1d
 import pandas as pd
 from extract import *
-from settings import *
+from settings import kwargs as refkwargs
 
 #ORDERS = range(21, 60)
 #NROWS = 7208
@@ -23,10 +23,19 @@ from settings import *
 #on a fait tourner visu_duo_pixel.py pour plotter les deux spectres et mesurer en pixel position deux
 #raies extremes, afin de mesurer decalage et dilatation eventuelle
 #dans un premier temps on considere que voie1 et  voie2 se comportent de la meme maniere differentielle
+"""
+#transition vega -> moon
 hoboref1 = 219.1
 hoboref2 = 3984.7
 hobo1 = 234.5
 hobo2 = 4004.7
+"""
+
+
+hoboref1 = 644.3
+hoboref2 = 3769.6
+hobo1 = 658.8
+hobo2 = 3787.7
 
 # longueur d'onde raie 1 tombe sur hoboref1, la meme tombe sur hobo1 dans le nouveau spectre
 # idem pour la longueur d'onde 2. On a donc l'egalite: lambda1(m * hobo1 + b)  = lambda1(hoboref1)
@@ -40,7 +49,7 @@ b = hoboref2 - m*hobo2
 
 
 
-myext=Extractor(VOIE_METHOD='SUM_DIVIDE_CENTRALROW')
+myext=Extractor(**refkwargs)
 
 # fichier de reference, "nuit Vega", a partir de artlambdacorrect...dat
 
@@ -50,12 +59,14 @@ myext.set_fitsfile(HOBOREFFILE)
 
 wave = []
 waver = []
+NROWS=refkwargs['NROWS']
+ORDERS=refkwargs['ORDERS']
 waveref=np.zeros(NROWS, dtype = float)
 pixelref=np.arange(NROWS)
 pixel=np.arange(NROWS)
 
 for o in ORDERS:
-    waveref = get_lambda(o)
+    waveref = get_lambda(o,ORDERS,**refkwargs)
     
 # in pixeln:
 # Wellenlaenge an pixel (m * hoboref1 + b) = Wellenlaenge an pixel hobo1 im neuen file
@@ -65,7 +76,7 @@ for o in ORDERS:
 
     pixelref = m * pixel +b
 
-    p1 = np.poly1d(np.polyfit(pixelref, waveref, 2))
+    p1 = np.poly1d(np.polyfit(pixel, waveref, 2))
 
 
 #plt.plot(wa,va/va[1000:3000].max())
