@@ -74,7 +74,11 @@ CENTRALPOSITION: corresponds to the lowest value pixel position between two     
 OFFSETLIG: offset in line (this zone contains noise information not used                here)
 OFFSETCOL: same for column
 """
-
+from settings import kwargs as kwargsref
+REFKWARGS = kwargsref
+REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
+REFLOWEXP = 15
+ESTIMATE_CENTRALPOSITION=str(True)
 CENTRALROW = 2161
 CENTRALPOSITION = {  ### TODO: move to reffiles...
     21: 824,
