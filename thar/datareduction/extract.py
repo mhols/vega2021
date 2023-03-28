@@ -87,12 +87,12 @@ def secondpoly(xx,yy):
     return refposi, c[2]
 
 def load_image_from_fits(fitsfile, **kwargs):
-    REMOVECROSS=kwargs['REMOVECROSS']==int(True)
+    # REMOVECROSS=kwargs['REMOVECROSS']==int(True)
     a=pyfits.open(fitsfile)
     # print('fitsfile ', fitsfile)
     image = np.clip(a[0].data,-100,65535)
     a.close()
-    if REMOVECROSS:
+    if has_cross(fitsfile):
         return removeCross(image, **kwargs)
     else:
         return image
@@ -134,6 +134,8 @@ def is_star(fitsfile, name):
         pass
     return res
 
+def has_cross(fitsfile):
+    return int(header_info_from_fits(fitsfile, 'PORTMODE')) == 0
 
 #liste = listallfits('/Users/boehm/Desktop/extract/Vega_2022TBL')
 def listallfits(dirname):
