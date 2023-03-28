@@ -80,6 +80,7 @@ REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
 REFLOWEXP = 15
 ESTIMATE_CENTRALPOSITION=str(True)
 CENTRALROW = 2161
+"""
 CENTRALPOSITION = {  ### TODO: move to reffiles...
     21: 824,
     22: 866,
@@ -121,7 +122,10 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
     # 58:3192,} TODO make snipets not to break ...
     # 59:3302}  TODO make robust for empty beams
 
+
 ORDERS = list(CENTRALPOSITION.keys())
+"""
+
 LAMBDAFILE = os.environ.get('LAMBDAFILE', 
             os.path.join(REFFILES, 'hobo.txt'))  # TODO to be removed....
 OFFSET_LAMBDA = 0
