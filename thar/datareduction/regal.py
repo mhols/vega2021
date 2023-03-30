@@ -43,7 +43,7 @@ class Store:
     def save_item(self, itemkey):
         o = self.get(itemkey)
         try:
-            with open(itemkey, 'wb') as f:
+            with open(self.items[itemkey], 'wb') as f:
                 pickle.dump(o,f)
         except Exception as ex:
             print('Could not save store item ', itemkey, 'reason: ', ex)

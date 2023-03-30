@@ -48,7 +48,7 @@ DEGREEBLAZE = 7                                                   # polynomial d
 
 from settings import kwargs as kwargsref
 REFKWARGS = kwargsref
-REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
+# REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
 REFLOWEXP = 15
 REFCENTRALPOSITION = {  ### TODO: move to reffiles...
     21: 824,

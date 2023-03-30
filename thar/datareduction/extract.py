@@ -123,9 +123,9 @@ def is_bias(fitsfile):
     
 def is_thorium(fitsfile):
     try:
-        return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium'
+        return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium' 
     except:
-        return False
+        return str(fitsfile).endswith('th0.fits')
 
 def is_star(fitsfile, name):
     res = False
@@ -158,7 +158,7 @@ def getallbiasfits(dirname):
 
 def getallthoriumfits(dirname):
     for f in listallfits(dirname):
-        if is_thorium(f) and f.endswith('_th0.fits'):
+        if is_thorium(f) and str(f).endswith('_th0.fits'):
             yield f
 
 def getallstarfits(dirname, name=''):
@@ -458,7 +458,6 @@ class BeamOrder:
 store = regal.Store()    # we only have one global store
 
 def get_ext(f_thar, **kwargs):
-    print (f_thar)
     if f_thar in store.items:
         myext = store.get(f_thar)
         print('retrieving precomputed object for ',  f_thar)
@@ -629,8 +628,10 @@ class Extractor:
         """
         the reference extractor
         """
+        print('should be ', self.kwargs['REFKWARGS']['DATADIR']) 
         thar = list(getallthoriumfits(dirname=self.kwargs['REFKWARGS']['DATADIR']))[0]
         ext = get_ext(thar, **self.kwargs['REFKWARGS'])
+        store.save()
         return ext
 
     @lazyproperty
