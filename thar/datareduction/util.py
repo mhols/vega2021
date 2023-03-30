@@ -244,7 +244,6 @@ def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     xxx = np.linspace(minx, maxx, N)
     def L(ba):
         b, a = ba
-        print ('ba', b, a)
         return yx(xxx) - yyxx( (xxx-b)/a) 
 
     params0 = np.array([(rb0+rb1)/2, (ra0 + ra1)/2])

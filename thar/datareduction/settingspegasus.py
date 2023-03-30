@@ -17,8 +17,9 @@ STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select
 
 ## ----- directory layout
 BASEDIR = os.path.join(os.path.dirname(__file__), '../')  # put jour actual base path here
-DATADIR = os.path.abspath(os.path.join(BASEDIR, '51Peg_raw/2020_0912'));
+##DATADIR = os.path.abspath(os.path.join(BASEDIR, '51Peg_raw'));
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
+RESULTDIR = os.path.abspath(os.path.join(BASEDIR, 'res_pegasus')); comment['REFFILES'] = "Referenzfiles"
 
 ## ----- extractor constants
 NROWS = 4208;           comment['NROWS'] = "number of rows"

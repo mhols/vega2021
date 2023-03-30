@@ -1,17 +1,18 @@
 import util
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
+import regal
+import snippets
+import spectrograph
 import astropy.io.fits as pyfits
 import os
 import sys
 from scipy.ndimage import minimum_filter1d, generic_filter
 from scipy.optimize import curve_fit
-from scipy.interpolate import interp1d, UnivariateSpline, bisplrep, bisplev
+from scipy.interpolate import interp1d
 from scipy.signal import convolve2d
 from numpy.polynomial import Polynomial
 import pandas as pd
-import shelve
 from astropy.utils.decorators import lazyproperty
 
 ### all constants are in settings.py
@@ -452,13 +453,28 @@ class BeamOrder:
 #    y = followorder(image, CENTRALPOSITION[order], CENTRALROW)
 #    return BeamOrder(order, np.arange(NROWS), y, extractor=extractor, **kwargs)
 
+
+#### factory methods for Extractor objects
+store = regal.Store()    # we only have one global store
+
+def get_ext(f_thar, **kwargs):
+    print (f_thar)
+    if f_thar in store.items:
+        myext = store.get(f_thar)
+        print('retrieving precomputed object for ',  f_thar)
+    else:
+        myext = Extractor(f_thar, **kwargs)
+        store.store(f_thar, myext)
+    return myext
+
+
 class Extractor:
     """
     A class for the data reduction pipeline
 
     """
 
-    def __init__(self,fitsfile=None, **kwargs):
+    def __init__(self, fitsfile, **kwargs):
         """
         if fitsfile specified class takes it
         the following keyword arguments are recognized
@@ -470,25 +486,43 @@ class Extractor:
         """
         self._total_reset()
         self.kwargs = kwargs
+
+        assert is_thorium(fitsfile), 'you need to specify a thorium file to generate an extractor'
+
+        self._tharfits = fitsfile        
         self._fitsfile = fitsfile
+        
         self.CENTRALROW = kwargs['CENTRALROW']
+        self.NROWS = kwargs['NROWS']
 
         # all properties can be lasily evaluated
-        # self._lazy = []
-        # masterflat and masterbias can be computed or passed
-        self._masterflat = kwargs.get('masterflat', None)
-        self._masterbias = kwargs.get('masterbias', None)
+        self._masterflat = None
+        self._masterbias = None
         self._beams = None
         self._Blaze = None
-        self.NROWS = kwargs['NROWS']
+        
 
         ####
         self._ccd1 = None
         self._ccd2 = None
         self._ccd3 = None
+
+        self.finalize()
+
+        ### force computation of everything
+    def finalize(self):
+
+        self.ccd_voie1
+        self.ccd_voie2
  
+
+
     def logging(self, message):
-        print('Extractor with ' + self.kwargs['SETTING_ID'] + ' : ', message)
+        print('Extractor, SETTING_ID: ' + self.SETTINGS_ID + ', ThArg: ', self._tharfits + ', ' +message)
+
+    @property
+    def SETTINGS_ID(self):
+        return self.kwargs.get('SETTING_ID', 'WARNING: no setting id, you should specify one in the settings module')    
 
     def _restart(self):
         # local quantity
@@ -530,6 +564,7 @@ class Extractor:
     def ORDERS(self):
         return list(self.CENTRALPOSITION.keys())
 
+    
     @property
     def bare_image(self):
         if self._bare_image is None:
@@ -566,13 +601,36 @@ class Extractor:
         return self.beams[o].beam_sum_voie2(self.masterbias) 
 
     @lazyproperty
+    def snippets_voie1(self):
+        snip = snippets.Snippets(voie=1, extractor=self, **self.kwargs)
+        return snip.snippets
+
+    @lazyproperty
+    def snippets_voie2(self):
+        snip = snippets.Snippets(voie=2, extractor=self, **self.kwargs)
+        return snip.snippets
+    
+    @property
+    def ccd_voie1(self):
+        if not self._ccd1 is None:
+            return self._ccd1
+        self._ccd1 = spectrograph.CCD2d(self.snippets_voie1, self, **self.kwargs)
+        return self._ccd1
+    
+    @property
+    def ccd_voie2(self):
+        if not self._ccd2 is None:
+            return self._ccd2
+        self._ccd1 = spectrograph.CCD2d(self.snippets_voie2, self, **self.kwargs)
+        return self._ccd2
+    
+    @lazyproperty
     def reference_extract(self):
         """
         the reference extractor
         """
-        ext = Extractor(**self.kwargs['REFKWARGS'])
-        thars = list(getallthoriumfits(dirname=self.kwargs['REFKWARGS']['DATADIR']))
-        ext.set_fitsfile(thars[0])
+        thar = list(getallthoriumfits(dirname=self.kwargs['REFKWARGS']['DATADIR']))[0]
+        ext = get_ext(thar, **self.kwargs['REFKWARGS'])
         return ext
 
     @lazyproperty
@@ -1082,6 +1140,116 @@ class Extractor:
             pass
 
         return tmp
+
+    def save_fits(self):
+        # collecting data
+        order = list(self.ORDERS)
+        fitstable = pyfits.BinTableHDU.from_columns(
+        [
+        pyfits.Column(
+            name="true_order_number",
+            format="I",
+            array=np.array(order)
+        ),
+        pyfits.Column(
+            name="wavelength_1",
+            format="E",
+            array=self.ccd_voie1.get_lambda_list()
+        ),
+        pyfits.Column(
+            name="wavelength_2",
+            format="E",
+            array=self.ccd_voie2.get_lambda_list()
+        ),
+        pyfits.Column(
+            name="wavelength_3",
+            format="E",
+            array=np.zeros(len(order)*self.NROWS)
+        ),
+        pyfits.Column(
+            name='flux_1',
+            format='E',
+            array=self.voie1_all()
+        ),
+        pyfits.Column(
+            name='flux_2',
+            format='E',
+            array=self.voie2_all()
+        ),
+        pyfits.Column(
+            name='flux_3',
+            format='E',
+            array=self.voie2_all() ### TODO voie3
+        ),
+        pyfits.Column(
+            name='noise_1',
+            format='E',
+            array=self.noise_1
+        ),
+        pyfits.Column(
+            name='noise_2',
+            format='E',
+            array=self.noise_2
+        ),
+        pyfits.Column(
+            name='noise_3',
+            format='E',
+            array=self.noise_3
+        )])
+
+        # fits.Column(
+        #     name="blaze_1",
+        #     format='E',
+        #     array=myext.blaze_1
+        # ),
+        # fits.Column(
+        #     name="blaze_2",
+        #     format='E',
+        #     array=myext.blaze_2
+        # ),
+        # fits.Column(
+        #     name="blaze_3",
+        #     format='E',
+        #     array=myext.blaze_3
+        # ),
+        # fits.Column(
+        #     name="continuum_1_1",
+        #     format='E',
+        #     array=myext.continuum_1_1
+        # ),
+        # fits.Column(
+        #     name="continuum_1_2",
+        #     format='E',
+        #     array=myext.continuum_1_2
+        # ),
+        # fits.Column(
+        #     name="continuum_1_3",
+        #     format='E',
+        #     array=myext.continuum_1_3
+        # )
+
+        page1 = pyfits.PrimaryHDU()
+
+        PREFIX = self.kwargs['PREFIX']
+        filename = os.path.basename(self.fitsfile)
+        filename = PREFIX + filename[:-8]+'st1.fits'
+
+        RESULTDIR = self.kwargs['RESULTDIR']
+        if not os.path.exists(RESULTDIR):
+            os.mkdir(RESULTDIR)
+
+        with pyfits.open(self.fitsfile) as sfi:
+            page1.header = sfi[0].header
+
+        page1.header.append((PREFIX+"LEVEL", 1))
+        for key in self.kwargs['HEADER_ITEMS']:
+            page1.header.append((PREFIX+key, globals()[key]))
+
+        newfits = pyfits.HDUList(
+            [ page1, fitstable ]
+        )
+
+        newfits.writeto(os.path.join(RESULTDIR, filename), overwrite=True)
 
 
 """

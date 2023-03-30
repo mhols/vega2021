@@ -119,7 +119,7 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
     # 59:3302}  TODO make robust for empty beams
 
 ORDERS = list(CENTRALPOSITION.keys())
-LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')
+LAMBDAFILE = os.path.join(REFFILES, 'HOBO_NEO_20220903_191404_th1_wave1.txt')
 #os.environ.get('LAMBDAFILE', 
 #            os.path.join(REFFILES, 'hobo.txt'))  # TODO to be removed....
 OFFSET_LAMBDA = 0

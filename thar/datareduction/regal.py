@@ -40,6 +40,19 @@ class Store:
         self.items[key] = filepath
         self.objects[key] = ob
 
+    def save_item(self, itemkey):
+        o = self.get(itemkey)
+        try:
+            with open(itemkey, 'wb') as f:
+                pickle.dump(o,f)
+        except Exception as ex:
+            print('Could not save store item ', itemkey, 'reason: ', ex)
+        try:
+            with open(STOREDATA, 'wb') as f:
+                pickle.dump(self.items, f)
+        except:
+            raise Exception('could not save database')
+     
     def save(self):
         for key, o in self.objects.items():
             try:

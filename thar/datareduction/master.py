@@ -29,8 +29,7 @@ def get_ext(f_thar):
         myext = store.get(f_thar)
         print('retrieving precomputed object for ',  f_thar)
     except:
-        myext = extract.Extractor(**kwargs)
-        myext.set_fitsfile(f_thar)
+        myext = extract.Extractor(f_thar, **kwargs)
         store.store(f_thar, myext)
     return myext
 
@@ -68,6 +67,9 @@ if RECOMPUTE_2D_POLYNOMIAL:
                 for snip in snippets_voie
         ]
 
+        myext._ccd1 = ccd[0]
+        myext._ccd2 = ccd[1]
+
         thars.append( {
             'fitsfile':os.path.basename(f_thar),
             'DATE_JUL': extract.header_info_from_fits(f_thar, 'DATE_JUL'),
@@ -86,11 +88,11 @@ else:
         thars = pickle.load(f)
 
 # computing average poly2d as new basis
-if SAVE_LAMS:
-    for ta in thars:
-        for i, c in enumerate(ta['ccd']):
-            np.savetxt(os.path.join(REFFILES, 'hoboe_%s_%s.txt'%(ta['fitsfile'], i+1)),
-                   c.get_lambda_list())
+# if SAVE_LAMS:
+#     for ta in thars:
+#         for i, c in enumerate(ta['ccd']):
+#             np.savetxt(os.path.join(REFFILES, 'hoboe_%s_%s.txt'%(ta['fitsfile'], i+1)),
+#                    c.get_lambda_list())
 
 list_of_stars = []
 list_of_jd = []
