@@ -8,7 +8,7 @@ load_dotenv()
 
 comment = {}  ## this comments will be included into the .fits document
 
-
+SETTING_ID = 'vega'
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
 
 REMOVECROSS = int(True)
@@ -119,8 +119,9 @@ CENTRALPOSITION = {  ### TODO: move to reffiles...
     # 59:3302}  TODO make robust for empty beams
 
 ORDERS = list(CENTRALPOSITION.keys())
-LAMBDAFILE = os.environ.get('LAMBDAFILE', 
-            os.path.join(REFFILES, 'hobo.txt'))  # TODO to be removed....
+LAMBDAFILE = os.path.join(REFFILES, 'hobo.txt')
+#os.environ.get('LAMBDAFILE', 
+#            os.path.join(REFFILES, 'hobo.txt'))  # TODO to be removed....
 OFFSET_LAMBDA = 0
 SAVE_LAMS = os.environ.get('SAVE_LAMS', 'False') == 'True'
 

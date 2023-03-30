@@ -481,9 +481,14 @@ class Extractor:
         self._beams = None
         self._Blaze = None
         self.NROWS = kwargs['NROWS']
+
+        ####
+        self._ccd1 = None
+        self._ccd2 = None
+        self._ccd3 = None
  
     def logging(self, message):
-        print('Extractor: ' + message)
+        print('Extractor with ' + self.kwargs['SETTING_ID'] + ' : ', message)
 
     def _restart(self):
         # local quantity
@@ -560,28 +565,112 @@ class Extractor:
     def bias_voie2(self, o):
         return self.beams[o].beam_sum_voie2(self.masterbias) 
 
+    @lazyproperty
+    def reference_extract(self):
+        """
+        the reference extractor
+        """
+        ext = Extractor(**self.kwargs['REFKWARGS'])
+        thars = list(getallthoriumfits(dirname=self.kwargs['REFKWARGS']['DATADIR']))
+        ext.set_fitsfile(thars[0])
+        return ext
 
     @lazyproperty
-    def pix_to_lambda_map(self):
-        tmp = { o: interp1d(np.arange(self.NROWS), get_lambda(o, self.ORDERS, **self.kwargs)) 
+    def lambda_map_of_order_1(self, o):
+        pass
+
+    @lazyproperty
+    def pix_to_lambda_map_1(self):
+        """
+        The preliminary lambda map
+        Either you specify a file containing the lambdas
+        or you try to obtain by homothetic mapping from some reference
+        """
+        if self.kwargs.get('ESTIMATE_LAMBDAMAP', str(False)) == str(False):
+            self.logging('using REFFILE '+self.kwargs['LAMBDAFILE'] + " in pix_to_lambda_map_1")
+            return { o: interp1d(np.arange(self.NROWS), get_lambda(o, self.ORDERS, **self.kwargs), 
+                                 fill_value='extrapolate') 
                 for o in self.ORDERS }
+        
+        self.logging('using a homothetic mapping to get lambda map')
+        REFORDER = 33  ## the order used to estimate the homothetie
+        
+        rv1 = self.reference_extract.voie1[REFORDER]
+        rv1 = np.where(np.isnan(rv1), 0, rv1)
+
+        # setting myself on first fitsfile (TODO STORE)
+        thars = list(getallthoriumfits(dirname=self.kwargs['DATADIR']))
+        self.set_fitsfile(thars[0])
+        mv1 = self.voie1[REFORDER]
+        mv1 = np.where(np.isnan(mv1), 0, mv1)
+ 
+        n = np.arange(self.NROWS)
+        d = np.argmax(np.correlate(rv1, mv1, 'full')) - self.NROWS + 1
+
+        b, a = util.homothetie(n, rv1, n, mv1, d-1, d+1, 0.9999999, 1.0000001) 
+
+        tmp = {}
+
+        n = np.arange(self.NROWS)
+
+        for o in self.ORDERS:
+            tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie1[o](n+b),
+                        fill_value='extrapolate')
         return tmp
-    
+
+
+    @property
+    def pix_to_lambda_map_voie1(self):
+        if self._ccd1 is None:
+            return self.pix_to_lambda_map_1
+        else:
+            return self._ccd1._final_map_l_x_o 
+
+    @property
+    def pix_to_lambda_map_voie2(self):
+        if self._ccd2 is None:
+            return self.pix_to_lambda_map_1
+        else:
+            return self._ccd2._final_map_l_x_o
+
+    @property
+    def pix_to_lambda_map_voie3(self):
+        if self._ccd3 is None:
+            return self.pix_to_lambda_map_1
+        else:
+            return self._ccd3._final_map_l_x_o
+
+    @property
+    def lambdas_per_order_voie1(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie1[o](n) for o in self.ORDERS}
+
+    @property
+    def lambdas_per_order_voie2(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie2[o](n) for o in self.ORDERS}
+
+    @property
+    def lambdas_per_order_voie3(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
+
     def lam_to_o(self, lam):
+        """the orders of lambda """
         return [ o for o in self.ORDERS if 
-                self.pix_to_lambda_map[o](0) <= lam and lam <= self.pix_to_lambda_map[o](self.NROWS-1)]
+                self.pix_to_lambda_map_1[o](0) <= lam and lam <= self.pix_to_lambda_map_1[o](self.NROWS-1)]
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
-        return get_lambda(o, self.ORDERS, **self.kwargs), self.voie1[o], I
+        return self.lambdas_per_order_voie1[o], self.voie1[o], I
     
     def get_lambda_intens2(self, o):
         I = self.beams[o].I
-        return get_lambda(o, self.ORDERS, **self.kwargs), self.voie2[o], I
+        return self.lambdas_per_order_voie2[o], self.voie2[o], I
         
     def get_lambda_intens3(self, o):
         I = self.beams[o].I
-        return get_lambda(o, **self.kwargs), self.voie3[o], I
+        return self.lambdas_per_order_voie3[o], self.voie3[o], I
     
     def _compute_voie1et2(self):
         choice =  self.kwargs['VOIE_METHOD']
@@ -794,7 +883,7 @@ class Extractor:
         if self.kwargs.get('ESTIMATE_CENTRALPOSITION', str(False))==str(False):
             return self.kwargs['CENTRALPOSITION']
         OVER = 32
-        tmpext = Extractor(**self.kwargs['REFKWARGS'])
+        tmpext = self.reference_extract
 
         #tmpext.masterflat
         #self.masterflat
@@ -807,41 +896,45 @@ class Extractor:
         nr = np.arange(Nr)
         nm = np.arange(Nm)
 
-        nnr = np.linspace(0, Nr-1, OVER*Nr+1) ## for oversampling
-        nnm = np.linspace(0, Nm-1, OVER*Nm+1)
+        #nnr = np.linspace(0, Nr-1, OVER*Nr+1) ## for oversampling
+        #nnm = np.linspace(0, Nm-1, OVER*Nm+1)
 
-        Nnr = len(nnr)
-        Nmm = len(nnm)
+        #Nnr = len(nnr)
+        #Nmm = len(nnm)
 
         # self.masterflat ## TDOD self.masterflat_low
 
-        freflow = interp1d(nr, reflow, bounds_error=False, fill_value=0)
-        fmylow = interp1d(nm, mylow, bounds_error=False, fill_value=0)
+        #freflow = interp1d(nr, reflow, bounds_error=False, fill_value=0)
+        #fmylow = interp1d(nm, mylow, bounds_error=False, fill_value=0)
 
-        smylow = fmylow(nnm)
+        #smylow = fmylow(nnm)
         
-        dilrange = np.linspace(0.98, 1.02, 64)
-        tmp = []
-        for i, l in enumerate(dilrange):
-            tmp.append(np.max(
-                np.correlate(
-                smylow,
-                np.where(l*nnr<=Nr-1, freflow(l*nnr), 0),
-                'full')
-            ))
-            util.progress(i, len(dilrange))
+        #dilrange = np.linspace(0.98, 1.02, 64)
+        #tmp = []
+        #for i, l in enumerate(dilrange):
+        #    tmp.append(np.max(
+        #        np.correlate(
+        #        smylow,
+        #        np.where(l*nnr<=Nr-1, freflow(l*nnr), 0),
+        #        'full')
+        #    ))
+        #    util.progress(i, len(dilrange))
 
-        j = np.argmax(tmp)
-        l = dilrange[j]
-        print(l)
-        i = np.argmax( np.correlate(smylow, 
-                        np.where(l*nnr <= Nr-1, freflow(l*nnr), 0), 'full')) - Nnr+1
-        
-        d = i / OVER 
-        print (d, l)
-        res = {}
-        for o, p in tmpext.CENTRALPOSITION.items():
-            res[o] = int(np.round((p+d)/l))
+        #j = np.argmax(tmp)
+        #l = dilrange[j]
+        #print(l)
+        #i = np.argmax( np.correlate(smylow, 
+        #                np.where(l*nnr <= Nr-1, freflow(l*nnr), 0), 'full')) - Nnr+1
+        # 
+        #d = i / OVER 
+        #print (d, l)
+        #res = {}
+        #for o, p in tmpext.CENTRALPOSITION.items():
+        #    res[o] = int(np.round((p+d)/l))
+
+        d = np.argmax(np.correlate(reflow, mylow, 'full'))-len(reflow)+1
+        b, a = util.homothetie(nr, reflow, nm, mylow, d-5, d+5, 0.9, 1.1)
+        res = {o: int(np.round((i-b)/a)) for o, i in tmpext.CENTRALPOSITION.items()}
         return res    
 
 

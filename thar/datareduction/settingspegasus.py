@@ -8,7 +8,7 @@ load_dotenv()
 
 comment = {}  ## this comments will be included into the .fits document
 
-
+SETTING_ID = "pegasus" 
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') == 'True')
 
 REMOVECROSS = int(True)
@@ -79,6 +79,7 @@ REFKWARGS = kwargsref
 REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
 REFLOWEXP = 15
 ESTIMATE_CENTRALPOSITION=str(True)
+ESTIMATE_LAMBDAMAP=str(True)
 CENTRALROW = 2161
 """
 CENTRALPOSITION = {  ### TODO: move to reffiles...

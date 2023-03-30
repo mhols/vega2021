@@ -45,8 +45,8 @@ class Store:
             try:
                 with open(self.items[key], 'wb') as f:
                     pickle.dump(o, f)
-            except:
-                raise Exception('could not save objects')
+            except Exception as ex:
+                raise Exception('could not save objects\nreason: ', ex)
 
         try:
             with open(STOREDATA, 'wb') as f:

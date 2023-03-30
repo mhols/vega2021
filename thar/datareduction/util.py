@@ -3,7 +3,7 @@ import scipy.optimize as sop
 import numpy as np
 import sys
 from numpy.polynomial import Polynomial
-from scipy.interpolate import UnivariateSpline, LSQUnivariateSpline
+from scipy.interpolate import interp1d, UnivariateSpline, LSQUnivariateSpline
 
 used_params = {}    # for the documentation of used parameters
                     # pass **kwargs to every method
@@ -166,7 +166,6 @@ def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
         if np.alltrue(II==I):
             break
         I = II
-        print(i)
 
     d = []
     delt=t[2]-t[0]
@@ -226,6 +225,37 @@ def local_maxima(vv):
         progress = np.sum(v) < oldsum
     return np.array(lm)
 
+def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
+    """
+    returns mapping f: x -> xx so that
+    y(f^{-1}xx) = yy(xx)  <==> yy(f(x)) = y(x)
+    
+    f is searched for in the space of affine mappings
+    """
+    N =  10*(len(x) + len(xx))
+    yx = interp1d(x,y,fill_value='extrapolate')
+    yyxx = interp1d(xx, yy, fill_value='extrapolate')
+
+    print (yy) 
+    minx = max(np.min(x), np.min(xx*ra0+rb0))
+    maxx = min(np.max(x), np.max(xx*ra1+rb1))
+
+    print (minx, maxx)
+    xxx = np.linspace(minx, maxx, N)
+    def L(ba):
+        b, a = ba
+        print ('ba', b, a)
+        return yx(xxx) - yyxx( (xxx-b)/a) 
+
+    params0 = np.array([(rb0+rb1)/2, (ra0 + ra1)/2])
+    bounds = (np.array([rb0, ra0]), np.array([rb1, ra1])) 
+    res = sop.least_squares(
+        L, 
+        x0=params0, 
+        bounds=bounds 
+    )
+    return res.x
+   
 
 # The MIT License (MIT)
 # Copyright (c) 2016 Vladimir Ignatev
@@ -261,10 +291,10 @@ def progress(count, total, status=''):
 
 
 if __name__ == '__main__':
+    pass
+    #d = np.loadtxt('voi35.dat')
+    #l = np.arange(len(d))
+    #p = background(l,d,nnodes=25,q=0.4, qq=0.6, qqq=0.)
 
-    d = np.loadtxt('voi35.dat')
-    l = np.arange(len(d))
-    p = background(l,d,nnodes=25,q=0.4, qq=0.6, qqq=0.)
-
-    plot(l, d)
-    plot(l, p(l))
+    #plot(l, d)
+    #plot(l, p(l))

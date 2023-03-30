@@ -8,7 +8,7 @@ load_dotenv()
 
 comment = {}  ## this comments will be included into the .fits document
 
-
+SETTING_ID = "moon"
 RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'True') == 'True')
 
 STARNAME = 'Thorium';   comment["STARNAME"] = "Name of object, used to select the starfiles"

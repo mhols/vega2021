@@ -307,6 +307,11 @@ class CCD2d:
         self._map_1D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_1D_x_ol_o.items()}
         self._map_2D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_2D_x_ol_o.items()}
 
+        n = np.arange(self.kwargs['NROWS'])
+        self._final_map_l_x_o = {o: 
+                interp1d( n, self._map_2D_ol_x_o[o](n)/o, fill_value='extrapolate')
+                  for o in self.ORDERS}
+
         self._report_fitresult()
 
     def sigma_clipping_l_x_o(self):

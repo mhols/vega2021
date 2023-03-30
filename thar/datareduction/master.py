@@ -42,16 +42,24 @@ if RECOMPUTE_2D_POLYNOMIAL:
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
 
         myext = get_ext(f_thar) 
-        try:
-            snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
-            snippets_voie = [
-                s.snippets for s in snips
+        # try:
+        #     snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
+        #     snippets_voie = [
+        #         s.snippets for s in snips
+        #         # snippets.snippets(myext, i, ORDERS)
+        #         # for i in [1, 2]   # [1, 2, 3]
+        #     ]
+        # except Exception as ex:
+        #     print('oooooops', f_thar, ex)
+        #     continue
+
+        
+        snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
+        snippets_voie = [
+            s.snippets for s in snips
                 # snippets.snippets(myext, i, ORDERS)
                 # for i in [1, 2]   # [1, 2, 3]
-            ]
-        except Exception as ex:
-            print('oooooops', f_thar, ex)
-            continue
+        ]
 
         store.save()
 
