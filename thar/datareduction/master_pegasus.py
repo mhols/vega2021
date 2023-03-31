@@ -106,11 +106,11 @@ def step2():
             print('===================================\n')
 
             t = extract.gettimestamp(f_star)
-            
-            f_thar = times[ 
+
+            f_thar = times[
                 ttt[np.argmin([abs(t - tt) for tt in ttt])]
             ]
-            
+
             try:
                 myext = extract.get_ext(f_thar)
                 myext.set_fitsfile(f_star)
@@ -126,7 +126,7 @@ def step2():
 
 
 if __name__=="__main__":
-    # step1()
+    step1()
     step2()
 
     print ( "goodies", goodies)

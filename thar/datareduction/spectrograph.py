@@ -152,7 +152,7 @@ class CCD2d:
         self._data['total_flux'] = total_flux
 
         #if self.kwargs.get('bootstrap_data', 'True')=='True':
-        # self.bootstrap_data()
+        self.bootstrap_data()
 
         # basic outlier removal / quality filter
         self._map_1D_x_ol_o = None
