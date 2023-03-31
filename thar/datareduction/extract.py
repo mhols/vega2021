@@ -332,7 +332,8 @@ class BeamOrder:
         self._yy = self._y[I]
 
         self._lower, self._upper = 0, self.NROWS
-        self._evaluator = lambda x: np.interp(x, self._xx, self._yy)
+        self._evaluator = interp1d(self._xx, self._yy, fill_value='extrapolate') 
+        #lambda x: np.interp(x, self._xx, self._yy)
         self._x = np.arange(self.NROWS)
         self._y = self(self._x)
 
@@ -343,10 +344,13 @@ class BeamOrder:
         ### go along with this proxy
         self._lower, self._upper = self._beam_limits()
 
-        self._evaluator = Polynomial.fit(
-            np.arange(self._lower, self._upper),
-            self(np.arange(self._lower, self._upper)),            
-            deg=4)
+        try:
+            self._evaluator = Polynomial.fit(
+                np.arange(self._lower, self._upper),
+                self(np.arange(self._lower, self._upper)),            
+                deg=4)
+        except:
+            print('propblem', self._order)
         
         self._y = self(self._x)
 
@@ -401,7 +405,8 @@ class BeamOrder:
         
 
     def _beam_limits(self):
-        mask = self.mask_blaze()
+        mask = mask_along_offset(self._xx, self._yy, self.BLAZE_RANGE, **self.kwargs)
+        # mask = self.mask_blaze()
         tmp = np.sum(mask * self._masterflat, axis=1)
 
         # TODO tmp = medianfilter(tmp)
@@ -416,6 +421,14 @@ class BeamOrder:
              if tmp[i] < self.FLUX_LIMIT:
                 break
         lower = i
+        if upper==lower:
+            # artificial treatment of limits for bad beams
+            # TODO introduce good beams
+            lower = self.CENTRALROW - 3
+            upper = self.CENTRALROW + 3
+            self.bad_beam = True
+        else:
+            self.bad_beam = False
         return lower, upper
                
 
@@ -458,12 +471,16 @@ class BeamOrder:
 store = regal.Store()    # we only have one global store
 
 def get_ext(f_thar, **kwargs):
-    if f_thar in store.items:
+    retrieved = True
+    try:
         myext = store.get(f_thar)
-        print('retrieving precomputed object for ',  f_thar)
-    else:
+    except:
+        retrieved = False
         myext = Extractor(f_thar, **kwargs)
-        store.store(f_thar, myext)
+    if retrieved:
+        print('retrieved precomputed Extract')
+    else:
+        print('created new Extract')
     return myext
 
 
@@ -473,7 +490,7 @@ class Extractor:
 
     """
 
-    def __init__(self, fitsfile, **kwargs):
+    def __init__(self, fitsfile, finalize=True, **kwargs):
         """
         if fitsfile specified class takes it
         the following keyword arguments are recognized
@@ -483,6 +500,10 @@ class Extractor:
         dir: path to folder containing all fits files
 
         """
+        self._ccd1 = None
+        self._ccd2 = None
+        self._ccd3 = None
+
         self._total_reset()
         self.kwargs = kwargs
 
@@ -502,11 +523,8 @@ class Extractor:
         
 
         ####
-        self._ccd1 = None
-        self._ccd2 = None
-        self._ccd3 = None
-
-        self.finalize()
+        if finalize:
+            self.finalize()
 
         ### force computation of everything
     def finalize(self):
@@ -517,7 +535,7 @@ class Extractor:
 
 
     def logging(self, message):
-        print('Extractor, SETTING_ID: ' + self.SETTINGS_ID + ', ThArg: ', self._tharfits + ', ' +message)
+        print('------\nExtractor, SETTING_ID: ' + self.SETTINGS_ID + ', ThArg: ', self._tharfits + '\n, ' +message)
 
     @property
     def SETTINGS_ID(self):
@@ -628,10 +646,9 @@ class Extractor:
         """
         the reference extractor
         """
-        print('should be ', self.kwargs['REFKWARGS']['DATADIR']) 
         thar = list(getallthoriumfits(dirname=self.kwargs['REFKWARGS']['DATADIR']))[0]
         ext = get_ext(thar, **self.kwargs['REFKWARGS'])
-        store.save()
+        store.store(thar, ext)
         return ext
 
     @lazyproperty
@@ -733,8 +750,6 @@ class Extractor:
     
     def _compute_voie1et2(self):
         choice =  self.kwargs['VOIE_METHOD']
-        print("fitsfile is ", self._fitsfile)
-        print("choice for voie is ", choice)
         if choice == 'SUM_DIVIDE':
             self._voie1 = {
                     o: self.beams[o].beam_sum_voie1(self.image) \
@@ -876,7 +891,9 @@ class Extractor:
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))
             res[o] =self._lines(self.ba_voie1[o])
+        print('\n')
         return res
+
         #return {o: self._lines(self.ba_voie1[o]) for o in self.ORDERS}
 
     @lazyproperty
@@ -886,6 +903,7 @@ class Extractor:
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))
             res[o] = self._lines(self.ba_voie2[o])
+        print('\n')
         return res
 
     @lazyproperty
@@ -1253,6 +1271,14 @@ class Extractor:
         newfits.writeto(os.path.join(RESULTDIR, filename), overwrite=True)
 
 
+    def __del__(self):
+        del self.snippets_voie1
+        del self.snippets_voie2
+        del self.reference_extract
+
+        if not self._ccd1 is None: del self._ccd1
+        if not self._ccd2 is None: del self._ccd2
+        if not self._ccd3 is None: del self._ccd3
 """
 TODO: kwargs fill in globally
 TODO: index ranges uniformize to [a, b) i.e. half-open

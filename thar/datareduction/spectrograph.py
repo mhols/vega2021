@@ -187,6 +187,7 @@ class CCD2d:
         new_mean_pixel_pos = []
         sigma_new_mean = []
         shit = 0
+        print('\n-------------\nbootstrapping\n')
         for i, line in self._data.iterrows():
             position = np.nan
             sigma = np.nan
@@ -281,7 +282,7 @@ class CCD2d:
             I = np.abs(res)<=thd
 
             if np.all(I==self._data['selected']):
-                print('stable 1D clipping after {} iterations'.format(i))
+                print('\nstable 1D clipping after {} iterations'.format(i))
                 break
             self._data.loc[:, 'selected'] = I[:]
             fit_now = self._fit_polynomial_order_by_order(weight=self._fit_weight(fit_now)) # fit on selected data set
@@ -683,7 +684,7 @@ class CCD2d:
             for j, (nol, no) in enumerate(nolko):
                 G[i,j] = Tshebol[nol](o[i]*l[i]) * Tshebo[no](o[i])
 
-        G = (1./ s)[:, np.newaxis] * G
+        G = np.array((1./ s))[:, np.newaxis] * G
         coeffs = np.linalg.lstsq(G, (1./s) * x, rcond=None)[0]
 
         ## compute restriction to each order of 2d polynomial

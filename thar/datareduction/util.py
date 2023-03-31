@@ -236,11 +236,9 @@ def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     yx = interp1d(x,y,fill_value='extrapolate')
     yyxx = interp1d(xx, yy, fill_value='extrapolate')
 
-    print (yy) 
     minx = max(np.min(x), np.min(xx*ra0+rb0))
     maxx = min(np.max(x), np.max(xx*ra1+rb1))
 
-    print (minx, maxx)
     xxx = np.linspace(minx, maxx, N)
     def L(ba):
         b, a = ba
