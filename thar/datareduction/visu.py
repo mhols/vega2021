@@ -18,9 +18,24 @@ from scipy.signal import savgol_filter
 from scipy.signal import correlate
 from scipy.optimize import curve_fit
 import extract
+from settings import kwargs as refkwargs
+import regal
 
 #
 clum=3e5
+
+def get_ext(f_thar):
+    try:
+        myext = store.get(f_thar)
+        print('retrieving precomputed object for ',  f_thar)
+    except:
+        myext = extract.Extractor(**kwargs)
+        myext.set_fitsfile(f_thar)
+        store.store(f_thar, myext)
+    return myext
+    
+store = regal.Store()
+myext = get_ext('/Users/boehm/Desktop/vega2021/thar/51Peg_raw/2020_0912/NEO_20200912_190502_th0.fits')
 
 try:
     settingsmodule = os.environ['SETTINGSMODULE']
@@ -34,10 +49,6 @@ except:
 
 
 
-kwargs = kwargs
-
-myext = extract.Extractor(**kwargs)
-
 
 
 
@@ -47,7 +58,7 @@ myext = extract.Extractor(**kwargs)
 
 #urversion
 #ThAr moon
-a=pyfits.open('../lune_res/HOBO_NEO_20200202_173811_th1.fits')
+a=pyfits.open('../51Peg_raw/2020_0912/HOBO_NEO_20200912_190502_th1.fits')
 
 #ThAr Referenznacht
 #a=pyfits.open('../reffiles/HOBO_NEO_20220903_191404_th1.fits')
@@ -94,8 +105,8 @@ plt.plot(wave2,intens2,"r")
 plt.figure(figsize=(16,6))
 
 
-#ORDERS=(53,54)
-for o in ORDERS:
+#ORDERS=(33,33)
+for o in myext.ORDERS:
 
     I=np.where(ordernumber == o)
     GI = myext.beams[o].I
@@ -121,12 +132,13 @@ for o in ORDERS:
     
     plt.ylim(-20,1000)
     if (o % 2) == 0:
-    #    plt.plot(wav1,flu1,'r')
+#        plt.plot(wav1,flu1,'r')
         plt.plot(wav1GI,flu1GI,'r')
     else:
-    #    plt.plot(wav1,flu1,'b')
+#        plt.plot(wav1,flu1,'b')
         plt.plot(wav1GI,flu1GI,'b')
 #    print(o,min(wav1),(min(wav1)+max(wav1))/2, max(wav1))
 
 plt.show()
 
+store.save()

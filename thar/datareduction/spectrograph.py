@@ -18,14 +18,14 @@ from cvxopt.solvers import qp
 #matplotlib.rcParams['figure.dpi'] = 200
 
 ### all constants are in settings.py
-try:
-    settingsmodule = os.environ['SETTINGSMODULE']
-except:
-    raise Exception('wrong SETTINGSMODULE')
-try:
-    exec('from %s import *'%(settingsmodule,))
-except:
-    raise Exception('could not import {settingsmodule}')
+# try:
+#     settingsmodule = os.environ['SETTINGSMODULE']
+# except:
+#     raise Exception('wrong SETTINGSMODULE')
+# try:
+#     exec('from %s import *'%(settingsmodule,))
+# except:
+#     raise Exception('could not import {settingsmodule}')
 
 ##  local units
 M = 1.0         # Meter
@@ -36,7 +36,7 @@ KILO = 1000     # Kilo
 KM = KILO * M   # Kilometer
 
 C_LIGHT = 300000 * KM / S    # speed of ligth
-##  -------------
+# ##  -------------
 
 
 """
@@ -173,7 +173,10 @@ class CCD2d:
         print('after outlier removal left ', self.ndata)
         self.sigma_clipping()
         
-        
+    @property
+    def NROWS(self):
+        return self.kwargs['NROWS']
+
     def generate_fixed_effects(self):
         """
         for later use when replacing the 2d polynomial with 2d splines
@@ -197,6 +200,7 @@ class CCD2d:
         new_mean_pixel_pos = []
         sigma_new_mean = []
         shit = 0
+        print('\n-------------\nbootstrapping\n')
         for i, line in self._data.iterrows():
             position = np.nan
             sigma = np.nan
@@ -263,7 +267,7 @@ class CCD2d:
 
     def sigma_clipping(self):
         # sigma clipping for x=P_o(ol) (i.e. 1D) and x = P(ol, o) (i.e. 2D)
-
+        self.bootstrap_data()
         def _get_threshold(epsilon, fit_now):
             d_fit_now = {o: p.deriv(1) for o, p in fit_now.items() }
             dxdl = self._o * np.abs(self._eval_order_by_order_full(d_fit_now, self._ol))
@@ -295,7 +299,7 @@ class CCD2d:
             I = np.abs(res)<=thd
 
             if np.all(I==self._data['selected']):
-                print('stable 1D clipping after {} iterations'.format(i))
+                print('\nstable 1D clipping after {} iterations'.format(i))
                 break
             self._data.loc[:, 'selected'] = I[:]
             fit_now = self._fit_polynomial_order_by_order(weight=self._fit_weight(fit_now)) # fit on selected data set
@@ -320,6 +324,11 @@ class CCD2d:
         self._map_2D_x_ol_o = fit_now2
         self._map_1D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_1D_x_ol_o.items()}
         self._map_2D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_2D_x_ol_o.items()}
+
+        n = np.arange(self.NROWS)
+        self._final_map_l_x_o = {o: 
+                interp1d( n, self._map_2D_ol_x_o[o](n)/o, fill_value='extrapolate')
+                  for o in self.ORDERS}
 
         self._report_fitresult()
 
@@ -747,7 +756,7 @@ class CCD2d:
         G = (1./ s)[:, np.newaxis] * G
         xs = (1./s) * x
         ### preparing matrix for pixel map
-
+        """
         TshebolF = [np.polynomial.chebyshev.Chebyshev.basis(
                     window=[-1,1],
                     domain=mxrange,
@@ -791,10 +800,12 @@ class CCD2d:
         #    cx.matrix(0., (1, nab)), cx.matrix(0, (1,1)), # lienear inequality
         #    A, b)['x']                        ## linear constraint
 
+        """
 
 
-
-        coeffs = np.linalg.lstsq(G, xs, rcond=None)[0]
+        #coeffs = np.linalg.lstsq(G, xs, rcond=None)[0]
+        #G = np.array((1./ s))[:, np.newaxis] * G
+        coeffs = np.linalg.lstsq(G, (1./s) * x, rcond=None)[0]
 
         ## compute restriction to each order of 2d polynomial
         res = {
@@ -853,17 +864,17 @@ class CCD2d:
         """
         returns lambda_mapping of 2D polynomial
         """
-        res = np.zeros(len(self.all_order())*NROWS)
+        res = np.zeros(len(self.all_order())*self.NROWS)
         i = 0
-        x = np.arange(NROWS)
+        x = np.arange(self.NROWS)
         for i, o in enumerate(self.all_order()):
             ip = self._map_2D_ol_x_o[o]
-            res[i*NROWS:(i+1)*NROWS] = ip(x)/o 
+            res[i*self.NROWS:(i+1)*self.NROWS] = ip(x)/o 
         return np.array(res)
 
     def get_lambda_map(self):
         tmp = self.get_lambda_list()
-        return {o: tmp[i*NROWS:(i+1)*NROWS] for i, o in enumerate(self.all_order())}
+        return {o: tmp[i*self.NROWS:(i+1)*self.NROWS] for i, o in enumerate(self.all_order())}
 
 
 class FP:

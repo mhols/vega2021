@@ -1,17 +1,18 @@
 import util
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
+import regal
+import snippets
+import spectrograph
 import astropy.io.fits as pyfits
 import os
 import sys
 from scipy.ndimage import minimum_filter1d, generic_filter
 from scipy.optimize import curve_fit
-from scipy.interpolate import interp1d, UnivariateSpline, bisplrep, bisplev
+from scipy.interpolate import interp1d
 from scipy.signal import convolve2d
 from numpy.polynomial import Polynomial
 import pandas as pd
-import shelve
 from astropy.utils.decorators import lazyproperty
 
 ### all constants are in settings.py
@@ -87,12 +88,12 @@ def secondpoly(xx,yy):
     return refposi, c[2]
 
 def load_image_from_fits(fitsfile, **kwargs):
-    REMOVECROSS=kwargs['REMOVECROSS']==int(True)
+    # REMOVECROSS=kwargs['REMOVECROSS']==int(True)
     a=pyfits.open(fitsfile)
     # print('fitsfile ', fitsfile)
     image = np.clip(a[0].data,-100,65535)
     a.close()
-    if REMOVECROSS:
+    if has_cross(fitsfile):
         return removeCross(image, **kwargs)
     else:
         return image
@@ -105,6 +106,9 @@ def header_info_from_fits(fitsfile, keyword):
         raise Exception('keyword not defined')
     a.close()
     return key
+
+def gettimestamp(fitsfile):
+        return header_info_from_fits(fitsfile, 'DATE_JUL')
 
 def is_flatfield(fitsfile):
     res = False
@@ -122,18 +126,21 @@ def is_bias(fitsfile):
     
 def is_thorium(fitsfile):
     try:
-        return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium'
+        return header_info_from_fits(fitsfile, 'OBJECT') == 'Thorium' 
     except:
-        return False
+        return str(fitsfile).endswith('th0.fits')
 
 def is_star(fitsfile, name):
-    res = False
+    if fitsfile.endswith('st0.fits'):
+        return True
     try:
         res = header_info_from_fits(fitsfile, 'OBJECT') == name
     except:
         pass
     return res
 
+def has_cross(fitsfile):
+    return int(header_info_from_fits(fitsfile, 'PORTMODE')) == 0
 
 #liste = listallfits('/Users/boehm/Desktop/extract/Vega_2022TBL')
 def listallfits(dirname):
@@ -155,7 +162,7 @@ def getallbiasfits(dirname):
 
 def getallthoriumfits(dirname):
     for f in listallfits(dirname):
-        if is_thorium(f) and f.endswith('_th0.fits'):
+        if is_thorium(f) and str(f).endswith('_th0.fits'):
             yield f
 
 def getallstarfits(dirname, name=''):
@@ -329,7 +336,8 @@ class BeamOrder:
         self._yy = self._y[I]
 
         self._lower, self._upper = 0, self.NROWS
-        self._evaluator = lambda x: np.interp(x, self._xx, self._yy)
+        self._evaluator = interp1d(self._xx, self._yy, fill_value='extrapolate') 
+        #lambda x: np.interp(x, self._xx, self._yy)
         self._x = np.arange(self.NROWS)
         self._y = self(self._x)
 
@@ -340,10 +348,13 @@ class BeamOrder:
         ### go along with this proxy
         self._lower, self._upper = self._beam_limits()
 
-        self._evaluator = Polynomial.fit(
-            np.arange(self._lower, self._upper),
-            self(np.arange(self._lower, self._upper)),            
-            deg=4)
+        try:
+            self._evaluator = Polynomial.fit(
+                np.arange(self._lower, self._upper),
+                self(np.arange(self._lower, self._upper)),            
+                deg=4)
+        except:
+            print('propblem', self._order)
         
         self._y = self(self._x)
 
@@ -398,7 +409,8 @@ class BeamOrder:
         
 
     def _beam_limits(self):
-        mask = self.mask_blaze()
+        mask = mask_along_offset(self._xx, self._yy, self.BLAZE_RANGE, **self.kwargs)
+        # mask = self.mask_blaze()
         tmp = np.sum(mask * self._masterflat, axis=1)
 
         # TODO tmp = medianfilter(tmp)
@@ -413,6 +425,14 @@ class BeamOrder:
              if tmp[i] < self.FLUX_LIMIT:
                 break
         lower = i
+        if upper==lower:
+            # artificial treatment of limits for bad beams
+            # TODO introduce good beams
+            lower = self.CENTRALROW - 3
+            upper = self.CENTRALROW + 3
+            self.bad_beam = True
+        else:
+            self.bad_beam = False
         return lower, upper
                
 
@@ -450,13 +470,31 @@ class BeamOrder:
 #    y = followorder(image, CENTRALPOSITION[order], CENTRALROW)
 #    return BeamOrder(order, np.arange(NROWS), y, extractor=extractor, **kwargs)
 
+
+#### factory methods for Extractor objects
+store = regal.Store()    # we only have one global store
+
+def get_ext(f_thar, **kwargs):
+    retrieved = True
+    try:
+        myext = store.get(f_thar)
+    except:
+        retrieved = False
+        myext = Extractor(f_thar, **kwargs)
+    if retrieved:
+        print('retrieved precomputed Extract')
+    else:
+        print('created new Extract')
+    return myext
+
+
 class Extractor:
     """
     A class for the data reduction pipeline
 
     """
 
-    def __init__(self,fitsfile=None, **kwargs):
+    def __init__(self, fitsfile, finalize=True, **kwargs):
         """
         if fitsfile specified class takes it
         the following keyword arguments are recognized
@@ -466,22 +504,45 @@ class Extractor:
         dir: path to folder containing all fits files
 
         """
+        self._ccd1 = None
+        self._ccd2 = None
+        self._ccd3 = None
+
         self._total_reset()
         self.kwargs = kwargs
+
+        assert is_thorium(fitsfile), 'you need to specify a thorium file to generate an extractor'
+
+        self._tharfits = fitsfile        
         self._fitsfile = fitsfile
+        
         self.CENTRALROW = kwargs['CENTRALROW']
+        self.NROWS = kwargs['NROWS']
 
         # all properties can be lasily evaluated
-        # self._lazy = []
-        # masterflat and masterbias can be computed or passed
-        self._masterflat = kwargs.get('masterflat', None)
-        self._masterbias = kwargs.get('masterbias', None)
+        self._masterflat = None
+        self._masterbias = None
         self._beams = None
         self._Blaze = None
-        self.NROWS = kwargs['NROWS']
+        
+
+        ####
+        if finalize:
+            self.finalize()
+
+        ### force computation of everything
+    def finalize(self):
+        self.ccd_voie1
+        self.ccd_voie2
  
+
+
     def logging(self, message):
-        print('Extractor: ' + message)
+        print('------\nExtractor, SETTING_ID: ' + self.SETTINGS_ID + ', ThArg: ', self._tharfits + '\n, ' +message)
+
+    @property
+    def SETTINGS_ID(self):
+        return self.kwargs.get('SETTING_ID', 'WARNING: no setting id, you should specify one in the settings module')    
 
     def _restart(self):
         # local quantity
@@ -524,6 +585,10 @@ class Extractor:
         return list(self.CENTRALPOSITION.keys())
 
     @property
+    def PREFIX(self):
+        return self.kwargs.get('PREFIX', 'HOBO') #TODO recompute 
+
+    @property
     def bare_image(self):
         if self._bare_image is None:
             self._bare_image = load_image_from_fits(self.fitsfile, **self.kwargs)
@@ -558,33 +623,139 @@ class Extractor:
     def bias_voie2(self, o):
         return self.beams[o].beam_sum_voie2(self.masterbias) 
 
+    @lazyproperty
+    def snippets_voie1(self):
+        snip = snippets.Snippets(voie=1, extractor=self, **self.kwargs)
+        return snip.snippets
 
     @lazyproperty
-    def pix_to_lambda_map(self):
-        tmp = { o: interp1d(np.arange(self.NROWS), get_lambda(o, self.ORDERS, **self.kwargs)) 
-                for o in self.ORDERS }
-        return tmp
+    def snippets_voie2(self):
+        snip = snippets.Snippets(voie=2, extractor=self, **self.kwargs)
+        return snip.snippets
     
+    @property
+    def ccd_voie1(self):
+        if not self._ccd1 is None:
+            return self._ccd1
+        self._ccd1 = spectrograph.CCD2d(self.snippets_voie1, self, **self.kwargs)
+        return self._ccd1
+    
+    @property
+    def ccd_voie2(self):
+        if not self._ccd2 is None:
+            return self._ccd2
+        self._ccd2 = spectrograph.CCD2d(self.snippets_voie2, self, **self.kwargs)
+        return self._ccd2
+    
+    @lazyproperty
+    def reference_extract(self):
+        """
+        the reference extractor
+        """
+        thar = list(getallthoriumfits(dirname=self.kwargs['REFKWARGS']['DATADIR']))[0]
+        ext = get_ext(thar, **self.kwargs['REFKWARGS'])
+        store.store(thar, ext)
+        return ext
+
+    @lazyproperty
+    def lambda_map_of_order_1(self, o):
+        pass
+
+    @lazyproperty
+    def pix_to_lambda_map_1(self):
+        """
+        The preliminary lambda map
+        Either you specify a file containing the lambdas
+        or you try to obtain by homothetic mapping from some reference
+        """
+        if self.kwargs.get('ESTIMATE_LAMBDAMAP', str(False)) == str(False):
+            self.logging('using REFFILE '+self.kwargs['LAMBDAFILE'] + " in pix_to_lambda_map_1")
+            return { o: interp1d(np.arange(self.NROWS), get_lambda(o, self.ORDERS, **self.kwargs), 
+                                 fill_value='extrapolate') 
+                for o in self.ORDERS }
+        
+        self.logging('using a homothetic mapping to get lambda map')
+        REFORDER = 33  ## the order used to estimate the homothetie
+        
+        rv1 = self.reference_extract.voie1[REFORDER]
+        rv1 = np.where(np.isnan(rv1), 0, rv1)
+
+        # setting myself on first fitsfile (TODO STORE)
+        thars = list(getallthoriumfits(dirname=self.kwargs['DATADIR']))
+        self.set_fitsfile(thars[0])
+        mv1 = self.voie1[REFORDER]
+        mv1 = np.where(np.isnan(mv1), 0, mv1)
+ 
+        n = np.arange(self.NROWS)
+        d = np.argmax(np.correlate(rv1, mv1, 'full')) - self.NROWS + 1
+
+        b, a = util.homothetie(n, rv1, n, mv1, d-1, d+1, 0.9999999, 1.0000001) 
+
+        tmp = {}
+
+        n = np.arange(self.NROWS)
+
+        for o in self.ORDERS:
+            tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie1[o](n+b),
+                        fill_value='extrapolate')
+        return tmp
+
+
+    @property
+    def pix_to_lambda_map_voie1(self):
+        if self._ccd1 is None:
+            return self.pix_to_lambda_map_1
+        else:
+            return self._ccd1._final_map_l_x_o 
+
+    @property
+    def pix_to_lambda_map_voie2(self):
+        if self._ccd2 is None:
+            return self.pix_to_lambda_map_1
+        else:
+            return self._ccd2._final_map_l_x_o
+
+    @property
+    def pix_to_lambda_map_voie3(self):
+        if self._ccd3 is None:
+            return self.pix_to_lambda_map_1
+        else:
+            return self._ccd3._final_map_l_x_o
+
+    @property
+    def lambdas_per_order_voie1(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie1[o](n) for o in self.ORDERS}
+
+    @property
+    def lambdas_per_order_voie2(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie2[o](n) for o in self.ORDERS}
+
+    @property
+    def lambdas_per_order_voie3(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
+
     def lam_to_o(self, lam):
+        """the orders of lambda """
         return [ o for o in self.ORDERS if 
-                self.pix_to_lambda_map[o](0) <= lam and lam <= self.pix_to_lambda_map[o](self.NROWS-1)]
+                self.pix_to_lambda_map_1[o](0) <= lam and lam <= self.pix_to_lambda_map_1[o](self.NROWS-1)]
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
-        return get_lambda(o, self.ORDERS, **self.kwargs), self.voie1[o], I
+        return self.lambdas_per_order_voie1[o], self.voie1[o], I
     
     def get_lambda_intens2(self, o):
         I = self.beams[o].I
-        return get_lambda(o, self.ORDERS, **self.kwargs), self.voie2[o], I
+        return self.lambdas_per_order_voie2[o], self.voie2[o], I
         
     def get_lambda_intens3(self, o):
         I = self.beams[o].I
-        return get_lambda(o, **self.kwargs), self.voie3[o], I
+        return self.lambdas_per_order_voie3[o], self.voie3[o], I
     
     def _compute_voie1et2(self):
         choice =  self.kwargs['VOIE_METHOD']
-        print("fitsfile is ", self._fitsfile)
-        print("choice for voie is ", choice)
         if choice == 'SUM_DIVIDE':
             self._voie1 = {
                     o: self.beams[o].beam_sum_voie1(self.image) \
@@ -726,7 +897,9 @@ class Extractor:
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))
             res[o] =self._lines(self.ba_voie1[o])
+        print('\n')
         return res
+
         #return {o: self._lines(self.ba_voie1[o]) for o in self.ORDERS}
 
     @lazyproperty
@@ -736,6 +909,7 @@ class Extractor:
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))
             res[o] = self._lines(self.ba_voie2[o])
+        print('\n')
         return res
 
     @lazyproperty
@@ -792,7 +966,7 @@ class Extractor:
         if self.kwargs.get('ESTIMATE_CENTRALPOSITION', str(False))==str(False):
             return self.kwargs['CENTRALPOSITION']
         OVER = 32
-        tmpext = Extractor(**self.kwargs['REFKWARGS'])
+        tmpext = self.reference_extract
 
         #tmpext.masterflat
         #self.masterflat
@@ -805,41 +979,45 @@ class Extractor:
         nr = np.arange(Nr)
         nm = np.arange(Nm)
 
-        nnr = np.linspace(0, Nr-1, OVER*Nr+1) ## for oversampling
-        nnm = np.linspace(0, Nm-1, OVER*Nm+1)
+        #nnr = np.linspace(0, Nr-1, OVER*Nr+1) ## for oversampling
+        #nnm = np.linspace(0, Nm-1, OVER*Nm+1)
 
-        Nnr = len(nnr)
-        Nmm = len(nnm)
+        #Nnr = len(nnr)
+        #Nmm = len(nnm)
 
         # self.masterflat ## TDOD self.masterflat_low
 
-        freflow = interp1d(nr, reflow, bounds_error=False, fill_value=0)
-        fmylow = interp1d(nm, mylow, bounds_error=False, fill_value=0)
+        #freflow = interp1d(nr, reflow, bounds_error=False, fill_value=0)
+        #fmylow = interp1d(nm, mylow, bounds_error=False, fill_value=0)
 
-        smylow = fmylow(nnm)
+        #smylow = fmylow(nnm)
         
-        dilrange = np.linspace(0.98, 1.02, 64)
-        tmp = []
-        for i, l in enumerate(dilrange):
-            tmp.append(np.max(
-                np.correlate(
-                smylow,
-                np.where(l*nnr<=Nr-1, freflow(l*nnr), 0),
-                'full')
-            ))
-            util.progress(i, len(dilrange))
+        #dilrange = np.linspace(0.98, 1.02, 64)
+        #tmp = []
+        #for i, l in enumerate(dilrange):
+        #    tmp.append(np.max(
+        #        np.correlate(
+        #        smylow,
+        #        np.where(l*nnr<=Nr-1, freflow(l*nnr), 0),
+        #        'full')
+        #    ))
+        #    util.progress(i, len(dilrange))
 
-        j = np.argmax(tmp)
-        l = dilrange[j]
-        print(l)
-        i = np.argmax( np.correlate(smylow, 
-                        np.where(l*nnr <= Nr-1, freflow(l*nnr), 0), 'full')) - Nnr+1
-        
-        d = i / OVER 
-        print (d, l)
-        res = {}
-        for o, p in tmpext.CENTRALPOSITION.items():
-            res[o] = int(np.round((p+d)/l))
+        #j = np.argmax(tmp)
+        #l = dilrange[j]
+        #print(l)
+        #i = np.argmax( np.correlate(smylow, 
+        #                np.where(l*nnr <= Nr-1, freflow(l*nnr), 0), 'full')) - Nnr+1
+        # 
+        #d = i / OVER 
+        #print (d, l)
+        #res = {}
+        #for o, p in tmpext.CENTRALPOSITION.items():
+        #    res[o] = int(np.round((p+d)/l))
+
+        d = np.argmax(np.correlate(reflow, mylow, 'full'))-len(reflow)+1
+        b, a = util.homothetie(nr, reflow, nm, mylow, d-5, d+5, 0.9, 1.1)
+        res = {o: int(np.round((i-b)/a)) for o, i in tmpext.CENTRALPOSITION.items()}
         return res    
 
 
@@ -988,7 +1166,133 @@ class Extractor:
 
         return tmp
 
+    def save_fits(self):
+        # collecting data
+        order = list(self.ORDERS)
+        fitstable = pyfits.BinTableHDU.from_columns(
+        [
+        pyfits.Column(
+            name="true_order_number",
+            format="I",
+            array=np.array(order)
+        ),
+        pyfits.Column(
+            name="wavelength_1",
+            format="E",
+            array=self.ccd_voie1.get_lambda_list()
+        ),
+        pyfits.Column(
+            name="wavelength_2",
+            format="E",
+            array=self.ccd_voie2.get_lambda_list()
+        ),
+        pyfits.Column(
+            name="wavelength_3",
+            format="E",
+            array=np.zeros(len(order)*self.NROWS)
+        ),
+        pyfits.Column(
+            name='flux_1',
+            format='E',
+            array=self.voie1_all()
+        ),
+        pyfits.Column(
+            name='flux_2',
+            format='E',
+            array=self.voie2_all()
+        ),
+        pyfits.Column(
+            name='flux_3',
+            format='E',
+            array=self.voie2_all() ### TODO voie3
+        ),
+        pyfits.Column(
+            name='noise_1',
+            format='E',
+            array=self.noise_1
+        ),
+        pyfits.Column(
+            name='noise_2',
+            format='E',
+            array=self.noise_2
+        ),
+        pyfits.Column(
+            name='noise_3',
+            format='E',
+            array=self.noise_3
+        )])
 
+        # fits.Column(
+        #     name="blaze_1",
+        #     format='E',
+        #     array=myext.blaze_1
+        # ),
+        # fits.Column(
+        #     name="blaze_2",
+        #     format='E',
+        #     array=myext.blaze_2
+        # ),
+        # fits.Column(
+        #     name="blaze_3",
+        #     format='E',
+        #     array=myext.blaze_3
+        # ),
+        # fits.Column(
+        #     name="continuum_1_1",
+        #     format='E',
+        #     array=myext.continuum_1_1
+        # ),
+        # fits.Column(
+        #     name="continuum_1_2",
+        #     format='E',
+        #     array=myext.continuum_1_2
+        # ),
+        # fits.Column(
+        #     name="continuum_1_3",
+        #     format='E',
+        #     array=myext.continuum_1_3
+        # )
+
+        page1 = pyfits.PrimaryHDU()
+
+        PREFIX = self.PREFIX
+        filename = os.path.basename(self.fitsfile)
+        filename = PREFIX + filename[:-8]+'st1.fits'
+
+        RESULTDIR = self.kwargs['RESULTDIR']
+        if not os.path.exists(RESULTDIR):
+            os.mkdir(RESULTDIR)
+
+        with pyfits.open(self.fitsfile) as sfi:
+            page1.header = sfi[0].header
+
+        page1.header.append((PREFIX+"LEVEL", 1))
+        #for key in self.kwargs['HEADER_ITEMS']:
+        #    page1.header.append((PREFIX+key, globals()[key]))
+        # TODO find a way to compute HEADER_ITEMS ....
+        newfits = pyfits.HDUList(
+            [ page1, fitstable ]
+        )
+
+        newfits.writeto(self.result_path, overwrite=True)
+
+    @property
+    def result_path(self):
+        PREFIX = self.PREFIX
+        filename = os.path.basename(self.fitsfile)
+        RESULTDIR = self.kwargs['RESULTDIR']
+        filename = PREFIX + filename[:-8]+'st1.fits'
+
+        return os.path.join(RESULTDIR, filename)
+
+    def __del__(self):
+        del self.snippets_voie1
+        del self.snippets_voie2
+        del self.reference_extract
+
+        if not self._ccd1 is None: del self._ccd1
+        if not self._ccd2 is None: del self._ccd2
+        if not self._ccd3 is None: del self._ccd3
 """
 TODO: kwargs fill in globally
 TODO: index ranges uniformize to [a, b) i.e. half-open

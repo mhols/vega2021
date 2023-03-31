@@ -36,8 +36,7 @@ def get_ext(f_thar):
         myext = store.get(f_thar)
         print('retrieving precomputed object for ',  f_thar)
     except:
-        myext = extract.Extractor(**kwargs)
-        myext.set_fitsfile(f_thar)
+        myext = extract.Extractor(f_thar, **kwargs)
         store.store(f_thar, myext)
     return myext
 
@@ -49,31 +48,34 @@ if RECOMPUTE_2D_POLYNOMIAL:
     for f_thar in extract.getallthoriumfits(dirname=DATADIR):
 
         myext = get_ext(f_thar) 
+        # try:
+        #     snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
+        #     snippets_voie = [
+        #         s.snippets for s in snips
+        #         # snippets.snippets(myext, i, ORDERS)
+        #         # for i in [1, 2]   # [1, 2, 3]
+        #     ]
+        # except Exception as ex:
+        #     print('oooooops', f_thar, ex)
+        #     continue
+
         
         snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
         snippets_voie = [
-            (s.snippets, s.overlapping_snippets) for s in snips
+            s.snippets for s in snips
                 # snippets.snippets(myext, i, ORDERS)
                 # for i in [1, 2]   # [1, 2, 3]
         ]
-        """
-        try:
-            snips = [ snippets.Snippets(voie=i, extractor=myext, **kwargs) for i in [1, 2]]  # TODO: voie3
-            snippets_voie = [
-                s.snippets for s in snips
-                # snippets.snippets(myext, i, ORDERS)
-                # for i in [1, 2]   # [1, 2, 3]
-            ]
-        except Exception as ex:
-            print('oooooops', f_thar, ex)
-            continue
-        """
+
         store.save()
 
         ccd = [
             spectrograph.CCD2d( data=snip[0], mdata=snip[1], extractor=myext, **kwargs)
                 for snip in snippets_voie
         ]
+
+        myext._ccd1 = ccd[0]
+        myext._ccd2 = ccd[1]
 
         thars.append( {
             'fitsfile':os.path.basename(f_thar),
@@ -93,11 +95,11 @@ else:
         thars = pickle.load(f)
 
 # computing average poly2d as new basis
-if SAVE_LAMS:
-    for ta in thars:
-        for i, c in enumerate(ta['ccd']):
-            np.savetxt(os.path.join(REFFILES, 'hoboe_%s_%s.txt'%(ta['fitsfile'], i+1)),
-                   c.get_lambda_list())
+# if SAVE_LAMS:
+#     for ta in thars:
+#         for i, c in enumerate(ta['ccd']):
+#             np.savetxt(os.path.join(REFFILES, 'hoboe_%s_%s.txt'%(ta['fitsfile'], i+1)),
+#                    c.get_lambda_list())
 
 list_of_stars = []
 list_of_jd = []

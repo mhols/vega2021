@@ -33,5 +33,15 @@ hobolambda1.dat und hobolambda2.dat für voie1 und voie2 produziert
 
 -	Next step: in branch playground jetzt moon reduzieren mit dem neuen setup und anschliessend Arbeit an EW anfangen (siehe EW/moon folder auf Desktop).
 
+31.3.
+extraction pipeline working for ThaRs
+store is now simple file pickle mapping
+beam limits adapted and bad beam flag introduced
+all pickle files are located in __STORE__
+
+Extractor is central opjects where all information about the ThArg is collected (snippets, polynomials)
+
+
+
 
 
