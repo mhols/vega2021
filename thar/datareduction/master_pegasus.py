@@ -1,7 +1,8 @@
 import settingspegasus as sp
 import extract
 import os
-import gc
+import pathlib
+import numpy as np
 
 
 ## the list of subdirectories to be treated
@@ -38,70 +39,98 @@ PEGDIR = os.path.join(kwargs['BASEDIR'], '51Peg_raw')
 # reporting on bad and good
 oopsies = {}
 goodies = []
+oopsiesstar = {}
 
-nfiles = 0
 
-for d in list_of_dirs:
-    kwargs['DATADIR'] = os.path.join(PEGDIR, d)
-    for f_thar in extract.getallthoriumfits(kwargs['DATADIR']):
-        nfiles += 1
-    print (d, nfiles)
+def step1():
+    nfiles = 0
+    for d in list_of_dirs:
+        kwargs['DATADIR'] = os.path.join(PEGDIR, d)
+        for f_thar in extract.getallthoriumfits(kwargs['DATADIR']):
+            nfiles += 1
+        print (d, nfiles)
 
-nf = 0
-for d in list_of_dirs:
-    kwargs['DATADIR'] = os.path.join(PEGDIR, d)
-    for f_thar in extract.getallthoriumfits(kwargs['DATADIR']):
-        nf += 1
-        print ('\n================================')
-        print (nf, 'out of', nfiles, ': ', f_thar)
-        print('====================================\n')
+    nf = 0
+    for d in list_of_dirs:
+        kwargs['DATADIR'] = os.path.join(PEGDIR, d)
+        for f_thar in extract.getallthoriumfits(kwargs['DATADIR']):
+            nf += 1
+            print ('\n================================')
+            print (nf, 'out of', nfiles, ': ', f_thar)
+            print('====================================\n')
 
-        ## retrieve or create Extractor
-        try:
-            myext = extract.get_ext(f_thar, **kwargs)
-        except Exception as ex:
-            print('ooops', ex)
-            oopsies[f_thar] = ex
+            ## retrieve or create Extractor
+            try:
+                myext = extract.get_ext(f_thar, **kwargs)
+                myext.ccd_voie1.get_lambda_list()
+                myext.ccd_voie2.get_lambda_list()
+            except Exception as ex:
+                print('ooops', ex)
+                oopsies[f_thar] = ex
+                try:
+                    del myext
+                except Exception as ex:
+                    print('could not delete...', ex)
+                continue
+            goodies.append(f_thar)
+            try:
+                extract.store.store(f_thar, myext)
+            except:
+                print ('could not save')
+                oopsies[f_thar] = 'could not save'
+
             try:
                 del myext
             except Exception as ex:
-                print('could not delete...', ex)
-            continue
-        goodies.append(f_thar)
-        try:
-            extract.store.store(f_thar, myext)
-        except:
-            print ('could not save')
-            oopsies[f_thar] = 'could not save'
+                print('problems deleting...beware of memory leak', ex)
+                pass
 
-        try:
-            del myext
-        except Exception as ex:
-            print('problems deleting...beware of memory leak', ex)
-            pass
-nfiles = 0
+def step2():
+    nfiles = 0
+    for d in list_of_dirs:
+        kwargs['DATADIR'] = os.path.join(PEGDIR, d)
+        for f_star in extract.getallstarfits(kwargs['DATADIR']):
+            nfiles += 1
+        print (d, nfiles)
+    nf = 0
+    for d in list_of_dirs:
+        kwargs['DATADIR'] = os.path.join(PEGDIR, d)
 
-for d in list_of_dirs:
-    kwargs['DATADIR'] = os.path.join(PEGDIR, d)
-    for f_thar in extract.getallstarfits(kwargs['DATADIR']):
-        nfiles += 1
-    print (d, nfiles)
-nf = 0
-for d in list_of_dirs:
-    kwargs['DATADIR'] = os.path.join(PEGDIR, d)
+        times = {extract.gettimestamp(f): f for f in extract.getallthoriumfits(kwargs['DATADIR'])}
+        ttt = list(times.keys())
 
-    times = {extract.gettimestamp(f): f for f in extract.getallthoriumfits(kwargs['DATADIR'])}
+        for f_star in extract.getallstarfits(kwargs['DATADIR']):
+            nf += 1
+            print ('\n================================')
+            print (nf, 'out of', nfiles, ': ', f_star)
+            print('===================================\n')
 
-    for f_star in extract.getallstarfits(kwargs['DATADIR']):
-        nf += 1
-        t = extract.gettimestamp(f_star)
-        f_thar = times[ min([abs(t - tt) for tt in times])]
-        myext = extract.get(f_thar)
-        myext.set_fitsfile(f_star)
+            t = extract.gettimestamp(f_star)
+            
+            f_thar = times[ 
+                ttt[np.argmin([abs(t - tt) for tt in ttt])]
+            ]
+            
+            try:
+                myext = extract.get_ext(f_thar)
+                myext.set_fitsfile(f_star)
+                if pathlib.Path(myext.result_path).exists():
+                    continue
+                myext.save_fits()
+            except Exception as ex:
+                oopsiesstar[f_star]=[f_thar, ex]
+            try:
+                del myext
+            except:
+                pass
 
 
+if __name__=="__main__":
+    # step1()
+    step2()
+
+    print ( "goodies", goodies)
+    print('oopsies', oopsies)
+    print('oopsiesstar', oopsiesstar)
 
 
-
-print('=================')
-print(oopsies)

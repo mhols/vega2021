@@ -107,6 +107,9 @@ def header_info_from_fits(fitsfile, keyword):
     a.close()
     return key
 
+def gettimestamp(fitsfile):
+        return header_info_from_fits(fitsfile, 'DATE_JUL')
+
 def is_flatfield(fitsfile):
     res = False
     try:
@@ -128,7 +131,8 @@ def is_thorium(fitsfile):
         return str(fitsfile).endswith('th0.fits')
 
 def is_star(fitsfile, name):
-    res = False
+    if fitsfile.endswith('st0.fits'):
+        return True
     try:
         res = header_info_from_fits(fitsfile, 'OBJECT') == name
     except:
@@ -528,7 +532,6 @@ class Extractor:
 
         ### force computation of everything
     def finalize(self):
-
         self.ccd_voie1
         self.ccd_voie2
  
@@ -581,7 +584,10 @@ class Extractor:
     def ORDERS(self):
         return list(self.CENTRALPOSITION.keys())
 
-    
+    @property
+    def PREFIX(self):
+        return self.kwargs.get('PREFIX', 'HOBO') #TODO recompute 
+
     @property
     def bare_image(self):
         if self._bare_image is None:
@@ -638,7 +644,7 @@ class Extractor:
     def ccd_voie2(self):
         if not self._ccd2 is None:
             return self._ccd2
-        self._ccd1 = spectrograph.CCD2d(self.snippets_voie2, self, **self.kwargs)
+        self._ccd2 = spectrograph.CCD2d(self.snippets_voie2, self, **self.kwargs)
         return self._ccd2
     
     @lazyproperty
@@ -1249,7 +1255,7 @@ class Extractor:
 
         page1 = pyfits.PrimaryHDU()
 
-        PREFIX = self.kwargs['PREFIX']
+        PREFIX = self.PREFIX
         filename = os.path.basename(self.fitsfile)
         filename = PREFIX + filename[:-8]+'st1.fits'
 
@@ -1261,15 +1267,23 @@ class Extractor:
             page1.header = sfi[0].header
 
         page1.header.append((PREFIX+"LEVEL", 1))
-        for key in self.kwargs['HEADER_ITEMS']:
-            page1.header.append((PREFIX+key, globals()[key]))
-
+        #for key in self.kwargs['HEADER_ITEMS']:
+        #    page1.header.append((PREFIX+key, globals()[key]))
+        # TODO find a way to compute HEADER_ITEMS ....
         newfits = pyfits.HDUList(
             [ page1, fitstable ]
         )
 
-        newfits.writeto(os.path.join(RESULTDIR, filename), overwrite=True)
+        newfits.writeto(self.result_path, overwrite=True)
 
+    @property
+    def result_path(self):
+        PREFIX = self.PREFIX
+        filename = os.path.basename(self.fitsfile)
+        RESULTDIR = self.kwargs['RESULTDIR']
+        filename = PREFIX + filename[:-8]+'st1.fits'
+
+        return os.path.join(RESULTDIR, filename)
 
     def __del__(self):
         del self.snippets_voie1

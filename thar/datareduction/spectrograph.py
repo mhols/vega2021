@@ -16,14 +16,14 @@ from matplotlib import cm
 #matplotlib.rcParams['figure.dpi'] = 200
 
 ### all constants are in settings.py
-try:
-    settingsmodule = os.environ['SETTINGSMODULE']
-except:
-    raise Exception('wrong SETTINGSMODULE')
-try:
-    exec('from %s import *'%(settingsmodule,))
-except:
-    raise Exception('could not import {settingsmodule}')
+# try:
+#     settingsmodule = os.environ['SETTINGSMODULE']
+# except:
+#     raise Exception('wrong SETTINGSMODULE')
+# try:
+#     exec('from %s import *'%(settingsmodule,))
+# except:
+#     raise Exception('could not import {settingsmodule}')
 
 ##  local units
 M = 1.0         # Meter
@@ -34,7 +34,7 @@ KILO = 1000     # Kilo
 KM = KILO * M   # Kilometer
 
 C_LIGHT = 300000 * KM / S    # speed of ligth
-##  -------------
+# ##  -------------
 
 
 """
@@ -152,7 +152,7 @@ class CCD2d:
         self._data['total_flux'] = total_flux
 
         #if self.kwargs.get('bootstrap_data', 'True')=='True':
-        self.bootstrap_data()
+        # self.bootstrap_data()
 
         # basic outlier removal / quality filter
         self._map_1D_x_ol_o = None
@@ -163,7 +163,10 @@ class CCD2d:
         self._outlier_removal()
         self.sigma_clipping()
         
-        
+    @property
+    def NROWS(self):
+        return self.kwargs['NROWS']
+
     def generate_fixed_effects(self):
         """
         for later use when replacing the 2d polynomial with 2d splines
@@ -250,7 +253,7 @@ class CCD2d:
 
     def sigma_clipping(self):
         # sigma clipping for x=P_o(ol) (i.e. 1D) and x = P(ol, o) (i.e. 2D)
-
+        self.bootstrap_data()
         def _get_threshold(epsilon, fit_now):
             d_fit_now = {o: p.deriv(1) for o, p in fit_now.items() }
             dxdl = self._o * np.abs(self._eval_order_by_order_full(d_fit_now, self._ol))
@@ -308,7 +311,7 @@ class CCD2d:
         self._map_1D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_1D_x_ol_o.items()}
         self._map_2D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_2D_x_ol_o.items()}
 
-        n = np.arange(self.kwargs['NROWS'])
+        n = np.arange(self.NROWS)
         self._final_map_l_x_o = {o: 
                 interp1d( n, self._map_2D_ol_x_o[o](n)/o, fill_value='extrapolate')
                   for o in self.ORDERS}
@@ -744,17 +747,17 @@ class CCD2d:
         """
         returns lambda_mapping of 2D polynomial
         """
-        res = np.zeros(len(self.all_order())*NROWS)
+        res = np.zeros(len(self.all_order())*self.NROWS)
         i = 0
-        x = np.arange(NROWS)
+        x = np.arange(self.NROWS)
         for i, o in enumerate(self.all_order()):
             ip = self._map_2D_ol_x_o[o]
-            res[i*NROWS:(i+1)*NROWS] = ip(x)/o 
+            res[i*self.NROWS:(i+1)*self.NROWS] = ip(x)/o 
         return np.array(res)
 
     def get_lambda_map(self):
         tmp = self.get_lambda_list()
-        return {o: tmp[i*NROWS:(i+1)*NROWS] for i, o in enumerate(self.all_order())}
+        return {o: tmp[i*self.NROWS:(i+1)*self.NROWS] for i, o in enumerate(self.all_order())}
 
 
 class FP:

@@ -14,6 +14,8 @@ RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') ==
 REMOVECROSS = int(True)
 STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
 
+PREFIX = 'HOBO_'
+
 
 ## ----- directory layout
 BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))  # put jour actual base path here
@@ -167,5 +169,4 @@ kwargs = { k: v for k, v in globals().items() if '_'!=k[0] and
 
 
 ## the following parameters are included into the fits files header
-PREFIX = 'HOBO_'
 HEADER_ITEMS = [k for k in comment.keys() if k[:2]!='__']
