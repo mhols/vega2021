@@ -1,5 +1,6 @@
 import scipy.special as sps
 import scipy.optimize as sop
+from scipy.stats import wasserstein_distance as wd
 import numpy as np
 import sys
 from numpy.polynomial import Polynomial
@@ -224,6 +225,23 @@ def local_maxima(vv):
         v[i] = 0
         progress = np.sum(v) < oldsum
     return np.array(lm)
+
+def homothetie_wasserstein(x,y,xx,yy, rb0, rb1, ra0, ra1):
+    """
+    best homothetie based on Wasserstein distance
+
+    """
+    params0 = np.array([(rb0+rb1)/2, (ra0 + ra1)/2])
+    bounds = (np.array([rb0, ra0]), np.array([rb1, ra1])) 
+    res = sop.least_squares(
+        lambda ba: wd(x, ba[1]*xx+ba[0], y, yy ),
+        x0=params0, 
+        bounds=bounds 
+    )
+    return res.x
+   
+def clean_nans(x, default=0):
+    return np.where(np.isnan(x), default, x)
 
 def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     """

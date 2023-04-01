@@ -253,7 +253,6 @@ class CCD2d:
 
     def sigma_clipping(self):
         # sigma clipping for x=P_o(ol) (i.e. 1D) and x = P(ol, o) (i.e. 2D)
-        self.bootstrap_data()
         def _get_threshold(epsilon, fit_now):
             d_fit_now = {o: p.deriv(1) for o, p in fit_now.items() }
             dxdl = self._o * np.abs(self._eval_order_by_order_full(d_fit_now, self._ol))

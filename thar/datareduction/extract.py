@@ -535,7 +535,8 @@ class Extractor:
         self.ccd_voie1
         self.ccd_voie2
  
-
+    def update_kwargs(self, **kwargs):
+        self.kwargs.update(kwargs)
 
     def logging(self, message):
         print('------\nExtractor, SETTING_ID: ' + self.SETTINGS_ID + ', ThArg: ', self._tharfits + '\n, ' +message)
