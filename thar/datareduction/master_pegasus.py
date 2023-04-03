@@ -115,14 +115,18 @@ def step2():
             print('===================================\n')
 
             t = extract.gettimestamp(f_star)
-
-            f_thar = times[
-                ttt[np.argmin([abs(t - tt) for tt in ttt])]
-            ]
+            tmin = ttt[np.argmin([abs(t - tt) for tt in ttt])]
+            f_thar = times[tmin]
+            print("tmin", tmin)
 
             try:
                 myext = extract.get_ext(f_thar, **kwargs)
-                myext.finalize()
+                extract.store.store(f_thar, myext)
+            except Exception as ex:
+                oopsies[f_thar] = ex
+                print(ex)
+                continue
+            try:
                 myext.set_fitsfile(f_star)
                 if pathlib.Path(myext.result_path).exists():
                     continue

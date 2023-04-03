@@ -14,7 +14,7 @@ RECOMPUTE_2D_POLYNOMIAL = (os.environ.get('RECOMPUTE_2D_POLYNOMIAL', 'False') ==
 REMOVECROSS = int(True)
 STARNAME = 'Thorium';      comment["STARNAME"] = "Name of object, used to select the starfiles"  
 
-PREFIX = 'HOBO_'
+PREFIX = 'HOBO_PEGA'
 
 
 ## ----- directory layout

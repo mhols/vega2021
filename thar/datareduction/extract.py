@@ -477,10 +477,13 @@ store = regal.Store()    # we only have one global store
 def get_ext(f_thar, **kwargs):
     retrieved = True
     try:
-        myext = store.get(f_thar)
+        myext = store.get(f_thar) # retrieval without kwargs is reload of existing
     except:
         retrieved = False
+    try:
         myext = Extractor(f_thar, **kwargs)
+    except Exception as ex:
+        raise Exception('could not create Extract. Reason: ' + ex)
     if retrieved:
         print('retrieved precomputed Extract')
     else:
@@ -511,7 +514,8 @@ class Extractor:
         self._total_reset()
         self.kwargs = kwargs
 
-        assert is_thorium(fitsfile), 'you need to specify a thorium file to generate an extractor'
+        assert is_thorium(fitsfile),\
+            'you need to specify a thorium file to generate an extractor'
 
         self._tharfits = fitsfile        
         self._fitsfile = fitsfile
@@ -519,7 +523,7 @@ class Extractor:
         self.CENTRALROW = kwargs['CENTRALROW']
         self.NROWS = kwargs['NROWS']
 
-        # all properties can be lasily evaluated
+        # all properties can be lasily evaluated TODO: use decorator
         self._masterflat = None
         self._masterbias = None
         self._beams = None
@@ -1169,19 +1173,36 @@ class Extractor:
 
     def save_fits(self):
         # collecting data
-        order = list(self.ORDERS)
-        fitstable = pyfits.BinTableHDU.from_columns(
-        [
+        order = []
+        for o in self.ORDERS:
+            for i in range(self.NROWS):
+                order.append(o)
+      
+        mask = []
+        for o in self.ORDERS:
+            for i in range(self.NROWS):
+                if i in self.beams[o].I:
+                    mask.append(1)
+                else:
+                    mask.append(0)
+        
+        # print(len(order), len(mask))
+        fitstable = pyfits.BinTableHDU.from_columns ([
         pyfits.Column(
             name="true_order_number",
-            format="I",
-            array=np.array(order)
+            format='I',
+            array=order
+        ),
+        pyfits.Column(
+            name='flux_mask',
+            format = 'I',
+            array = mask
         ),
         pyfits.Column(
             name="wavelength_1",
             format="E",
             array=self.ccd_voie1.get_lambda_list()
-        ),
+            ),
         pyfits.Column(
             name="wavelength_2",
             format="E",
@@ -1190,7 +1211,7 @@ class Extractor:
         pyfits.Column(
             name="wavelength_3",
             format="E",
-            array=np.zeros(len(order)*self.NROWS)
+            array=np.zeros(len(self.ORDERS)*self.NROWS)
         ),
         pyfits.Column(
             name='flux_1',
@@ -1258,7 +1279,12 @@ class Extractor:
 
         PREFIX = self.PREFIX
         filename = os.path.basename(self.fitsfile)
-        filename = PREFIX + filename[:-8]+'st1.fits'
+        postfix = ''
+        if is_thorium(self.fitsfile):
+            postfix = 'th1.fits'
+        else:
+            postfix = 'st1.fits'
+        filename = PREFIX + filename[:-8]+postfix
 
         RESULTDIR = self.kwargs['RESULTDIR']
         if not os.path.exists(RESULTDIR):
