@@ -358,22 +358,28 @@ class Snippets:
         prob = [] # problematic snippets
         for l,c,r in zip(latlasext,atlasext,ratlasext):
             indext,  =  np.where((lam >= l) & (lam <= r))
-            wave=lam[indext]
             inte=flux[indext]
-            bare_inte = bare_voie[indext]
-
+            print(inte)
+            a = indext[0] + np.argmax(inte)
+            indext = np.arange(a-4,a+5)
+            goodsnippet = True
+            try:
+                inte=flux[indext] 
+                wave=lam[indext]
+                bare_inte = bare_voie[indext]
+            except:
+                goodsnippet = False
             # selectionner que les raies du ThAr observes au dessus du seuil.
             # pour chaque raie k on determine le maximum de flux
             distmax = 1   ## TODO: make global constant
-            goodsnippet = True
             # goodsnippet = goodsnippet and (np.max(inte) - np.min(inte)) >= SEUIL
             # goodsnippet = goodsnippet and (np.max(inter) - np.min(inter)) >= SEUILR
-            try:
-                goodsnippet = goodsnippet \
-                    and (np.argmax(inte)>= distmax) \
-                    and (np.argmax(inte) <= inte.shape[0]-distmax-1)
-            except:
-                goodsnippet = False
+            #try:
+            #    goodsnippet = goodsnippet \
+            #        and (np.argmax(inte)>= distmax) \
+            #        and (np.argmax(inte) <= inte.shape[0]-distmax-1)
+            #except:
+            #    goodsnippet = False
             sni ={
                 "true_order_number": o,
                 "ref_lambda": c ,
@@ -382,6 +388,8 @@ class Snippets:
                 "wave": wave,
                 "reduced_flux_values_extract": inte,
                 "flux_values_extract" : bare_inte,
+                "sigma_new_mean" : 1./np.sqrt(bare_inte), # TODO: put estimates here
+                "new_mean_pixel_pos" : np.mean(indext),   # TODO: put estimates here
             }
             if goodsnippet:
                 snip.append(sni)

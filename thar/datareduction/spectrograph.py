@@ -152,7 +152,7 @@ class CCD2d:
         self._data['total_flux'] = total_flux
 
         #if self.kwargs.get('bootstrap_data', 'True')=='True':
-        self.bootstrap_data()
+        self.bootstrap_data()   # TODO move to snippets or extract
 
         # basic outlier removal / quality filter
         self._map_1D_x_ol_o = None
@@ -280,7 +280,8 @@ class CCD2d:
             res = self._eval_order_by_order_full(fit_now, self._ol) - self._x # give all points a chance
 
             # clipping 
-            thd = _get_threshold(epsilon, fit_now)
+            #thd = _get_threshold(epsilon, fit_now)
+            thd = np.quantile(res,0.8)
             I = np.abs(res)<=thd
 
             if np.all(I==self._data['selected']):
@@ -295,7 +296,9 @@ class CCD2d:
         for i in range(self.kwargs['n_sigma_clipp_2d']):
             
             res = self._eval_order_by_order_full(fit_now2, self._ol) - self._x
-            thd = _get_threshold(epsilon, fit_now2)
+            #thd = _get_threshold(epsilon, fit_now2)
+            thd = np.quantile(res,0.8)
+            
             I = np.abs(res)<=thd
 
             if np.all(I==self._data['selected']):
@@ -565,7 +568,7 @@ class CCD2d:
     def _fit_weight(self, p):  ## TODO: change name to fit_weight_x_ol_o
         tmp =self.kwargs.get('fitweight', 'sigma') 
         if (tmp == 'equal'):
-            weight = 1
+            weight = np.ones(self.ndata) 
         elif (tmp == 'sigma'):
             weight = 1/self.sigma
         elif (tmp == 'vrad'):

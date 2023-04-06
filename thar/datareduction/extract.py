@@ -376,6 +376,7 @@ class BeamOrder:
         """
         return np.arange(self._lower, self._upper) 
 
+    @property
     def II(self):
         tmp = np.full(self.NROWS, False)
         tmp[self.I] = True
@@ -475,20 +476,18 @@ class BeamOrder:
 store = regal.Store()    # we only have one global store
 
 def get_ext(f_thar, **kwargs):
-    retrieved = True
     try:
         myext = store.get(f_thar) # retrieval without kwargs is reload of existing
-    except:
-        retrieved = False
+        print('retrieving Extract from ', f_thar)
+        return myext
+    except Exception as ex:
+        print('could not retrieve. ', f_thar, 'Reason: ', ex, 'generating a new one\n----\n')
     try:
         myext = Extractor(f_thar, **kwargs)
+        store.store(f_thar, myext)
+        return myext
     except Exception as ex:
-        raise Exception('could not create Extract. Reason: ' + ex)
-    if retrieved:
-        print('retrieved precomputed Extract')
-    else:
-        print('created new Extract')
-    return myext
+        raise Exception('could not create Extract. Reason: ', ex)
 
 
 class Extractor:
@@ -667,7 +666,7 @@ class Extractor:
         pass
 
     @lazyproperty
-    def pix_to_lambda_map_1(self):
+    def _pix_to_lambda_map_1(self):
         """
         The preliminary lambda map
         Either you specify a file containing the lambdas
@@ -701,24 +700,37 @@ class Extractor:
         n = np.arange(self.NROWS)
 
         for o in self.ORDERS:
-            tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie1[o](n+b),
+            tmp[o] = interp1d(n, self.reference_extract._pix_to_lambda_map_voie1[o](n+b),
                         fill_value='extrapolate')
         return tmp
+
+    @property
+    def DATADIR(self):
+        try:
+            return self.kwargs['DATADIR']
+        except:
+            pass
+        try:
+            return os.path.dirname(self._fitsfile)
+        except Exception as ex:
+            raise Exception('DIRNAME, reason :', ex)
 
 
     @property
     def pix_to_lambda_map_voie1(self):
-        if self._ccd1 is None:
-            return self.pix_to_lambda_map_1
-        else:
-            return self._ccd1._final_map_l_x_o 
+        #if self._ccd1 is None:
+        #    return self.pix_to_lambda_map_1
+        #else:
+        #    return self._ccd1._final_map_l_x_o 
+        return self.ccd_voie1._final_map_l_x_o
 
     @property
     def pix_to_lambda_map_voie2(self):
-        if self._ccd2 is None:
-            return self.pix_to_lambda_map_1
-        else:
-            return self._ccd2._final_map_l_x_o
+        #if self._ccd2 is None:
+        #    return self.pix_to_lambda_map_1
+        #else:
+        #    return self._ccd2._final_map_l_x_o
+        return self.ccd_voie2._final_map_l_x_o
 
     @property
     def pix_to_lambda_map_voie3(self):
@@ -1200,17 +1212,17 @@ class Extractor:
         ),
         pyfits.Column(
             name="wavelength_1",
-            format="E",
+            format="D",
             array=self.ccd_voie1.get_lambda_list()
             ),
         pyfits.Column(
             name="wavelength_2",
-            format="E",
+            format="D",
             array=self.ccd_voie2.get_lambda_list()
         ),
         pyfits.Column(
             name="wavelength_3",
-            format="E",
+            format="D",
             array=np.zeros(len(self.ORDERS)*self.NROWS)
         ),
         pyfits.Column(

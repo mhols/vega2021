@@ -3,7 +3,6 @@ import pathlib
 import os
 
 DATABASEDIR = pathlib.Path(__file__).parents[0] / '__STORE__'
-STOREDATA = 'stordata.db'
 
 class Store:
 

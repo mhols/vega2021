@@ -33,7 +33,7 @@ badlist = []     # muss haendisch gepflegt werden....
 # use kwargs from pegasus
 kwargs = sp.kwargs
 
-
+# update kwargs if needed
 PEGDIR = os.path.join(kwargs['BASEDIR'], '51Peg_raw')
 
 # reporting on bad and good

@@ -143,12 +143,12 @@ EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
 SEUIL = 0.2 * ADU   # seuil en ADU 
 SEUILR = 800.
-VRANGE = 9.0 * KM/S      # vrange in km/s
+VRANGE = 12.0 * KM/S      # vrange in km/s
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
 voie_method = VOIE_METHOD
-n_bootstrap = 3                        # number of bootstrap experiments
+n_bootstrap = 10                        # number of bootstrap experiments
 profile = 'gauss'                      # fit profile for bootstrap estimate of centroid
 loss_function = 'loss_1'               # weighted L2-loss for bootstrap estimate of centroid
 epsilon_sigma_bootstrap = 3*PIXEL      # locations with larger pixel uncertainty are removed
@@ -157,7 +157,7 @@ epsilon_sigma_clipp_2d = 200*M/S      # sigma clip for 2d polynomial
 clipp_method = 'vrad'                 # 'rel_std' or 'pixerror' or 'est_std'
 n_sigma_clipp =  100*TIMES                   # maximal number of sigma clips
 n_sigma_clipp_2d = 100*TIMES                # maximal number of sigma clips
-fitweight = 'flux'                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
+fitweight = 'equal'                     # flux (total flux of line) weight based on pixel uncertainty of snippet centroid 
 sigma_min = 5                         # minimial sigma to avoid overfitting
 palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 7                           # order polynomial in ol
