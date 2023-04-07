@@ -1,5 +1,6 @@
 import scipy.special as sps
 import scipy.optimize as sop
+from scipy.stats import wasserstein_distance as wd
 import numpy as np
 import sys
 from numpy.polynomial import Polynomial
@@ -42,55 +43,10 @@ def loss_3(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
     i = func(n, *params)
-    return (i-intens)/np.sqrt(intens)
+    return (i-intens)/np.sqrt(np.where(intens>1, intens, 1))
 
 
-def mean_histogram_estimator(intens):
-    """
-    removing baseline followed by histogram mean
-    """
-    lag = 2 # for continuum estimation
-    cont = (np.mean(intens[:lag])+np.mean(intens[-lag:]))/2
-    cont = 0 #0.5*(intens[0]+intens[-1])
-    intens = intens - max(0.0, np.min(intens))
-    n = np.arange(intens.shape[0])
-    intens = np.abs(intens)
-    return np.sum(n*intens) / np.sum(intens)
 
-def estimate_location(intens, fun, g):
-
-    # backproject on positivity
-    intens = intens - max(0, np.min(intens))
-    # first guess of parameters
-    n = np.arange(intens.shape[0])
-    A = np.sum(np.abs(intens))
-    Amin = max(0, A-4*np.sqrt(A))
-    Amax = A+4*np.sqrt(A)
-
-    mu = len(intens)/2
-    mumin = 0
-    mumax = len(intens)+1
-
-    sigma = len(intens)
-    sigmamax = 4*sigma
-    sigmamin = 0.0001
-
-    y_offset_min = 0
-    y_offset_max = 10 + max(0, np.min(intens))
-    y_offset = (y_offset_min+y_offset_max)/2
-
-    params0 = np.array([A, mu, sigma, y_offset])
-
-    bounds = (np.array([Amin, mumin, sigmamin, y_offset_min]),
-              np.array([Amax, mumax, sigmamax, y_offset_max]))
-
-    res = sop.least_squares(
-        fun, 
-        params0, 
-        bounds=bounds, 
-        #method='dogbox', 
-        args=(intens, g))
-    return res.x
 
 function_map = {
     'gauss': gauss,
@@ -100,6 +56,44 @@ function_map = {
     'loss_2': loss_2,
     'loss_3': loss_3,
 }
+
+def estimate_location(intens, **kwargs):
+
+    intens = np.array(intens)
+
+    # backproject on positivity by clipping
+    intens = np.where(intens>0, intens, 0)
+    # first guess of parameters
+    n = np.arange(intens.shape[0])
+    A = np.sum(intens)
+    Amin = max(0, A-4*np.sqrt(A))
+    Amax = A+4*np.sqrt(A)
+
+    mu = len(intens)/2
+    mumin = 0
+    mumax = len(intens)-1
+
+    sigma = len(intens)
+    sigmamax = 4*sigma
+    sigmamin = 1e-6
+
+    y_offset_min = 0
+    y_offset_max = np.max(intens)
+    y_offset = (y_offset_min+y_offset_max)/2
+
+    params0 = np.array([A, mu, sigma, y_offset])
+
+    bounds = (np.array([Amin, mumin, sigmamin, y_offset_min]),
+              np.array([Amax, mumax, sigmamax, y_offset_max]))
+
+    fun = function_map[kwargs['loss_function']]
+    g = function_map[kwargs['profile']]
+    res = sop.least_squares(
+        fun, 
+        params0, 
+        bounds=bounds, 
+        args=(intens, g))
+    return res.x
 
 
 def bootstrap_estimate_location(intens, **kwargs):
@@ -115,24 +109,18 @@ def bootstrap_estimate_location(intens, **kwargs):
         
     fun = function_map[kwargs['loss_function']]
     intens = intens - min(0, np.min(intens))
-    if size <= 1:
+    if size <= 2:
         try:
-            return estimate_location(intens, fun, g)[1], np.sqrt(np.sum(intens))
+            return estimate_location(intens, **kwargs)
         except:
             return np.NaN, np.NaN
-    
-    p = intens / np.sum(intens)
 
-    n = int(np.sum(intens))
-    try:
-        intens = np.random.multinomial(n, p, size)
-    except Exception as ex:
-        print (ex)
-        return np.NaN, np.NaN
 
-    res = [ estimate_location(inte, fun, g)[1] for inte in intens]
+    res = np.array(
+        [ estimate_location(np.random.poisson(intens), **kwargs) for i in range(size)]
+    )
 
-    return np.mean(res), np.std(res)
+    return np.mean(res[:,1]), np.std(res[:,1]), res
 
 def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
     N_MAXITER = 100
@@ -224,6 +212,23 @@ def local_maxima(vv):
         v[i] = 0
         progress = np.sum(v) < oldsum
     return np.array(lm)
+
+def homothetie_wasserstein(x,y,xx,yy, rb0, rb1, ra0, ra1):
+    """
+    best homothetie based on Wasserstein distance
+
+    """
+    params0 = np.array([(rb0+rb1)/2, (ra0 + ra1)/2])
+    bounds = (np.array([rb0, ra0]), np.array([rb1, ra1])) 
+    res = sop.least_squares(
+        lambda ba: wd(x, ba[1]*xx+ba[0], y, yy ),
+        x0=params0, 
+        bounds=bounds 
+    )
+    return res.x
+   
+def clean_nans(x, default=0):
+    return np.where(np.isnan(x), default, x)
 
 def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     """

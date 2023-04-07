@@ -10,6 +10,7 @@
 
 
 import astropy.io.fits as pyfits
+from astropy.utils.decorators import lazyproperty
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ import sys
 import os
 import json
 import scipy
+import util
 from scipy.optimize import curve_fit
 import extract
 
@@ -216,47 +218,41 @@ import extract
 
 class Snippets:
 
-    def __init__(self, voie, extractor=None, **kwargs):
-        self.kwargs = kwargs
+    def __init__(self, voie, extractor=None):
         self.voie = voie
         self._atlasline = None
-        self._lam=None
-        self._I=None
-        self._flux=None
-        self._bare_voie=None
-        self._snippets=None
-        self._lines_voie=None
+        self._snippets = None
+        #self._lam=None
+        #self._I=None
+        #self._flux=None
+        #self._bare_voie=None
+        #self._snippets=None
+        #self._lines_voie=None
 
-        self.NROWS = kwargs['NROWS']
-        if extractor is None:
-            self.extractor = extract.Extractor(**kwargs)
-            self.extractor.set_fitsfile(self.tharfits)
-        else:
-            self.extractor = extractor
+        self.extractor = extractor
 
+        self.NROWS = self.extractor.NROWS
         self.ORDERS = self.extractor.ORDERS
 
+    """
     def _prepare(self):
         self._lam={}
         self._I={}
         self._flux={}
         self._bare_voie={}
-        self._lines_voie={}
+        # self._lines_voie=
 
         for o in self.ORDERS:
 
             if self.voie == 1:
                 lam, _flux, I = self.extractor.get_lambda_intens1(o)
                 bare_voie = self.extractor.ba_voie1[o]
-                lines_voie = self.extractor.lines_voie1[o]
             elif self.voie == 2:
                 lam, _flux, I = self.extractor.get_lambda_intens2(o)
                 bare_voie = self.extractor.ba_voie2[o]
-                lines_voie = self.extractor.lines_voie2[o]
             elif self.voie == 3:
                 lam, _flux, I = self.extractor.get_lambda_intens3(o)
                 bare_voie = self.extractor.ba_voie3[o]
-                lines_voie = self.extractor.lines_voie3[o]
             else:
                 raise Exception('no such voie')
 
@@ -268,7 +264,10 @@ class Snippets:
             self._I[o] = I
             self._flux[o] = flux
             self._bare_voie[o] = bare_voie
-            self._lines_voie[o] = lines_voie
+    """
+    @property
+    def kwargs(self):
+        return self.extractor.kwargs
 
     @property
     def atlasline(self):
@@ -285,92 +284,99 @@ class Snippets:
         self._atlasline = pd.DataFrame({'atlas_line': pd.Series(atlaslines)})
         return self._atlasline
 
+    def lambda_range(self, o):
+        return  self.pix_to_lambda_map[o](self.extractor.beams[o].pixel_range)
+
     def atlasext(self, o):
         """
         the extracted lines of atlas
         """
-        minlambda = np.min(self.lam[o][self.I[o]])   ## min lambda of good lams in order
-        maxlambda = np.max(self.lam[o][self.I[o]])   ## max lambda of good lams in order
+        minlambda, maxlambda = self.lambda_range(o)
 
         indexx = (minlambda < self.atlasline['atlas_line']) & (self.atlasline['atlas_line'] < maxlambda)
         tmp = self.atlasline[indexx]
-
-        #self._data['in_atlas_snippet'] \
-        #    = (minlambda < self._data['atlas_lines']) & (maxlambda > self._data['atlas_lines'])
-
-        ## use exclusions
 
         exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
 
         I, = np.where(exclusion[:,0] == o)
         exc = exclusion[I]
 
-        #self._data['excluded'] = \
-        #    [np.all( np.logical_or( l < exc[:,1], l > exc[:,2]))
-        #     for l in self._data['atlas_lines']]
-
-        # goodlines = tmp
-        #goodlines = []
-        #for i in I:
-        #    for l in tmp:
-        #        if l >= exclusion[i,1] and l <= exclusion[i,2]:
-        #            continue
-        #        goodlines.append(l)
-
-        ## excluding lines in exc
-        #goodlines = [l for l in tmp
-        #    if np.all( np.logical_or( l < exc[:,1], l > exc[:,2]))]
-        
         j = pd.Series(True, index=tmp.index)
         for e in exc:
             j = j & ( (tmp['atlas_line'] < e[1]) | (tmp['atlas_line'] > e[2]) )
         return tmp[j]
 
-    @property
-    def flux(self):
-        if self._flux is None:
-            self._prepare()
-        return self._flux
+
+    def _lines(self, o):
+        NMAX_LINES = 200 # maximal number of lines to extract
+        v = self.bare_voie(o)
+        lm = util.local_maxima(v)
+        bs = []
+        for i,xab in enumerate ( lm[:min(NMAX_LINES, len(lm))]):
+            x, a, b = xab
+            if a==b:
+                continue
+            s = v[np.arange(a,b+1)]
+            if len(s)==0:
+                continue
+            try:
+                A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
+            except Exception as ex:
+                print(s, ex)
+                continue
+            bs.append( {
+                'true_order_number': o, 
+                'index_pixel_snippet': i, 
+                'posmax': x,
+                'left': a, 
+                'right': b, 
+                'pixel_mean': a + mu,
+                'pixel_std' : 1./ np.sqrt(np.sum(s)),  
+                'pixel_sum_intens': np.sum(s),
+                'pixel_max_intens': v[x],
+                'bare_voie': s,
+                'bootstraped': False
+            })
+        return pd.DataFrame(bs)
+
+    def bare_voie(self, o):
+        if self.voie == 1:
+            return self.extractor.bare_voie1[o]
+        elif self.voie == 2:
+            return self.extractor.bare_voie2[o]
+        else:
+            raise Exception('line 3 not implemented')      
+
+    #@lazyproperty
+    #def lines_voie(self):
+    #    res ={o: self._lines(self.ba_voie(o)) for o in self.ORDERS }
+    #    return res
+
+
 
     @property
-    def lam(self):
-        if self._lam is None:
-            self._prepare()
-        return self._lam
-
-    @property
-    def bare_voie(self):
-        if self._bare_voie is None:
-            self._prepare()
-        return self._bare_voie
-
-    @property
-    def lines_voie(self):
-        if self._lines_voie is None:
-            self._prepare()
-        return self._lines_voie
-    
-    @property
-    def I(self):
-        if self._I is None:
-            self._prepare()
-        return self._I
+    def pix_to_lambda_map(self):
+        if self.voie == 1:
+            return self.extractor.pix_to_lambda_map_voie1
+        elif self.voie == 2:
+            return self.extractor.pix_to_lambda_map_voie2
+        else:
+            raise Exception('voie 3 not yet implemented')
 
     def _snippet(self, o):
 
         atlasext = self.atlasext(o)
-        bare_voie = self.bare_voie[o]
-        lines_voie = self.lines_voie[o]
+        bare_voie = self.bare_voie(o)
+        lines_voie = self._snippets.loc[self._snippets['true_order_number'] == o]
 
-        lams = self.extractor.pix_to_lambda_map[o](lines_voie['pixel_mean'].values)
+        lams = self.pix_to_lambda_map[o](lines_voie['pixel_mean'].values)
 
-        snips = []
         for ic, c in atlasext.itertuples():
 
 
             l = (1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT']) * c
             r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT']) * c
-            
+
             I, = np.where( np.logical_and ( l <= lams, lams <= r))
             goodlam = len(I) == 1 ## exacly one peak in interval
             goodlam = goodlam and True ## SEUIL in extract TODO
@@ -378,43 +384,70 @@ class Snippets:
             if not goodlam:
                 continue
 
-            i = I[0]
+            i = I[0]  # index of single good snippet belonging to l
 
-            a = lines_voie['left'].loc[i]
-            b = lines_voie['right'].loc[i]
-            sni ={
-                "true_order_number": o,
-                "ref_lambda": c ,
-                "pixel_mean": lines_voie['pixel_mean'].loc[i],
-                "pixel_std": lines_voie['pixel_std'].loc[i],
-                "pixel_left": lines_voie['left'].loc[i],
-                "pixel_right": lines_voie['right'].loc[i],
-                "bare_voie": bare_voie[a:b+1], 
-                "catalog_index": ic,
-                }
-            snips.append(sni)
-        return snips
+            a = lines_voie['left'].iloc[i]
+            b = lines_voie['right'].iloc[i]
+            idx = lines_voie.index[i]
 
+            intens = bare_voie[a:b+1]
 
-    @property
+            # bootstrapping
+            if self.kwargs['n_bootstrap'] > 1:
+                mu, s, sample = util.bootstrap_estimate_location(intens, **self.kwargs)
+            else:
+                mu = util.estimate_location(intens, **self.kwargs)[1]
+                s = 1/np.sqrt(sum(intens))
+            self._snippets.loc[idx,'goodsnippet'] = True
+            self._snippets.loc[idx,'ref_lambda'] = c
+            self._snippets.loc[idx,'pixel_mean'] = a+mu
+            self._snippets.loc[idx,'pixel_std'] = s
+            self._snippets.loc[idx,'catalog_index'] = int(ic)
+    
+    @property 
     def snippets(self):
-        if self._snippets is None:
-            tmp = [ pd.DataFrame(self._snippet(o))
-                   for o in self.ORDERS
-            ]
-            self._snippets = pd.concat(tmp, ignore_index=True, axis=0)
+        if not self._snippets is None:
+            return self._snippets
+        self.extractor.logging('computing snippets for voie '+str(self.voie))
+        
+        # generating all possible snippets
+        tmp = []
+        for i, o in enumerate(self.ORDERS):
+            util.progress(i, len(self.ORDERS))
+            tmp.append(self._lines(o))
+        tmp = pd.concat(tmp, ignore_index=True, axis=0)
+        self._snippets = tmp
+
+        self._snippets['goodsnippet'] = False
+        self._snippets['ref_lambda'] = 0.0
+        self._snippets['catalog_index'] = 0
+
+        for i, o in enumerate(self.ORDERS):
+            util.progress(i, len(self.ORDERS))
+            self._snippet(o)
         return self._snippets
 
-    @property
+    def index_good_order(self, o):
+        """
+        indices of good snippets of order o
+        """
+        return self.snippets['true_order_number']==o & self.good_snippet
+
+    
+
+    @lazyproperty
     def overlapping_snippets(self):
         tmp = []
         for o, oo in zip(self.ORDERS[:-1], self.ORDERS[1:]):
-            pp1 = self.lines_voie[o]['pixel_mean']
-            pp2 = self.lines_voie[oo]['pixel_mean']
+
+            Io = self.snippets['true_order_number'] == o
+            Ioo = self.snippets['true_order_number'] == oo
+            pp1 = self.snippets.loc[Io, 'pixel_mean']
+            pp2 = self.snippets.loc[Ioo,'pixel_mean']
 
 
-            p1 = self.extractor.pix_to_lambda_map[o](pp1)
-            p2 = self.extractor.pix_to_lambda_map[oo](pp2)
+            p1 = self.pix_to_lambda_map[o](pp1)
+            p2 = self.pix_to_lambda_map[oo](pp2)
 
             # TODO add global constant
             f = 0.2*self.kwargs['VRANGE']/self.kwargs['C_LIGHT']
@@ -430,19 +463,68 @@ class Snippets:
                 'true_order_number_oo': oo,
                 'index_line_o':  I,
                 'index_line_oo': J,
-                'pixel_mean_o' :pp1.values[I],
-                'pixel_mean_oo': pp2.values[J],
-                'pixel_std_o': self.lines_voie[o]['pixel_std'].values[I],
-                'pixel_std_oo': self.lines_voie[oo]['pixel_std'].values[J]
+                #'pixel_mean_o' :pp1.values[I],
+                #'pixel_mean_oo': pp2.values[J],
+                #'pixel_std_o': self.snippets[Io]['pixel_std'].values[I],
+                #'pixel_std_oo': self.snippets[Ioo]['pixel_std'].values[J]
                 }
             ))
 
         return pd.concat(tmp).reset_index(drop=True)
 
+    ## convenience methods
+    
+    @property
+    def good_snippet(self):
+        return self.snippets['goodsnippet'] == True
+    
+    @property
+    def _x(self):
+        return self.snippets['pixel_mean']
+    
+    @property
+    def x(self):
+        return self._x[self.good_snippet]
+    
+    @property
+    def _l(self):
+        return self.snippets['ref_lambda']
+    
+    @property
+    def l(self):
+        return self._l[self.good_snippet]
+      
+    @property
+    def _sigma(self):
+        return self.snippets['pixel_std']
+    
+    @property
+    def sigma(self):
+        return self._sigma[self.good_snippet]
+
+    @property
+    def _sn(self):
+        return self.snippets
+
+    @property
+    def sn(self):
+        return self.snippets[self.good_snippet]
+    
+    @property
+    def ci(self):
+        return self.snippets[self.good_snippet]['catalog_index']    
+
+
+    @property
+    def ngood(self):
+        return sum(self.good_snippet)
 
 if __name__ == "__main__":
     import os
-    import regal
-    store = regal.Store()
-    myext = store.get('/home/hols/vega2021/thar/lune_raw/NEO_20200202_173811_th0.fits')
-    snip = Snippets(voie=1, extractor=myext, **kwargs)
+    from settingspegasus import kwargs
+    import extract
+    myext = extract.get_ext(
+        '/home/hols/vega2021/thar/51Peg_raw/2020_1029/NEO_20201029_172538_th0.fits',
+        **kwargs)
+    myext.update_kwargs(**kwargs)
+    snip = Snippets(voie=1, extractor=myext)

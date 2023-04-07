@@ -376,6 +376,11 @@ class BeamOrder:
         """
         return np.arange(self._lower, self._upper) 
 
+    @property
+    def pixel_range(self):
+        return np.array([self._lower, self._upper])
+
+    @property
     def II(self):
         tmp = np.full(self.NROWS, False)
         tmp[self.I] = True
@@ -475,17 +480,18 @@ class BeamOrder:
 store = regal.Store()    # we only have one global store
 
 def get_ext(f_thar, **kwargs):
-    retrieved = True
     try:
-        myext = store.get(f_thar)
-    except:
-        retrieved = False
+        myext = store.get(f_thar) # retrieval without kwargs is reload of existing
+        print('retrieving Extract from ', f_thar)
+        return myext
+    except Exception as ex:
+        print('could not retrieve. ', f_thar, 'Reason: ', ex, 'generating a new one\n----\n')
+    try:
         myext = Extractor(f_thar, **kwargs)
-    if retrieved:
-        print('retrieved precomputed Extract')
-    else:
-        print('created new Extract')
-    return myext
+        store.store(f_thar, myext)
+        return myext
+    except Exception as ex:
+        raise Exception('could not create Extract. Reason: ', ex)
 
 
 class Extractor:
@@ -511,7 +517,8 @@ class Extractor:
         self._total_reset()
         self.kwargs = kwargs
 
-        assert is_thorium(fitsfile), 'you need to specify a thorium file to generate an extractor'
+        assert is_thorium(fitsfile),\
+            'you need to specify a thorium file to generate an extractor'
 
         self._tharfits = fitsfile        
         self._fitsfile = fitsfile
@@ -519,7 +526,7 @@ class Extractor:
         self.CENTRALROW = kwargs['CENTRALROW']
         self.NROWS = kwargs['NROWS']
 
-        # all properties can be lasily evaluated
+        # all properties can be lasily evaluated TODO: use decorator
         self._masterflat = None
         self._masterbias = None
         self._beams = None
@@ -535,7 +542,8 @@ class Extractor:
         self.ccd_voie1
         self.ccd_voie2
  
-
+    def update_kwargs(self, **kwargs):
+        self.kwargs.update(kwargs)
 
     def logging(self, message):
         print('------\nExtractor, SETTING_ID: ' + self.SETTINGS_ID + ', ThArg: ', self._tharfits + '\n, ' +message)
@@ -611,7 +619,7 @@ class Extractor:
         if self._masterbias is None:
             try:
                 self.logging('computing masterbias')
-                self._masterbias = masterbias(self.kwargs['DATADIR'], **self.kwargs)
+                self._masterbias = masterbias(self.DATADIR, **self.kwargs)
             except:
                 raise Exception('please specify DATADIR or MASTERBIAS')
         return self._masterbias
@@ -625,13 +633,13 @@ class Extractor:
 
     @lazyproperty
     def snippets_voie1(self):
-        snip = snippets.Snippets(voie=1, extractor=self, **self.kwargs)
-        return snip.snippets
+        snip = snippets.Snippets(voie=1, extractor=self)
+        return snip
 
     @lazyproperty
     def snippets_voie2(self):
-        snip = snippets.Snippets(voie=2, extractor=self, **self.kwargs)
-        return snip.snippets
+        snip = snippets.Snippets(voie=2, extractor=self)
+        return snip
     
     @property
     def ccd_voie1(self):
@@ -658,22 +666,21 @@ class Extractor:
         return ext
 
     @lazyproperty
-    def lambda_map_of_order_1(self, o):
-        pass
-
-    @lazyproperty
-    def pix_to_lambda_map_1(self):
+    def _pix_to_lambda_map_1(self):
         """
         The preliminary lambda map
         Either you specify a file containing the lambdas
         or you try to obtain by homothetic mapping from some reference
         """
         if self.kwargs.get('ESTIMATE_LAMBDAMAP', str(False)) == str(False):
-            self.logging('using REFFILE '+self.kwargs['LAMBDAFILE'] + " in pix_to_lambda_map_1")
-            return { o: interp1d(np.arange(self.NROWS), get_lambda(o, self.ORDERS, **self.kwargs), 
+            self.logging('Level one lambda map using REFFILE '\
+                         +self.kwargs['LAMBDAFILE'] + " in pix_to_lambda_map_1")
+            return { o: interp1d(np.arange(self.NROWS), \
+                                 get_lambda(o, self.ORDERS, **self.kwargs), 
                                  fill_value='extrapolate') 
                 for o in self.ORDERS }
         
+        # else
         self.logging('using a homothetic mapping to get lambda map')
         REFORDER = 33  ## the order used to estimate the homothetie
         
@@ -681,7 +688,7 @@ class Extractor:
         rv1 = np.where(np.isnan(rv1), 0, rv1)
 
         # setting myself on first fitsfile (TODO STORE)
-        thars = list(getallthoriumfits(dirname=self.kwargs['DATADIR']))
+        thars = list(getallthoriumfits(dirname=self.DATADIR))
         self.set_fitsfile(thars[0])
         mv1 = self.voie1[REFORDER]
         mv1 = np.where(np.isnan(mv1), 0, mv1)
@@ -696,29 +703,40 @@ class Extractor:
         n = np.arange(self.NROWS)
 
         for o in self.ORDERS:
-            tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie1[o](n+b),
+            tmp[o] = interp1d(n, self.reference_extract._pix_to_lambda_map_1[o](n+b),
                         fill_value='extrapolate')
         return tmp
+
+    @property
+    def DATADIR(self):
+        try:
+            return self.kwargs['DATADIR']
+        except:
+            pass
+        try:
+            return os.path.dirname(self._fitsfile)
+        except Exception as ex:
+            raise Exception('DIRNAME, reason :', ex)
 
 
     @property
     def pix_to_lambda_map_voie1(self):
         if self._ccd1 is None:
-            return self.pix_to_lambda_map_1
+            return self._pix_to_lambda_map_1
         else:
             return self._ccd1._final_map_l_x_o 
 
     @property
     def pix_to_lambda_map_voie2(self):
         if self._ccd2 is None:
-            return self.pix_to_lambda_map_1
+            return self._pix_to_lambda_map_1
         else:
             return self._ccd2._final_map_l_x_o
 
     @property
     def pix_to_lambda_map_voie3(self):
         if self._ccd3 is None:
-            return self.pix_to_lambda_map_1
+            return self._pix_to_lambda_map_1
         else:
             return self._ccd3._final_map_l_x_o
 
@@ -843,87 +861,39 @@ class Extractor:
             res.extend(self.voie2[o]/self.background_voie2(o, nnodes, q, qq, qqq))
         return np.array(res)
 
-    def bare_voie1(self, o):
+    def _bare_voie1(self, o):
         v = self.beams[o].beam_sum_voie1(self.image)
         v[np.isnan(v)] = 0
         return v
 
-    def bare_voie2(self, o):
-        v = self.beams[o].beam_sum_voie1(self.image)
+    def _bare_voie2(self, o):
+        v = self.beams[o].beam_sum_voie2(self.image)
         v[np.isnan(v)] = 0
         return v
 
-    def bare_voie3(self, o):
+    def _bare_voie3(self, o):
         return [0] # TODO
 
     @lazyproperty
-    def ba_voie1(self):
-        if not hasattr(self, '_ba_voie1') or self._ba_voie1 is None:
-            self._ba_voie1 = {o: self.bare_voie1(o) for o in self.ORDERS}  
-        return self._ba_voie1
+    def bare_voie1(self):
+        return {o: self._bare_voie1(o) for o in self.ORDERS}  
 
     @lazyproperty    
-    def ba_voie2(self):
-        return {o: self.bare_voie2(o) for o in self.ORDERS}
+    def bare_voie2(self):
+        return {o: self._bare_voie2(o) for o in self.ORDERS}
 
     @lazyproperty    
-    def ba_voie3(self):
-        return {o: self.bare_voie3(o) for o in self.ORDERS}
+    def bare_voie3(self):
+        return {o: self._bare_voie3(o) for o in self.ORDERS}
   
-    def _lines(self, v):
-        NMAX_LINES = 300 # maximal number of lines to extract
-        lm = util.local_maxima(v)
-        bs = []
-        for i,xab in enumerate ( lm[:min(NMAX_LINES, len(lm))]):
-            x, a, b = xab
-            s = v[np.arange(a,b+1)]
-            m, st= util.bootstrap_estimate_location(s, **self.kwargs)
-            bs.append( { 
-                'index_pixel_snippet': i, 
-                'posmax': x,
-                'left': a, 
-                'right': b, 
-                'pixel_mean': a+m, 
-                'pixel_std' : st,
-                'pixel_sum_intens': np.sum(s),
-                'pixel_max_intens': v[x]
-            })
-        return pd.DataFrame(bs)
-
-    @lazyproperty
-    def lines_voie1(self):
-        self.logging('estimating locations voie1')
-        res ={}
-        for i, o in enumerate(self.ORDERS):
-            util.progress(i, len(self.ORDERS))
-            res[o] =self._lines(self.ba_voie1[o])
-        print('\n')
-        return res
-
-        #return {o: self._lines(self.ba_voie1[o]) for o in self.ORDERS}
-
-    @lazyproperty
-    def lines_voie2(self):
-        self.logging('estimating locations voie2')
-        res = {}
-        for i, o in enumerate(self.ORDERS):
-            util.progress(i, len(self.ORDERS))
-            res[o] = self._lines(self.ba_voie2[o])
-        print('\n')
-        return res
-
-    @lazyproperty
-    def lines_voie3(self):
-        return {o: self._lines(self.ba_voie3[o]) for o in self.ORDERS}
-
-
+    
     @property
     def masterflat_high(self):
-        return meanfits(*getallflatfits(self.kwargs['DATADIR'],self.kwargs['HIGHEXP']), **self.kwargs)
+        return meanfits(*getallflatfits(self.DATADIR, self.kwargs['HIGHEXP']), **self.kwargs)
 
     @property
     def masterflat_low(self):
-        return meanfits(*getallflatfits(self.kwargs['DATADIR'],self.kwargs['LOWEXP']), **self.kwargs)
+        return meanfits(*getallflatfits(self.DATADIR, self.kwargs['LOWEXP']), **self.kwargs)
 
 
     def _compute_masterflat(self, dirname):
@@ -1026,7 +996,7 @@ class Extractor:
         if self._masterflat is None:
             self.logging('computing masterflat')
             try:
-                DIR = self.kwargs['DATADIR']
+                DIR = self.DATADIR
             except:
                 raise Exception('no masterflat and no DATADIR specified...')
             self._masterflat = self._compute_masterflat(DIR)
@@ -1166,30 +1136,50 @@ class Extractor:
 
         return tmp
 
+    def save_to_store(self):
+        store.store(self._tharfits, self)
+
     def save_fits(self):
         # collecting data
-        order = list(self.ORDERS)
-        fitstable = pyfits.BinTableHDU.from_columns(
-        [
+        order = []
+        for o in self.ORDERS:
+            for i in range(self.NROWS):
+                order.append(o)
+      
+        mask = []
+        for o in self.ORDERS:
+            for i in range(self.NROWS):
+                if i in self.beams[o].I:
+                    mask.append(1)
+                else:
+                    mask.append(0)
+        
+        # print(len(order), len(mask))
+        fitstable = pyfits.BinTableHDU.from_columns ([
         pyfits.Column(
             name="true_order_number",
-            format="I",
-            array=np.array(order)
+            format='I',
+            array=order
+        ),
+        pyfits.Column(
+            name='flux_mask',
+            format = 'I',
+            array = mask
         ),
         pyfits.Column(
             name="wavelength_1",
-            format="E",
+            format="D",
             array=self.ccd_voie1.get_lambda_list()
-        ),
+            ),
         pyfits.Column(
             name="wavelength_2",
-            format="E",
+            format="D",
             array=self.ccd_voie2.get_lambda_list()
         ),
         pyfits.Column(
             name="wavelength_3",
-            format="E",
-            array=np.zeros(len(order)*self.NROWS)
+            format="D",
+            array=np.zeros(len(self.ORDERS)*self.NROWS)
         ),
         pyfits.Column(
             name='flux_1',
@@ -1257,7 +1247,12 @@ class Extractor:
 
         PREFIX = self.PREFIX
         filename = os.path.basename(self.fitsfile)
-        filename = PREFIX + filename[:-8]+'st1.fits'
+        postfix = ''
+        if is_thorium(self.fitsfile):
+            postfix = 'th1.fits'
+        else:
+            postfix = 'st1.fits'
+        filename = PREFIX + filename[:-8]+postfix
 
         RESULTDIR = self.kwargs['RESULTDIR']
         if not os.path.exists(RESULTDIR):
