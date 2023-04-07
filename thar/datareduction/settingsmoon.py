@@ -48,8 +48,13 @@ DEGREEBLAZE = 7                                                   # polynomial d
 
 from settings import kwargs as kwargsref
 REFKWARGS = kwargsref
+REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
+REFLOWEXP = 15
+ESTIMATE_CENTRALPOSITION=str(True)
+ESTIMATE_LAMBDAMAP=str(True)
 # REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
 REFLOWEXP = 15
+"""
 REFCENTRALPOSITION = {  ### TODO: move to reffiles...
     21: 824,
     22: 866,
@@ -88,7 +93,7 @@ REFCENTRALPOSITION = {  ### TODO: move to reffiles...
     55:2885,
     56:2984,
     57:3086,}
-
+"""
 
 ## ----- units 
 M = 1.0         # Meter
@@ -166,9 +171,9 @@ ORDERS = list(CENTRALPOSITION.keys())
 """
 #LAMBDAFILE = os.path.join(REFFILES, 'artlambda2254correct.dat')  # TODO to be removed....
 
-LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.dat') ) # TODO to be removed....
-OFFSET_LAMBDA=int(os.environ.get('OFFSET_LAMBDA', 0))
-SAVE_LAMS = os.environ.get('SAVE_LAMS', 'False') == 'True'
+#LAMBDAFILE = os.environ.get('LAMBDAFILE', os.path.join(REFFILES, 'hobo.dat') ) # TODO to be removed....
+#OFFSET_LAMBDA=int(os.environ.get('OFFSET_LAMBDA', 0))
+#SAVE_LAMS = os.environ.get('SAVE_LAMS', 'False') == 'True'
 
 ## ------ snippet constants
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')

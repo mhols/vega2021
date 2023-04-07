@@ -494,7 +494,801 @@ def get_ext(f_thar, **kwargs):
         raise Exception('could not create Extract. Reason: ', ex)
 
 
-class Extractor:
+class Extractor_level_1:
+    """
+    A class for the data reduction pipeline
+
+    """
+
+    def __init__(self, fitsfile, finalize=True, **kwargs):
+        """
+        if fitsfile specified class takes it
+        the following keyword arguments are recognized
+        imagedata: np.array of image data
+        flatfield: np.array of flatfield image
+        background: np.array of background image
+        dir: path to folder containing all fits files
+
+        """
+        self._ccd1 = None
+        self._ccd2 = None
+        self._ccd3 = None
+
+        self._total_reset()
+        self.kwargs = kwargs
+
+        assert is_thorium(fitsfile),\
+            'you need to specify a thorium file to generate an extractor'
+
+        self._tharfits = fitsfile        
+        self._fitsfile = fitsfile
+        
+        self.CENTRALROW = kwargs['CENTRALROW']
+        self.NROWS = kwargs['NROWS']
+
+        # all properties can be lasily evaluated TODO: use decorator
+        self._masterflat = None
+        self._masterbias = None
+        self._beams = None
+        self._Blaze = None
+        
+
+        ####
+        if finalize:
+            self.finalize()
+
+        ### force computation of everything
+    def finalize(self):
+        self.ccd_voie1
+        self.ccd_voie2
+ 
+    def update_kwargs(self, **kwargs):
+        self.kwargs.update(kwargs)
+
+    def logging(self, message):
+        print('------\nExtractor, SETTING_ID: ' + self.SETTINGS_ID + ', ThArg: ', self._tharfits + '\n, ' +message)
+
+    @property
+    def SETTINGS_ID(self):
+        return self.kwargs.get('SETTING_ID', 'WARNING: no setting id, you should specify one in the settings module')    
+
+    def _restart(self):
+        # local quantity
+        self._image = None
+        self._bare_image = None
+        self._voie1 = None
+        self._voie2 = None
+
+    def _total_reset(self):
+        self._restart()
+        self._flat_voie1 = None
+        self._flat_voie2 = None
+        self._bias_voie1 = None
+        self._bias_voie2 = None
+
+        #for a in self._lazy:
+        #    del a
+        # self._lazy = []
+
+    def get_fitsfile(self):
+        """
+        convenince method for fitsfile
+        """
+        if self._fitsfile is None:
+            raise Exception('no fitsfile available')
+        else:
+            return self._fitsfile
+
+    def set_fitsfile(self, fitsfile):
+        self._restart()
+        self._fitsfile = fitsfile
+
+    fitsfile = property(get_fitsfile, set_fitsfile)
+
+    def loadimage(self):
+        return load_image_from_fits(self.fitsfile, **self.kwargs)
+
+    @property
+    def ORDERS(self):
+        return list(self.CENTRALPOSITION.keys())
+
+    @property
+    def PREFIX(self):
+        return self.kwargs.get('PREFIX', 'HOBO') #TODO recompute 
+
+    @property
+    def bare_image(self):
+        if self._bare_image is None:
+            self._bare_image = load_image_from_fits(self.fitsfile, **self.kwargs)
+        return self._bare_image
+
+    @property
+    def image(self):
+        """
+        bias removed
+        background removed
+        """
+        if self._image is None:
+            image = self.bare_image 
+            self._image = image  - self.masterbias 
+            self._image -= self._estimate_background(self._image)
+        return self._image
+
+    @property
+    def masterbias(self):
+        if self._masterbias is None:
+            try:
+                self.logging('computing masterbias')
+                self._masterbias = masterbias(self.DATADIR, **self.kwargs)
+            except:
+                raise Exception('please specify DATADIR or MASTERBIAS')
+        return self._masterbias
+
+
+    def bias_voie1(self, o):
+        return self.beams[o].beam_sum_voie1(self.masterbias) 
+
+    def bias_voie2(self, o):
+        return self.beams[o].beam_sum_voie2(self.masterbias) 
+
+    @lazyproperty
+    def snippets_voie1(self):
+        snip = snippets.Snippets(voie=1, extractor=self)
+        return snip
+
+    @lazyproperty
+    def snippets_voie2(self):
+        snip = snippets.Snippets(voie=2, extractor=self)
+        return snip
+    
+    @property
+    def ccd_voie1(self):
+        if not self._ccd1 is None:
+            return self._ccd1
+        self._ccd1 = spectrograph.CCD2d(self.snippets_voie1, self, **self.kwargs)
+        return self._ccd1
+    
+    @property
+    def ccd_voie2(self):
+        if not self._ccd2 is None:
+            return self._ccd2
+        self._ccd2 = spectrograph.CCD2d(self.snippets_voie2, self, **self.kwargs)
+        return self._ccd2
+    
+    @lazyproperty
+    def reference_extract(self):
+        """
+        the reference extractor
+        """
+        thar = list(getallthoriumfits(dirname=self.kwargs['REFKWARGS']['DATADIR']))[0]
+        ext = get_ext(thar, **self.kwargs['REFKWARGS'])
+        store.store(thar, ext)
+        return ext
+
+    @lazyproperty
+    def _pix_to_lambda_map_1(self):
+        """
+        The preliminary lambda map
+        Either you specify a file containing the lambdas
+        or you try to obtain by homothetic mapping from some reference
+        """
+        if self.kwargs.get('ESTIMATE_LAMBDAMAP', str(False)) == str(False):
+            self.logging('Level one lambda map using REFFILE '\
+                         +self.kwargs['LAMBDAFILE'] + " in pix_to_lambda_map_1")
+            return { o: interp1d(np.arange(self.NROWS), \
+                                 get_lambda(o, self.ORDERS, **self.kwargs), 
+                                 fill_value='extrapolate') 
+                for o in self.ORDERS }
+        
+        # else
+        self.logging('using a homothetic mapping to get lambda map')
+        REFORDER = 33  ## the order used to estimate the homothetie
+        
+        rv1 = self.reference_extract.voie1[REFORDER]
+        rv1 = np.where(np.isnan(rv1), 0, rv1)
+
+        # setting myself on first fitsfile (TODO STORE)
+        thars = list(getallthoriumfits(dirname=self.DATADIR))
+        self.set_fitsfile(thars[0])
+        mv1 = self.voie1[REFORDER]
+        mv1 = np.where(np.isnan(mv1), 0, mv1)
+ 
+        n = np.arange(self.NROWS)
+        d = np.argmax(np.correlate(rv1, mv1, 'full')) - self.NROWS + 1
+
+        b, a = util.homothetie(n, rv1, n, mv1, d-1, d+1, 0.9999999, 1.0000001) 
+
+        tmp = {}
+
+        n = np.arange(self.NROWS)
+
+        for o in self.ORDERS:
+            tmp[o] = interp1d(n, self.reference_extract._pix_to_lambda_map_1[o](n+b),
+                        fill_value='extrapolate')
+        return tmp
+
+    @property
+    def DATADIR(self):
+        try:
+            return self.kwargs['DATADIR']
+        except:
+            pass
+        try:
+            return os.path.dirname(self._fitsfile)
+        except Exception as ex:
+            raise Exception('DIRNAME, reason :', ex)
+
+
+    @property
+    def pix_to_lambda_map_voie1(self):
+        if self._ccd1 is None:
+            return self._pix_to_lambda_map_1
+        else:
+            return self._ccd1._final_map_l_x_o 
+
+    @property
+    def pix_to_lambda_map_voie2(self):
+        if self._ccd2 is None:
+            return self._pix_to_lambda_map_1
+        else:
+            return self._ccd2._final_map_l_x_o
+
+    @property
+    def pix_to_lambda_map_voie3(self):
+        if self._ccd3 is None:
+            return self._pix_to_lambda_map_1
+        else:
+            return self._ccd3._final_map_l_x_o
+
+    @property
+    def lambdas_per_order_voie1(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie1[o](n) for o in self.ORDERS}
+
+    @property
+    def lambdas_per_order_voie2(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie2[o](n) for o in self.ORDERS}
+
+    @property
+    def lambdas_per_order_voie3(self):
+        n = np.arange(self.NROWS)
+        return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
+
+    def lam_to_o(self, lam):
+        """the orders of lambda """
+        return [ o for o in self.ORDERS if 
+                self.pix_to_lambda_map_1[o](0) <= lam and lam <= self.pix_to_lambda_map_1[o](self.NROWS-1)]
+
+    def get_lambda_intens1(self, o):
+        I = self.beams[o].I
+        return self.lambdas_per_order_voie1[o], self.voie1[o], I
+    
+    def get_lambda_intens2(self, o):
+        I = self.beams[o].I
+        return self.lambdas_per_order_voie2[o], self.voie2[o], I
+        
+    def get_lambda_intens3(self, o):
+        I = self.beams[o].I
+        return self.lambdas_per_order_voie3[o], self.voie3[o], I
+    
+    def _compute_voie1et2(self):
+        choice =  self.kwargs['VOIE_METHOD']
+        if choice == 'SUM_DIVIDE':
+            self._voie1 = {
+                    o: self.beams[o].beam_sum_voie1(self.image) \
+                    / self.beams[o].beam_sum_voie1(self.masterflat) for o in self.ORDERS
+                }
+            self._voie2 = {
+                o: self.beams[o].beam_sum_voie2(self.image) \
+                / self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
+            }
+        elif choice == 'DIVIDE_SUM':
+            image = self.image / (self.masterflat + 1)
+        
+            self._voie1 = {
+                o: self.beams[o].beam_sum_voie1(image) for o in self.self.ORDERS
+            }
+
+            self._voie2 = {
+                o: self.beams[o].beam_sum_voie2(image) for o in self.ORDERS
+            }
+        elif choice == 'DIVIDE_BLAZE':
+            self._voie1 = {
+                o: self.beams[o].beam_sum_voie1(self.image) \
+                    / self.blaze(o)(np.arange(self.NROWS)) \
+                    for o in self.ORDERS
+            }
+            self._voie2 = {
+                o: self.beams[o].beam_sum_voie2(self.image) \
+                    / self.blaze(o)(np.arange(self.NROWS)) \
+                    for o in self.ORDERS
+            }
+
+        elif choice == "SUM_DIVIDE_CENTRALROW":
+            self._voie1 = {
+                    o: self.beams[o].beam_sum_voie1(self.image) \
+                    * self.blaze(o)(self.CENTRALROW) \
+                    / self.beams[o].beam_sum_voie1(self.masterflat) for o in self.ORDERS
+                }
+            self._voie2 = {
+                o: self.beams[o].beam_sum_voie2(self.image) \
+                * self.blaze(o)(self.CENTRALROW) \
+                / self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
+            }
+        else:
+            raise Exception('no such method ' + choice)
+        return
+        
+ 
+
+    @property
+    def voie1(self):
+        if self._voie1 is None:
+            self.logging('computing voie1 and voie2')
+            self._compute_voie1et2()
+        return self._voie1
+    
+    @property
+    def voie2(self):
+        if self._voie2 is None:
+            self.logging('computing voie1 and voie')
+            self._compute_voie1et2()
+        return self._voie2
+
+
+    def background_voie1(self, o, nnodes, q, qq, qqq):
+        v = self.voie1[o]
+        l = np.arange(len(v))
+        p = util.background(l,v,nnodes,q,qq,qqq)
+        return p(l) 
+
+    def background_voie2(self, o, nnodes, q, qq, qqq):
+        v = self.voie2[o]
+        l = np.arange(len(v))
+        p = util.background(l,v,nnodes,q,qq,qqq)
+        return p(l) 
+
+    def voie1_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
+        res = []
+        for o in self.ORDERS:
+            res.extend(self.voie1[o]/self.background_voie1(o, nnodes, q, qq, qqq))
+        return np.array(res)
+
+    def voie2_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
+        res = []
+        for o in self.ORDERS:
+            res.extend(self.voie2[o]/self.background_voie2(o, nnodes, q, qq, qqq))
+        return np.array(res)
+
+    def _bare_voie1(self, o):
+        v = self.beams[o].beam_sum_voie1(self.image)
+        v[np.isnan(v)] = 0
+        return v
+
+    def _bare_voie2(self, o):
+        v = self.beams[o].beam_sum_voie2(self.image)
+        v[np.isnan(v)] = 0
+        return v
+
+    def _bare_voie3(self, o):
+        return [0] # TODO
+
+    @lazyproperty
+    def bare_voie1(self):
+        return {o: self._bare_voie1(o) for o in self.ORDERS}  
+
+    @lazyproperty    
+    def bare_voie2(self):
+        return {o: self._bare_voie2(o) for o in self.ORDERS}
+
+    @lazyproperty    
+    def bare_voie3(self):
+        return {o: self._bare_voie3(o) for o in self.ORDERS}
+  
+    
+    @property
+    def masterflat_high(self):
+        return meanfits(*getallflatfits(self.DATADIR, self.kwargs['HIGHEXP']), **self.kwargs)
+
+    @property
+    def masterflat_low(self):
+        return meanfits(*getallflatfits(self.DATADIR, self.kwargs['LOWEXP']), **self.kwargs)
+
+
+    def _compute_masterflat(self, dirname):
+        """
+        Bias removed flat
+        """
+        HIGHEXP = self.kwargs['HIGHEXP']
+        LOWEXP = self.kwargs['LOWEXP']
+        CUTORDER = self.kwargs['CUTORDER']
+
+        high = self.masterflat_high
+        low = self.masterflat_low
+
+        # self.masterflat_high = high
+        # self.masterflat_low = low
+
+        high -= self.masterbias
+        low -= self.masterbias
+
+        high -= self._estimate_background(high)
+        low -= self._estimate_background(low)
+
+        pb = BeamOrder(CUTORDER, high, self.CENTRALPOSITION, **self.kwargs)    #beamfit(high, CUTORDER)
+        pr = BeamOrder(CUTORDER-1, low,  self.CENTRALPOSITION, **self.kwargs)    #beamfit(low, CUTORDER-1)
+        
+        masklow = np.zeros(high.shape)
+
+        for i in range(self.NROWS):
+            I = np.arange( int( round(0.5 * ( pb(i) + pr(i)))))
+            masklow[i,I]=1
+
+        return masklow*low + (1.-masklow)*high
+
+
+    @lazyproperty
+    def CENTRALPOSITION(self):
+        """
+        extraction of orders and their positions
+        """
+        if self.kwargs.get('ESTIMATE_CENTRALPOSITION', str(False))==str(False):
+            return self.kwargs['CENTRALPOSITION']
+        OVER = 32
+        tmpext = self.reference_extract
+
+        #tmpext.masterflat
+        #self.masterflat
+        reflow = tmpext.masterflat_low[tmpext.CENTRALROW,:]
+        mylow = self.masterflat_low[self.CENTRALROW,:]
+        
+        Nr = reflow.shape[0]
+        Nm = mylow.shape[0]
+
+        nr = np.arange(Nr)
+        nm = np.arange(Nm)
+
+        #nnr = np.linspace(0, Nr-1, OVER*Nr+1) ## for oversampling
+        #nnm = np.linspace(0, Nm-1, OVER*Nm+1)
+
+        #Nnr = len(nnr)
+        #Nmm = len(nnm)
+
+        # self.masterflat ## TDOD self.masterflat_low
+
+        #freflow = interp1d(nr, reflow, bounds_error=False, fill_value=0)
+        #fmylow = interp1d(nm, mylow, bounds_error=False, fill_value=0)
+
+        #smylow = fmylow(nnm)
+        
+        #dilrange = np.linspace(0.98, 1.02, 64)
+        #tmp = []
+        #for i, l in enumerate(dilrange):
+        #    tmp.append(np.max(
+        #        np.correlate(
+        #        smylow,
+        #        np.where(l*nnr<=Nr-1, freflow(l*nnr), 0),
+        #        'full')
+        #    ))
+        #    util.progress(i, len(dilrange))
+
+        #j = np.argmax(tmp)
+        #l = dilrange[j]
+        #print(l)
+        #i = np.argmax( np.correlate(smylow, 
+        #                np.where(l*nnr <= Nr-1, freflow(l*nnr), 0), 'full')) - Nnr+1
+        # 
+        #d = i / OVER 
+        #print (d, l)
+        #res = {}
+        #for o, p in tmpext.CENTRALPOSITION.items():
+        #    res[o] = int(np.round((p+d)/l))
+
+        d = np.argmax(np.correlate(reflow, mylow, 'full'))-len(reflow)+1
+        b, a = util.homothetie(nr, reflow, nm, mylow, d-5, d+5, 0.9, 1.1)
+        res = {o: int(np.round((i-b)/a)) for o, i in tmpext.CENTRALPOSITION.items()}
+        return res    
+
+
+    @property
+    def masterflat(self):
+        if self._masterflat is None:
+            self.logging('computing masterflat')
+            try:
+                DIR = self.DATADIR
+            except:
+                raise Exception('no masterflat and no DATADIR specified...')
+            self._masterflat = self._compute_masterflat(DIR)
+        return self._masterflat
+
+    def headerinfo(self,keyword):
+        """
+        convenince function to extract header info
+        """
+        return header_info_from_fits(self.fitsfile, keyword)
+
+    def blaze(self,order):
+        """
+        OFFSETRED: towards the RED side of the prism dispersion, "left" on the image
+        OFFSEBLUE: towards the BLUE side of the prism dispersion, "right on the image
+                    Careful= OFFSETBLUE can be 2*OFFSETBLUE in case of a 3rd beam!
+        """
+        return self.beams[order].blaze(self.masterflat)
+ 
+
+    @property
+    def beams(self):
+        if self._beams is None:
+            self.logging('computing beams')
+            self._beams = { o: BeamOrder(o, self.masterflat, self.CENTRALPOSITION, final=True, **self.kwargs) for o in self.ORDERS}
+        return self._beams
+
+    def _compute_flat_voie1et2(self):
+        self.logging('computing flat_voie1 and flat_voie2')
+        self._flat_voie1 = {
+            o: self.beams[o].beam_sum_voie1(self.masterflat) for o in self.ORDERS
+        }
+        self._flat_voie2 = {
+            o: self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
+        }
+         
+
+    @property
+    def flat_voie1(self):
+        if self._flat_voie1 is None:
+            self._compute_flat_voie1et2()
+        return self._flat_voie1
+
+
+    @property
+    def flat_voie2(self):
+        if self._flat_voie2 is None:
+            self._compute_flat_voie1et2()
+        return self._flat_voie2
+
+    @property
+    def non_normalized_intens_1(self):
+        res = []
+        for o in self.ORDERS:
+            inte = self.bare_voie1(o)
+            I =  self.beams[o].II
+            inte[np.logical_not(I)] = 0.0
+            res.extend(inte)
+        return np.array(res)
+
+    @property
+    def non_normalized_intens_2(self):
+        res = []
+        for o in self.ORDERS:
+            inte = self.bare_voie2(o)
+            I = self.beams[o].II
+            inte[np.logical_not(I)] = 0
+            res.extend(inte)
+        return np.array(res)
+
+    @property
+    def non_normalized_intens_3(self):
+        return self.non_normalized_intens_2
+
+    @property
+    def noise_1(self):
+        return np.sqrt(self.non_normalized_intens_1)
+
+    @property
+    def noise_2(self):
+        return np.sqrt(self.non_normalized_intens_2)
+
+    @property
+    def noise_3(self):
+        return np.sqrt(self.non_normalized_intens_3)
+
+
+    @property
+    def blaze_1(self):
+        pass
+
+    def _estimate_background(self, image):
+        MIN_FILTER_SIZE = 50
+        SMOOTHING_FILTER_SIZE = 50
+        res = np.zeros(image.shape)
+        F = np.ones(SMOOTHING_FILTER_SIZE)/SMOOTHING_FILTER_SIZE
+        F = np.convolve(F,F)
+        for i, r in enumerate(image):
+            d = minimum_filter1d(r, size=MIN_FILTER_SIZE)
+            res[i,:] = np.convolve(F,d, 'same')
+        return res
+
+    @property
+    def background(self):
+        return self._estimate_background(self.bare_image)
+
+    def cutoff_mask(self, *args):
+        CUTOFF_PERCENTILE = args[0]
+        tmp = self.background
+        v = np.quantile(tmp.ravel(), CUTOFF_PERCENTILE/100)
+        return tmp > v
+
+    def save_pixel_res(self, outfile):
+        os = []
+        pix = []
+        v1 = []
+        v2 = []
+
+        for o in self.ORDERS:
+            for i in range(self.NROWS):
+                os.append(o)
+                pix.append(i)
+                v1.append(self.voie1[o][i])
+                v2.append(self.voie2[o][i])
+    
+        tmp = {
+            'true_order_number' : os,
+            'pixel': pix,
+            'voie1': v1,
+            'voie2': v2
+        }
+        try:
+            with open(outfile, 'w') as f:
+                pd.DataFrame(tmp).to_csv(f)
+        except:
+            pass
+
+        return tmp
+
+    def save_to_store(self):
+        store.store(self._tharfits, self)
+
+    def save_fits(self):
+        # collecting data
+        order = []
+        for o in self.ORDERS:
+            for i in range(self.NROWS):
+                order.append(o)
+      
+        mask = []
+        for o in self.ORDERS:
+            for i in range(self.NROWS):
+                if i in self.beams[o].I:
+                    mask.append(1)
+                else:
+                    mask.append(0)
+        
+        # print(len(order), len(mask))
+        fitstable = pyfits.BinTableHDU.from_columns ([
+        pyfits.Column(
+            name="true_order_number",
+            format='I',
+            array=order
+        ),
+        pyfits.Column(
+            name='flux_mask',
+            format = 'I',
+            array = mask
+        ),
+        pyfits.Column(
+            name="wavelength_1",
+            format="D",
+            array=self.ccd_voie1.get_lambda_list()
+            ),
+        pyfits.Column(
+            name="wavelength_2",
+            format="D",
+            array=self.ccd_voie2.get_lambda_list()
+        ),
+        pyfits.Column(
+            name="wavelength_3",
+            format="D",
+            array=np.zeros(len(self.ORDERS)*self.NROWS)
+        ),
+        pyfits.Column(
+            name='flux_1',
+            format='E',
+            array=self.voie1_all()
+        ),
+        pyfits.Column(
+            name='flux_2',
+            format='E',
+            array=self.voie2_all()
+        ),
+        pyfits.Column(
+            name='flux_3',
+            format='E',
+            array=self.voie2_all() ### TODO voie3
+        ),
+        pyfits.Column(
+            name='noise_1',
+            format='E',
+            array=self.noise_1
+        ),
+        pyfits.Column(
+            name='noise_2',
+            format='E',
+            array=self.noise_2
+        ),
+        pyfits.Column(
+            name='noise_3',
+            format='E',
+            array=self.noise_3
+        )])
+
+        # fits.Column(
+        #     name="blaze_1",
+        #     format='E',
+        #     array=myext.blaze_1
+        # ),
+        # fits.Column(
+        #     name="blaze_2",
+        #     format='E',
+        #     array=myext.blaze_2
+        # ),
+        # fits.Column(
+        #     name="blaze_3",
+        #     format='E',
+        #     array=myext.blaze_3
+        # ),
+        # fits.Column(
+        #     name="continuum_1_1",
+        #     format='E',
+        #     array=myext.continuum_1_1
+        # ),
+        # fits.Column(
+        #     name="continuum_1_2",
+        #     format='E',
+        #     array=myext.continuum_1_2
+        # ),
+        # fits.Column(
+        #     name="continuum_1_3",
+        #     format='E',
+        #     array=myext.continuum_1_3
+        # )
+
+        page1 = pyfits.PrimaryHDU()
+
+        PREFIX = self.PREFIX
+        filename = os.path.basename(self.fitsfile)
+        postfix = ''
+        if is_thorium(self.fitsfile):
+            postfix = 'th1.fits'
+        else:
+            postfix = 'st1.fits'
+        filename = PREFIX + filename[:-8]+postfix
+
+        RESULTDIR = self.kwargs['RESULTDIR']
+        if not os.path.exists(RESULTDIR):
+            os.mkdir(RESULTDIR)
+
+        with pyfits.open(self.fitsfile) as sfi:
+            page1.header = sfi[0].header
+
+        page1.header.append((PREFIX+"LEVEL", 1))
+        #for key in self.kwargs['HEADER_ITEMS']:
+        #    page1.header.append((PREFIX+key, globals()[key]))
+        # TODO find a way to compute HEADER_ITEMS ....
+        newfits = pyfits.HDUList(
+            [ page1, fitstable ]
+        )
+
+        newfits.writeto(self.result_path, overwrite=True)
+
+    @property
+    def result_path(self):
+        PREFIX = self.PREFIX
+        filename = os.path.basename(self.fitsfile)
+        RESULTDIR = self.kwargs['RESULTDIR']
+        filename = PREFIX + filename[:-8]+'st1.fits'
+
+        return os.path.join(RESULTDIR, filename)
+
+    def __del__(self):
+        del self.snippets_voie1
+        del self.snippets_voie2
+        del self.reference_extract
+
+        if not self._ccd1 is None: del self._ccd1
+        if not self._ccd2 is None: del self._ccd2
+        if not self._ccd3 is None: del self._ccd3
+"class Extractor_level_1:
     """
     A class for the data reduction pipeline
 

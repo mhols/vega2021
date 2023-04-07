@@ -1,11 +1,13 @@
-from settingspegasus import kwargs
+#from settingspegasus import kwargs
+from settingsmoon import kwargs
 from numpy import *
 import matplotlib.pyplot as plt
 import extract as ex
 
 
 myext = ex.get_ext(
-        '/home/hols/vega2021/thar/51Peg_raw/2020_1029/NEO_20201029_172538_th0.fits',
+        #'/home/hols/vega2021/thar/51Peg_raw/2020_1029/NEO_20201029_172538_th0.fits',
+        "/home/hols/vega2021/thar/lune_raw/NEO_20200202_173811_th0.fits",
         finalize=False,
         **kwargs)
 
@@ -58,7 +60,7 @@ def plot_snippet(ic):
             except:
                 pass
 
-def plot_snippet_voie1(ss, o):
+def plot_snippet_voie(ss, o):
 
     s = ss.sn[ss.o==o]
     l = myext.lambdas_per_order_voie1[o]
