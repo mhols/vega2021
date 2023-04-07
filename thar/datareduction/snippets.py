@@ -277,7 +277,6 @@ class Snippets:
         with open(self.kwargs['REF_ATLASLINES'], 'r') as f:
             alines = f.readlines()
 
-
         # extract information...
         atlaslines =  [float(l.split()[1]) for l in alines]
         # self._atlasline = atlaslines
@@ -308,7 +307,7 @@ class Snippets:
 
 
     def _lines(self, o):
-        NMAX_LINES = 200 # maximal number of lines to extract
+        NMAX_LINES = 50 # maximal number of lines to extract
         v = self.bare_voie(o)
         lm = util.local_maxima(v)
         bs = []
@@ -330,6 +329,10 @@ class Snippets:
                 'posmax': x,
                 'left': a, 
                 'right': b, 
+                'pixel_A': A,
+                'pixel_mu': mu,
+                'pixel_sigma': sigma,
+                'pixel_offset': offset,
                 'pixel_mean': a + mu,
                 'pixel_std' : 1./ np.sqrt(np.sum(s)),  
                 'pixel_sum_intens': np.sum(s),
@@ -486,6 +489,14 @@ class Snippets:
     def x(self):
         return self._x[self.good_snippet]
     
+    @property
+    def _o(self):
+        return self.snippets['true_order_number']
+    
+    @property
+    def o(self):
+        return self._o[self.good_snippet]
+
     @property
     def _l(self):
         return self.snippets['ref_lambda']

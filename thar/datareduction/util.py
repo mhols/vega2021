@@ -182,36 +182,31 @@ def pseudo_inverse(x, increasing=True):
         tmp = -tmp
     return tmp
 
-def local_maxima(vv):
-    """
-    top down detection of local maxima
-    """
-    v = np.array(vv)
+def local_maxima(v):
+    v = np.array(v)
+    vv = np.zeros(len(v)+2)
+    vv[1:-1] = v
+    d = np.diff(vv)
+    lma = np.where(np.logical_and(d[:-1] > 0, d[1:] < 0))[0] 
+    lmi = np.where(np.logical_and(d[:-1] < 0, d[1:] > 0))[0] 
 
-    lm = []
-    n = len(v)
-    progress = True
-    low = 0
-    up = n-1
-    while(progress):
-        oldsum = np.sum(v)
-        i = np.argmax(v)
-        for j in range(i, 0, -1):
-            if v[j] > v[j-1]:
-                v[j] = 0
-            else:
-                low = j-1
-                break
-        for j in range(i+1, n-1):
-            if v[j] > v[j+1]:
-                v[j] = 0
-            else:
-                up = j
-                break
-        lm.append([i, low, up])
-        v[i] = 0
-        progress = np.sum(v) < oldsum
-    return np.array(lm)
+    
+    tmp = []
+    for im in lma:
+        try:
+            a = np.max(lmi[lmi<im])
+        except:
+            a = 0
+        try:
+            b = np.min(lmi[lmi>im])
+        except Exception as ex:
+            b = len(v)-1
+
+        tmp.append([im, a, b])
+    
+    tmp = sorted(tmp, key=lambda r: -v[r[0]])
+    return np.array(tmp)
+
 
 def homothetie_wasserstein(x,y,xx,yy, rb0, rb1, ra0, ra1):
     """
