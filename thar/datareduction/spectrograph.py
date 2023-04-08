@@ -138,12 +138,11 @@ class CCD2d:
     """
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
-    def __init__(self, data, extractor, mdata=None, **kwargs):
+    def __init__(self, data, **kwargs):
         self.kwargs = kwargs  # saving for later use
        
-        self._data = data     # reference data
-        self._mdata = mdata   # matching data
-        self._extractor = extractor
+        self._data =  data    # reference data
+        self._mdata = None   # matching data
         self.kwargs = kwargs  # saving for later use
         if data is None:
             try:
@@ -152,10 +151,10 @@ class CCD2d:
                 raise Exception('could not read datafile. Does it exist ?')
         
         self._data = data
-        self.ORDERS = extractor.ORDERS
+        self.ORDERS = self.kwargs['ORDERS']
 
         self._data['selected'] = True # we are using only this subset
-        self._mdata['selected'] = True # matching data
+        # self._mdata['selected'] = True # matching data
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
         self._data['total_flux'] = total_flux
 
@@ -723,15 +722,15 @@ class CCD2d:
         x = self.x.to_numpy()
         s = weight
 
-        mo = self.mo.to_numpy()
-        moo = self.moo.to_numpy()
-        mx = self.mx.to_numpy()
-        mxx = self.mxx.to_numpy()        
+        #mo = self.mo.to_numpy()
+        #moo = self.moo.to_numpy()
+        #mx = self.mx.to_numpy()
+        #mxx = self.mxx.to_numpy()        
 
         olrange = [(o*l).min() / ENLARGEMENT_FACTOR, (o*l).max() * ENLARGEMENT_FACTOR]
         orange = [o.min(), o.max()]
 
-        mxrange = [-200, self.kwargs['NROWS']+200]
+        #mxrange = [-200, self.kwargs['NROWS']+200]
 
 
         nolko = [(n, k) for n in range(Nol) for k in range(No)]
