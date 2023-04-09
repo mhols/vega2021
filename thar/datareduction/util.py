@@ -77,7 +77,7 @@ def estimate_location(intens, **kwargs):
     sigmamax = 4*sigma
     sigmamin = 1e-6
 
-    y_offset_min = 0
+    y_offset_min = -np.max(intens)
     y_offset_max = np.max(intens)
     y_offset = (y_offset_min+y_offset_max)/2
 

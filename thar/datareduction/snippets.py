@@ -309,6 +309,7 @@ class Snippets:
     def _lines(self, o):
         NMAX_LINES = 50 # maximal number of lines to extract
         v = self.bare_voie(o)
+
         lm = util.local_maxima(v)
         bs = []
         for i,xab in enumerate ( lm[:min(NMAX_LINES, len(lm))]):
@@ -344,11 +345,15 @@ class Snippets:
 
     def bare_voie(self, o):
         if self.voie == 1:
-            return self.extractor.bare_voie1[o]
+            l, v, I = self.extractor.get_lambda_intens1(o)
         elif self.voie == 2:
-            return self.extractor.bare_voie2[o]
+            l, v, I = self.extractor.get_lambda_intens2(o)
         else:
             raise Exception('line 3 not implemented')      
+        
+        res = np.zeros(self.NROWS)
+        res[I] = v[I]
+        return util.clean_nans(res)
 
     #@lazyproperty
     #def lines_voie(self):
@@ -424,6 +429,8 @@ class Snippets:
         self._snippets['goodsnippet'] = False
         self._snippets['ref_lambda'] = 0.0
         self._snippets['catalog_index'] = 0
+        self._snippets['selected'] = False
+        self._snippets['total_flux'] = 0.0
 
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))

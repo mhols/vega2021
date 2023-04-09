@@ -479,7 +479,12 @@ class BeamOrder:
 #### factory methods for Extractor objects
 store = regal.Store()    # we only have one global store
 
-def get_ext(f_thar, **kwargs):
+def get_ext(f_thar, level="level_1", **kwargs):
+    classmap = {
+        'level_1': Extractor_level_1,
+        'level_2': Extractor_level_2,
+        'level_3': Extractor
+    }
     try:
         myext = store.get(f_thar) # retrieval without kwargs is reload of existing
         print('retrieving Extract from ', f_thar)
@@ -487,7 +492,7 @@ def get_ext(f_thar, **kwargs):
     except Exception as ex:
         print('could not retrieve. ', f_thar, 'Reason: ', ex, 'generating a new one\n----\n')
     try:
-        myext = Extractor(f_thar, **kwargs)
+        myext = classmap[level](f_thar, **kwargs)
         store.store(f_thar, myext)
         return myext
     except Exception as ex:
@@ -636,12 +641,13 @@ class Extractor_level_1:
     #    return ext
 
     @lazyproperty
-    def _pix_to_lambda_map_1(self):
+    def _pix_to_lambda_map_level1(self):
         """
         The preliminary lambda map
         Either you specify a file containing the lambdas
         or you try to obtain by homothetic mapping from some reference
         """
+        print('_pix_to_lambda_map_level1 called\n')
         return { o: interp1d(np.arange(self.NROWS), \
                                  get_lambda(o, self.ORDERS, **self.kwargs), 
                                  fill_value='extrapolate') 
@@ -661,16 +667,24 @@ class Extractor_level_1:
 
     @property
     def pix_to_lambda_map_voie1(self):
-        return self._pix_to_lambda_map_1
+        return self._pix_to_lambda_map_level1
 
     @property
     def pix_to_lambda_map_voie2(self):
-        return self._pix_to_lambda_map_2
+        return self._pix_to_lambda_map_level1
 
     @property
     def pix_to_lambda_map_voie3(self):
-        return self._pix_to_lambda_map_3
+        return self._pix_to_lambda_map_level1
     
+    @property
+    def pix_to_lambda_map_voie(self):
+        return {
+            1: self.pix_to_lambda_map_voie1, 
+            2: self.pix_to_lambda_map_voie2, 
+            # 3: self.pix_to_lambda_map_voie3
+        }
+
     @property
     def lambdas_per_order_voie1(self):
         n = np.arange(self.NROWS)
@@ -690,6 +704,7 @@ class Extractor_level_1:
         """the orders of lambda """
         return [ o for o in self.ORDERS if 
                 self.pix_to_lambda_map_1[o](0) <= lam and lam <= self.pix_to_lambda_map_1[o](self.NROWS-1)]
+
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
@@ -826,6 +841,10 @@ class Extractor_level_1:
     def bare_voie3(self):
         return {o: self._bare_voie3(o) for o in self.ORDERS}
   
+    @property
+    def voie(self):
+        return {1: self.voie1, 2: self.voie2, 3: None}
+
     
     @property
     def masterflat_high(self):
@@ -1140,8 +1159,10 @@ class Extractor_level_1:
 
 class Extractor_level_2(Extractor_level_1):
     """
-    A class for the data reduction pipeline
-
+    On this level, the orders can be found by matching a reference
+    Extract. This has to be passed in the kwargs
+    'REFFITSFILE': fitsfile of ThAr used to compute orders by matching
+    'REFKWARGS': kwargs for the creation of level_1 reffits
     """
 
     def __init__(self, fitsfile, **kwargs):
@@ -1149,28 +1170,22 @@ class Extractor_level_2(Extractor_level_1):
         super(Extractor_level_2, self).__init__(fitsfile, **kwargs)
         self.logging('Creation of Level 2 Extract')
 
-        self._refextract = None
-        self._pix_to_lambda_map_2 = self._pix_to_lambda_map_1
-        self._pix_to_lambda_map_3 = self._pix_to_lambda_map_1
 
-    @property
+    @lazyproperty
     def reference_extract(self):
-        if self._refextract is None:
-            self._refextract = Extractor_level_1(kwargs['REFFITSFILE'], **kwargs['REFKWARGS'])
-        return self._refextract
+        return get_ext(self.kwargs['REFFITSFILE'], level='level_1', **self.kwargs['REFKWARGS'])
 
-   
+
+    @lazyproperty
+    def ORDERS(self):
+        return self.reference_extract.ORDERS
+
     @lazyproperty
     def CENTRALPOSITION(self):
         """
         extraction of orders and their positions
         """
-        print('called')
-        OVER = 32
         tmpext = self.reference_extract
-
-        #tmpext.masterflat
-        #self.masterflat
         reflow = tmpext.masterflat_low[tmpext.CENTRALROW,:]
         mylow = self.masterflat_low[self.CENTRALROW,:]
         
@@ -1185,8 +1200,8 @@ class Extractor_level_2(Extractor_level_1):
         res = {o: int(np.round((i-b)/a)) for o, i in tmpext.CENTRALPOSITION.items()}
         return res    
 
-    @lazyproperty
-    def _pix_to_lambda_map_1(self):
+   
+    def _pix_to_lambda_map_level2(self, voie):
         """
         The preliminary lambda map
         Either you specify a file containing the lambdas
@@ -1196,73 +1211,72 @@ class Extractor_level_2(Extractor_level_1):
         self.logging('using a homothetic mapping to get lambda map')
         REFORDER = 33  ## the order used to estimate the homothetie
         
-        rv1 = self.reference_extract.voie1[REFORDER]
+        rv1 = self.reference_extract.voie[voie][REFORDER]
         rv1 = np.where(np.isnan(rv1), 0, rv1)
 
         # setting myself on first fitsfile (TODO STORE)
-        thars = list(getallthoriumfits(dirname=self.DATADIR))
-        self.set_fitsfile(thars[0])
         mv1 = self.voie1[REFORDER]
         mv1 = np.where(np.isnan(mv1), 0, mv1)
  
         n = np.arange(self.NROWS)
         d = np.argmax(np.correlate(rv1, mv1, 'full')) - self.NROWS + 1
 
-        b, a = util.homothetie(n, rv1, n, mv1, d-1, d+1, 0.9999999, 1.0000001) 
+        b, a = util.homothetie(n, rv1, n, mv1, d-1, d+1, 0.99999, 1.00001) 
 
         tmp = {}
 
         n = np.arange(self.NROWS)
 
         for o in self.ORDERS:
-            tmp[o] = interp1d(n, self.reference_extract._pix_to_lambda_map_1[o](n+b),
+            tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie[voie][o](n+b),
                         fill_value='extrapolate')
         return tmp
 
-    @property
+    @lazyproperty
     def pix_to_lambda_map_voie1(self):
-        return self._pix_to_lambda_map_1
-
-    @property
+        return self._pix_to_lambda_map_level2(1)
+    
+    @lazyproperty
     def pix_to_lambda_map_voie2(self):
-        return self._pix_to_lambda_map_2
-
-    @property
+        return self._pix_to_lambda_map_level2(2)
+    
+    @lazyproperty
     def pix_to_lambda_map_voie3(self):
-        return self._pix_to_lambda_map_3
-
-    @property
-    def lambdas_per_order_voie1(self):
-        n = np.arange(self.NROWS)
-        return {o: self.pix_to_lambda_map_voie1[o](n) for o in self.ORDERS}
-
-    @property
-    def lambdas_per_order_voie2(self):
-        n = np.arange(self.NROWS)
-        return {o: self.pix_to_lambda_map_voie2[o](n) for o in self.ORDERS}
-
-    @property
-    def lambdas_per_order_voie3(self):
-        n = np.arange(self.NROWS)
-        return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
-
-    def lam_to_o(self, lam):
-        """the orders of lambda """
-        return [ o for o in self.ORDERS if 
-                self.pix_to_lambda_map_voi1[o](0) <= lam and lam <= self.pix_to_lambda_map_voie1[o](self.NROWS-1)]
-
-    def get_lambda_intens1(self, o):
-        I = self.beams[o].I
-        return self.lambdas_per_order_voie1[o], self.voie1[o], I
+        return self._pix_to_lambda_map_level2(3)
     
-    def get_lambda_intens2(self, o):
-        I = self.beams[o].I
-        return self.lambdas_per_order_voie2[o], self.voie2[o], I
+    
+    # @property
+    # def lambdas_per_order_voie1(self):
+    #     n = np.arange(self.NROWS)
+    #     return {o: self.pix_to_lambda_map_voie1[o](n) for o in self.ORDERS}
+
+    # @property
+    # def lambdas_per_order_voie2(self):
+    #     n = np.arange(self.NROWS)
+    #     return {o: self.pix_to_lambda_map_voie2[o](n) for o in self.ORDERS}
+
+    # @property
+    # def lambdas_per_order_voie3(self):
+    #     n = np.arange(self.NROWS)
+    #     return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
+
+    # def lam_to_o(self, lam):
+    #     """the orders of lambda """
+    #     return [ o for o in self.ORDERS if 
+    #             self.pix_to_lambda_map_voi1[o](0) <= lam and lam <= self.pix_to_lambda_map_voie1[o](self.NROWS-1)]
+
+    # def get_lambda_intens1(self, o):
+    #     I = self.beams[o].I
+    #     return self.lambdas_per_order_voie1[o], self.voie1[o], I
+    
+    # def get_lambda_intens2(self, o):
+    #     I = self.beams[o].I
+    #     return self.lambdas_per_order_voie2[o], self.voie2[o], I
         
-    def get_lambda_intens3(self, o):
-        I = self.beams[o].I
-        return self.lambdas_per_order_voie3[o], self.voie3[o], I
-    
+    # def get_lambda_intens3(self, o):
+    #     I = self.beams[o].I
+    #     return self.lambdas_per_order_voie3[o], self.voie3[o], I
+
 #####
 #  Final level 
 #####
@@ -1302,8 +1316,8 @@ class Extractor(Extractor_level_2):
         del self.snippets_voie2
         del self.ccd_voie1
         del self.ccd_voie2
-        self._pix_to_lambda_map_1 = self.ccd_voie1._final_map_l_x_o
-        self._pix_to_lambda_map_2 = self.ccd_voie2._final_map_l_x_o
+        self.pix_to_lambda_map_voie1 = self.ccd_voie1._final_map_l_x_o
+        self.pix_to_lambda_map_voie2 = self.ccd_voie2._final_map_l_x_o
 
 
 
@@ -1313,9 +1327,6 @@ class Extractor(Extractor_level_2):
         del self.snippets_voie2
         del self.reference_extract
 
-        if not self._ccd1 is None: del self._ccd1
-        if not self._ccd2 is None: del self._ccd2
-        if not self._ccd3 is None: del self._ccd3
 """
 TODO: kwargs fill in globally
 TODO: index ranges uniformize to [a, b) i.e. half-open
@@ -1323,12 +1334,17 @@ TODO: interorder-background contains strange negative values and perturbates the
 """
 
 if __name__ == '__main__':
-    from settings import kwargs
-    fitsfile = os.path.join(kwargs['DATADIR'], 'NEO_20220903_191404_th0.fits')
-
-    #myext_1 = Extractor_level_1(fitsfile, RESULTDIR='./', **kwargs)
-
-    kwargs.update({'REFFITSFILE': fitsfile, 'REFKWARGS': kwargs, 'RESULTDIR' : './'})
-    #myext_2 = Extractor_level_2(fitsfile, **kwargs)
+    from settingspegasus import kwargs
+    from settings import kwargs as refkwargs
+    fitsfile = os.path.join(kwargs['BASEDIR'], '51Peg_raw/2020_0917/NEO_20200917_173122_th0.fits')
+    reffitsfile = os.path.join(kwargs['BASEDIR'], 'datafiles/NEO_20220903_191404_th0.fits')
     
+    myext1 = get_ext(reffitsfile, 'level_1', **refkwargs)
+    myext1.voie1
+    myext1.voie2
+    myext1.save_to_store()
+
+    kwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
+    myext2 = Extractor_level_2(fitsfile, **kwargs)
+
     myext = Extractor(fitsfile, **kwargs)

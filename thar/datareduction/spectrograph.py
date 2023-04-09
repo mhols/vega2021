@@ -153,10 +153,10 @@ class CCD2d:
         self._data = data
         self.ORDERS = self.kwargs['ORDERS']
 
-        self._data['selected'] = True # we are using only this subset
+        self._data.loc[:, 'selected'] = True # we are using only this subset
         # self._mdata['selected'] = True # matching data
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
-        self._data['total_flux'] = total_flux
+        self._data.loc[:, 'total_flux'] = total_flux
 
         #if self.kwargs.get('bootstrap_data', 'True')=='True':
         # self.bootstrap_data()   # TODO move to snippets or extract
@@ -291,6 +291,7 @@ class CCD2d:
 
         for i in range(self.kwargs['n_sigma_clipp']):
             res = self._eval_order_by_order_full(fit_now, self._ol) - self._x # give all points a chance
+            res /= self._sigma
 
             # clipping 
             #thd = _get_threshold(epsilon, fit_now)
@@ -309,6 +310,7 @@ class CCD2d:
         for i in range(self.kwargs['n_sigma_clipp_2d']):
             
             res = self._eval_order_by_order_full(fit_now2, self._ol) - self._x
+            res /= self._sigma
             #thd = _get_threshold(epsilon, fit_now2)
             thd = np.quantile(res,0.8)
             
