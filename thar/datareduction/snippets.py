@@ -284,7 +284,7 @@ class Snippets:
         return self._atlasline
 
     def lambda_range(self, o):
-        return  self.pix_to_lambda_map[o](self.extractor.beams[o].pixel_range)
+        return  self.extractor.pix_to_lambda_map_voie[self.voie][o](self.extractor.beams[o].pixel_range)
 
     def atlasext(self, o):
         """
@@ -307,7 +307,7 @@ class Snippets:
 
 
     def _lines(self, o):
-        NMAX_LINES = 50 # maximal number of lines to extract
+        NMAX_LINES = 150 # maximal number of lines to extract
         v = self.bare_voie(o)
 
         lm = util.local_maxima(v)
@@ -331,7 +331,7 @@ class Snippets:
                 'left': a, 
                 'right': b, 
                 'pixel_A': A,
-                'pixel_mu': mu,
+                'pixel_mu': a+mu,
                 'pixel_sigma': sigma,
                 'pixel_offset': offset,
                 'pixel_mean': a + mu,
@@ -355,21 +355,14 @@ class Snippets:
         res[I] = v[I]
         return util.clean_nans(res)
 
-    #@lazyproperty
-    #def lines_voie(self):
-    #    res ={o: self._lines(self.ba_voie(o)) for o in self.ORDERS }
-    #    return res
-
-
-
-    @property
-    def pix_to_lambda_map(self):
-        if self.voie == 1:
-            return self.extractor.pix_to_lambda_map_voie1
-        elif self.voie == 2:
-            return self.extractor.pix_to_lambda_map_voie2
-        else:
-            raise Exception('voie 3 not yet implemented')
+    #@property
+    #def pix_to_lambda_map(self):
+    #    if self.voie == 1:
+    #        return self.extractor.pix_to_lambda_map_voie1
+    #    elif self.voie == 2:
+    #        return self.extractor.pix_to_lambda_map_voie2
+    #    else:
+    #        raise Exception('voie 3 not yet implemented')
 
     def _snippet(self, o):
 
@@ -377,7 +370,7 @@ class Snippets:
         bare_voie = self.bare_voie(o)
         lines_voie = self._snippets.loc[self._snippets['true_order_number'] == o]
 
-        lams = self.pix_to_lambda_map[o](lines_voie['pixel_mean'].values)
+        lams = self.extractor.pix_to_lambda_map_voie[self.voie][o](lines_voie['pixel_mean'].values)
 
         for ic, c in atlasext.itertuples():
 
@@ -400,18 +393,20 @@ class Snippets:
 
             intens = bare_voie[a:b+1]
 
+            self._snippets.loc[idx,'goodsnippet'] = True
+            self._snippets.loc[idx,'ref_lambda'] = c
+            self._snippets.loc[idx,'catalog_index'] = int(ic)
+
             # bootstrapping
             if self.kwargs['n_bootstrap'] > 1:
                 mu, s, sample = util.bootstrap_estimate_location(intens, **self.kwargs)
+                self._snippets.loc[idx,'pixel_mean'] = a+mu
+                self._snippets.loc[idx,'pixel_std'] = s
             else:
-                mu = util.estimate_location(intens, **self.kwargs)[1]
-                s = 1/np.sqrt(sum(intens))
-            self._snippets.loc[idx,'goodsnippet'] = True
-            self._snippets.loc[idx,'ref_lambda'] = c
-            self._snippets.loc[idx,'pixel_mean'] = a+mu
-            self._snippets.loc[idx,'pixel_std'] = s
-            self._snippets.loc[idx,'catalog_index'] = int(ic)
-    
+                pass
+                #mu = util.estimate_location(intens, **self.kwargs)[1]
+                #s = 1/np.sqrt(sum(intens))
+
     @property 
     def snippets(self):
         if not self._snippets is None:
@@ -456,8 +451,8 @@ class Snippets:
             pp2 = self.snippets.loc[Ioo,'pixel_mean']
 
 
-            p1 = self.pix_to_lambda_map[o](pp1)
-            p2 = self.pix_to_lambda_map[oo](pp2)
+            p1 = self.extractor.pix_to_lambda_map_voie[self.voie][o](pp1)
+            p2 = self.extractor.pix_to_lambda_map_voie[self.voie][oo](pp2)
 
             # TODO add global constant
             f = 0.2*self.kwargs['VRANGE']/self.kwargs['C_LIGHT']

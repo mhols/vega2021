@@ -1290,6 +1290,9 @@ class Extractor(Extractor_level_2):
 
     def __init__(self, fitsfile, **kwargs):
         super(Extractor, self).__init__(fitsfile, **kwargs)
+        self.snippets_voie1.sn
+        self.snippets_voie2.sn
+        
 
     @lazyproperty
     def snippets_voie1(self):
@@ -1320,14 +1323,16 @@ class Extractor(Extractor_level_2):
 
 
     def update_lambdamaps(self):
-        del self.snippets_voie1
-        del self.snippets_voie2
         del self.ccd_voie1
         del self.ccd_voie2
 
         self.pix_to_lambda_map_voie1 = self.ccd_voie1._final_map_l_x_o
         self.pix_to_lambda_map_voie2 = self.ccd_voie2._final_map_l_x_o
-
+        del self.snippets_voie1
+        del self.snippets_voie2
+        self.snippets_voie1.sn
+        self.snippets_voie2.sn
+ 
     #---------PLOT methods----------------#
     def color_1(self, voie, o):
         cmap = cm.get_cmap(self.kwargs.get('palette_order', 'rgb'))
