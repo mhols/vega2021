@@ -1321,18 +1321,21 @@ class Extractor(Extractor_level_2):
     def ccd_voie(self):
         return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
 
+    def update_snippets(self):
+        del self.snippets_voie1
+        del self.snippets_voie2
 
-    def update_lambdamaps(self):
+        self.snippets_voie1.sn
+        self.snippets_voie2.sn
+    
+    def update_ccds(self):
         del self.ccd_voie1
         del self.ccd_voie2
 
         self.pix_to_lambda_map_voie1 = self.ccd_voie1._final_map_l_x_o
         self.pix_to_lambda_map_voie2 = self.ccd_voie2._final_map_l_x_o
-        del self.snippets_voie1
-        del self.snippets_voie2
-        self.snippets_voie1.sn
-        self.snippets_voie2.sn
- 
+         
+
     #---------PLOT methods----------------#
     def color_1(self, voie, o):
         cmap = cm.get_cmap(self.kwargs.get('palette_order', 'rgb'))
@@ -1373,6 +1376,7 @@ class Extractor(Extractor_level_2):
                     s[I]['ref_lambda'], a, b,
                     color=self.color_2(voie, o))
         sn = self.snippets_voie()[voie]._snippets
+
         for o in (ooo for ooo in oo if ooo%2==0):
             s = self.snippets_voie()[voie].atlasext(o)
             l =s['atlas_line']
