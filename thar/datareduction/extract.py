@@ -1,5 +1,6 @@
 import util
 import matplotlib.pyplot as plt
+from matplotlib import cm
 import numpy as np
 import regal
 import snippets
@@ -569,7 +570,8 @@ class Extractor_level_1:
         #    del a
         # self._lazy = []
 
-    def get_fitsfile(self):
+    @property
+    def fitsfile(self):
         """
         convenince method for fitsfile
         """
@@ -582,7 +584,7 @@ class Extractor_level_1:
         self._restart()
         self._fitsfile = fitsfile
 
-    fitsfile = property(get_fitsfile, set_fitsfile)
+    #fitsfile = property(get_fitsfile, set_fitsfile)
 
     def loadimage(self):
         return load_image_from_fits(self.fitsfile, **self.kwargs)
@@ -593,7 +595,7 @@ class Extractor_level_1:
 
     @property
     def PREFIX(self):
-        return self.kwargs.get('PREFIX', 'HOBO') #TODO recompute 
+        return self.kwargs.get('PREFIX', 'HOBO_') #TODO recompute 
 
     @property
     def bare_image(self):
@@ -630,16 +632,6 @@ class Extractor_level_1:
     def bias_voie2(self, o):
         return self.beams[o].beam_sum_voie2(self.masterbias) 
 
-    #@lazyproperty
-    #def reference_extract(self):
-    #    """
-    #    the reference extractor
-    #    """
-    #    thar = list(getallthoriumfits(dirname=self.kwargs['REFKWARGS']['DATADIR']))[0]
-    #    ext = get_ext(thar, **self.kwargs['REFKWARGS'])
-    #    store.store(thar, ext)
-    #    return ext
-
     @lazyproperty
     def _pix_to_lambda_map_level1(self):
         """
@@ -667,10 +659,12 @@ class Extractor_level_1:
 
     @property
     def pix_to_lambda_map_voie1(self):
+        self.logging('pix_to_lambda_map_voie1 on level 1')
         return self._pix_to_lambda_map_level1
 
     @property
     def pix_to_lambda_map_voie2(self):
+        self.logging('pix_to_lambda_map_voie1 on level 2')
         return self._pix_to_lambda_map_level1
 
     @property
@@ -700,11 +694,18 @@ class Extractor_level_1:
         n = np.arange(self.NROWS)
         return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
 
+    @property
+    def lambdas_per_order_voie(self):
+        return {1: self.lambdas_per_order_voie1, 
+                2: self.lambdas_per_order_voie2,
+                3: None
+                }
+    
+
     def lam_to_o(self, lam):
         """the orders of lambda """
         return [ o for o in self.ORDERS if 
                 self.pix_to_lambda_map_1[o](0) <= lam and lam <= self.pix_to_lambda_map_1[o](self.NROWS-1)]
-
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
@@ -718,6 +719,14 @@ class Extractor_level_1:
         I = self.beams[o].I
         return self.lambdas_per_order_voie3[o], self.voie3[o], I
 
+    def get_lambda_intens(self, voie):
+        if voie==1:
+            return self.get_lambda_intens1()
+        elif voie==2:
+            return self.get_lambda_intens2()
+        else:
+            raise Exception('no such voie')
+        
     def get_lambda_list_voie1(self):
         return np.array([self.lambdas_per_order_voie1[o] for o in self.ORDERS]).ravel()
 
@@ -727,6 +736,14 @@ class Extractor_level_1:
     def get_lambda_list_voie3(self):
         return np.array([self.lambdas_per_order_voie3[o] for o in self.ORDERS]).ravel()
 
+    def get_lambda_list_voie(self, voie):
+        if voie==1:
+            return self.get_lambda_list_voie1()
+        elif voie==2:
+            return self.get_lambda_list_voie2()
+        else:
+            raise Exception('no such voie')
+    
     def _compute_voie1et2(self):
         choice =  self.kwargs['VOIE_METHOD']
         if choice == 'SUM_DIVIDE':
@@ -775,7 +792,6 @@ class Extractor_level_1:
             raise Exception('no such method ' + choice)
         return
         
- 
 
     @property
     def voie1(self):
@@ -829,15 +845,15 @@ class Extractor_level_1:
     def _bare_voie3(self, o):
         return [0] # TODO
 
-    @lazyproperty
+    @property
     def bare_voie1(self):
         return {o: self._bare_voie1(o) for o in self.ORDERS}  
 
-    @lazyproperty    
+    @property    
     def bare_voie2(self):
         return {o: self._bare_voie2(o) for o in self.ORDERS}
 
-    @lazyproperty    
+    @property    
     def bare_voie3(self):
         return {o: self._bare_voie3(o) for o in self.ORDERS}
   
@@ -845,7 +861,23 @@ class Extractor_level_1:
     def voie(self):
         return {1: self.voie1, 2: self.voie2, 3: None}
 
+    @property
+    def bare_voie(self):
+        return {1: self.bare_voie1, 2: self.bare_voie2, 3: None}
     
+    @property
+    def I(self):
+        return {o: self.beams[o].I for o in self.ORDERS}
+
+    @property
+    def Ic(self):
+        tmp = {}
+        for o in self.ORDERS:
+            res = np.full(self.NROWS, True)
+            res[self.I[o]] = False
+            tmp[o] = res
+        return tmp
+
     @property
     def masterflat_high(self):
         return meanfits(*getallflatfits(self.DATADIR, self.kwargs['HIGHEXP']), **self.kwargs)
@@ -1215,7 +1247,7 @@ class Extractor_level_2(Extractor_level_1):
         rv1 = np.where(np.isnan(rv1), 0, rv1)
 
         # setting myself on first fitsfile (TODO STORE)
-        mv1 = self.voie1[REFORDER]
+        mv1 = self.voie[voie][REFORDER]
         mv1 = np.where(np.isnan(mv1), 0, mv1)
  
         n = np.arange(self.NROWS)
@@ -1234,49 +1266,19 @@ class Extractor_level_2(Extractor_level_1):
 
     @lazyproperty
     def pix_to_lambda_map_voie1(self):
+        self.logging('pix_to_lambda_map_voie1 on level2')
         return self._pix_to_lambda_map_level2(1)
     
     @lazyproperty
     def pix_to_lambda_map_voie2(self):
+        self.logging('pix_to_lambda_map_voie2 on level2')
         return self._pix_to_lambda_map_level2(2)
     
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie3(self):
         return self._pix_to_lambda_map_level2(3)
     
     
-    # @property
-    # def lambdas_per_order_voie1(self):
-    #     n = np.arange(self.NROWS)
-    #     return {o: self.pix_to_lambda_map_voie1[o](n) for o in self.ORDERS}
-
-    # @property
-    # def lambdas_per_order_voie2(self):
-    #     n = np.arange(self.NROWS)
-    #     return {o: self.pix_to_lambda_map_voie2[o](n) for o in self.ORDERS}
-
-    # @property
-    # def lambdas_per_order_voie3(self):
-    #     n = np.arange(self.NROWS)
-    #     return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
-
-    # def lam_to_o(self, lam):
-    #     """the orders of lambda """
-    #     return [ o for o in self.ORDERS if 
-    #             self.pix_to_lambda_map_voi1[o](0) <= lam and lam <= self.pix_to_lambda_map_voie1[o](self.NROWS-1)]
-
-    # def get_lambda_intens1(self, o):
-    #     I = self.beams[o].I
-    #     return self.lambdas_per_order_voie1[o], self.voie1[o], I
-    
-    # def get_lambda_intens2(self, o):
-    #     I = self.beams[o].I
-    #     return self.lambdas_per_order_voie2[o], self.voie2[o], I
-        
-    # def get_lambda_intens3(self, o):
-    #     I = self.beams[o].I
-    #     return self.lambdas_per_order_voie3[o], self.voie3[o], I
-
 #####
 #  Final level 
 #####
@@ -1298,6 +1300,10 @@ class Extractor(Extractor_level_2):
     def snippets_voie2(self):
         snip = snippets.Snippets(voie=2, extractor=self)
         return snip
+
+
+    def snippets_voie(self):
+        return {1: self.snippets_voie1, 2: self.snippets_voie2, 3: None}
     
     @lazyproperty
     def ccd_voie1(self):
@@ -1309,18 +1315,72 @@ class Extractor(Extractor_level_2):
         self.kwargs["ORDERS"] = self.ORDERS
         return spectrograph.CCD2d(self.snippets_voie2.sn,  **self.kwargs)
 
- 
+    def ccd_voie(self):
+        return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
+
 
     def update_lambdamaps(self):
         del self.snippets_voie1
         del self.snippets_voie2
         del self.ccd_voie1
         del self.ccd_voie2
+
         self.pix_to_lambda_map_voie1 = self.ccd_voie1._final_map_l_x_o
         self.pix_to_lambda_map_voie2 = self.ccd_voie2._final_map_l_x_o
 
+    #---------PLOT methods----------------#
+    def color_1(self, voie, o):
+        cmap = cm.get_cmap(self.kwargs.get('palette_order', 'rgb'))
+        orders = self.ORDERS
+        colors = cmap(np.linspace(0,1, max(orders) - min(orders) +1))
+        return colors[o-min(orders)]
 
+    def color_2(self, voie, o):
+        if voie==1:
+            return 'r' if o%2==0 else 'b'
+        if voie==2:
+            return 'k' if o%2==0 else 'y'
 
+    def plot_voie(self, voie, oo, **kwargs):
+        if type(oo) is int:
+            oo = list(oo)
+        for o in oo:
+            l =  self.lambdas_per_order_voie[voie][o]
+            I = self.I[o]
+            v = self.voie[voie][o]
+            plt.plot(
+               l[I], v[I], '-', color=self.color_2(voie, o)
+        )
+
+    def plot_used_catalog(self, voie, oo):
+        if type(oo) is int:
+            oo = list(oo)
+        I = self.I[33]
+        v = util.clean_nans(self.voie1[33][I])
+        m = np.max(v)
+        dashes = np.linspace(0, 0.5 * m, 50)
+        for o in oo:
+            s = self.snippets_voie()[voie].sn
+            I = s['true_order_number'] == o
+            d = dashes if o%2 == 0 else dashes[1:]
+            for a, b in zip(d[:-1:2], d[1::2]):
+                plt.vlines(
+                    s[I]['ref_lambda'], a, b,
+                    color=self.color_2(voie, o))
+        sn = self.snippets_voie()[voie]._snippets
+        for o in (ooo for ooo in oo if ooo%2==0):
+            s = self.snippets_voie()[voie].atlasext(o)
+            l =s['atlas_line']
+            if len(l)>0:
+                plt.plot(l, len(l)*[0], 'o', color=self.color_2(voie, o))
+
+        for o in (ooo for ooo in oo if ooo%2==1):
+            s = self.snippets_voie()[voie].atlasext(o)
+            l =s['atlas_line']
+            if len(l)>0:
+                plt.plot(l, len(l)*[0], '.', color=self.color_2(voie, o))
+
+                    
 
     def __del__(self):
         del self.snippets_voie1

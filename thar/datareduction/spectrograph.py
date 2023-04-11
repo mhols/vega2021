@@ -15,28 +15,10 @@ from matplotlib import cm
 import cvxopt as cx
 from cvxopt.blas import dot
 from cvxopt.solvers import qp
-#matplotlib.rcParams['figure.dpi'] = 200
-
-### all constants are in settings.py
-# try:
-#     settingsmodule = os.environ['SETTINGSMODULE']
-# except:
-#     raise Exception('wrong SETTINGSMODULE')
-# try:
-#     exec('from %s import *'%(settingsmodule,))
-# except:
-#     raise Exception('could not import {settingsmodule}')
 
 ##  local units
-M = 1.0         # Meter
-S = 1.0         # Second
-PIXEL = 1       # Pixel unit
-HZ = 1/S        # Herz
-KILO = 1000     # Kilo
-KM = KILO * M   # Kilometer
-
-C_LIGHT = 300000 * KM / S    # speed of ligth
-# ##  -------------
+from units import *
+ ##  -------------
 
 
 """
@@ -291,7 +273,8 @@ class CCD2d:
 
         for i in range(self.kwargs['n_sigma_clipp']):
             res = self._eval_order_by_order_full(fit_now, self._ol) - self._x # give all points a chance
-            res /= self._sigma
+            res = np.abs(res)
+            # res = np.abs(res) / self._sigma
 
             # clipping 
             #thd = _get_threshold(epsilon, fit_now)
@@ -310,7 +293,8 @@ class CCD2d:
         for i in range(self.kwargs['n_sigma_clipp_2d']):
             
             res = self._eval_order_by_order_full(fit_now2, self._ol) - self._x
-            res /= self._sigma
+            res = np.abs(res)
+            # res /= self._sigma
             #thd = _get_threshold(epsilon, fit_now2)
             thd = np.quantile(res,0.8)
             
