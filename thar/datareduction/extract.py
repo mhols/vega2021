@@ -525,7 +525,7 @@ class Extractor_level_1:
         self._fitsfile = fitsfile
         
         self.logging('Creation of Level 1 Extract')
-
+        
         self.CENTRALROW = kwargs['CENTRALROW']
         self.NROWS = kwargs['NROWS']
 
@@ -541,12 +541,32 @@ class Extractor_level_1:
         self._image = None 
         self._pix_to_lambda_map_2 = None
         self._pix_to_lambda_map_3 = None
+
+        self.end_logging()
  
     def update_kwargs(self, **kwargs):
         self.kwargs.update(kwargs)
 
+    @property
+    def _logindent(self):
+        if not hasattr(self, '_logn'):
+            self._logn = 0
+        return self._logn
+    
+
     def logging(self, message):
-        print('------\nExtractor, SETTING_ID: ' + self.SETTINGS_ID + ', ThArg: ', self._tharfits + '\n, ' +message)
+        """
+        write a log string with info
+        """
+        pref = self._logindent * ' '
+        print('\n' + pref + 'Extractor, SETTING_ID: ' + self.SETTINGS_ID + ',\n' + pref + 'ThArg: ', 
+              self._tharfits + '\n' + pref +message + '.....\n')
+        self._logn += 2
+
+    def end_logging(self):
+
+        self._logn = max(0, self._logn-2)
+        print('\n'+self._logn*' ' + '......done')
 
     @property
     def SETTINGS_ID(self):
@@ -621,6 +641,7 @@ class Extractor_level_1:
             try:
                 self.logging('computing masterbias')
                 self._masterbias = masterbias(self.DATADIR, **self.kwargs)
+                self.end_logging()
             except:
                 raise Exception('please specify DATADIR or MASTERBIAS')
         return self._masterbias
@@ -660,11 +681,13 @@ class Extractor_level_1:
     @property
     def pix_to_lambda_map_voie1(self):
         self.logging('pix_to_lambda_map_voie1 on level 1')
+        self.end_logging()
         return self._pix_to_lambda_map_level1
 
     @property
     def pix_to_lambda_map_voie2(self):
         self.logging('pix_to_lambda_map_voie1 on level 2')
+        self.end_logging()
         return self._pix_to_lambda_map_level1
 
     @property
@@ -710,23 +733,22 @@ class Extractor_level_1:
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
         return self.lambdas_per_order_voie1[o], self.voie1[o], I
-    
+
     def get_lambda_intens2(self, o):
         I = self.beams[o].I
         return self.lambdas_per_order_voie2[o], self.voie2[o], I
-        
-    def get_lambda_intens3(self, o):
-        I = self.beams[o].I
-        return self.lambdas_per_order_voie3[o], self.voie3[o], I
 
-    def get_lambda_intens(self, voie):
-        if voie==1:
-            return self.get_lambda_intens1()
-        elif voie==2:
-            return self.get_lambda_intens2()
-        else:
-            raise Exception('no such voie')
-        
+    def get_lambda_intens3(self, o):
+        return None
+
+    def get_lambda_intens(self, voie, o):
+        tmp = {
+            1: self.get_lambda_intens1,
+            2: self.get_lambda_intens2,
+            3: None
+        }
+        return tmp[voie](o)
+
     def get_lambda_list_voie1(self):
         return np.array([self.lambdas_per_order_voie1[o] for o in self.ORDERS]).ravel()
 
@@ -798,6 +820,7 @@ class Extractor_level_1:
         if self._voie1 is None:
             self.logging('computing voie1 and voie2')
             self._compute_voie1et2()
+            self.end_logging()
         return self._voie1
     
     @property
@@ -805,6 +828,7 @@ class Extractor_level_1:
         if self._voie2 is None:
             self.logging('computing voie1 and voie')
             self._compute_voie1et2()
+            self.end_logging()
         return self._voie2
 
 
@@ -931,8 +955,10 @@ class Extractor_level_1:
             try:
                 DIR = self.DATADIR
             except:
+                self.end_logging
                 raise Exception('no masterflat and no DATADIR specified...')
             self._masterflat = self._compute_masterflat(DIR)
+            self.end_logging()
         return self._masterflat
 
     def headerinfo(self,keyword):
@@ -955,6 +981,7 @@ class Extractor_level_1:
         if self._beams is None:
             self.logging('computing beams')
             self._beams = { o: BeamOrder(o, self.masterflat, self.CENTRALPOSITION, final=True, **self.kwargs) for o in self.ORDERS}
+            self.end_logging()
         return self._beams
 
     def _compute_flat_voie1et2(self):
@@ -965,7 +992,7 @@ class Extractor_level_1:
         self._flat_voie2 = {
             o: self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
         }
-
+        self.end_logging()
     @property
     def flat_voie1(self):
         if self._flat_voie1 is None:
@@ -1201,6 +1228,7 @@ class Extractor_level_2(Extractor_level_1):
 
         super(Extractor_level_2, self).__init__(fitsfile, **kwargs)
         self.logging('Creation of Level 2 Extract')
+        self.end_logging()
 
 
     @lazyproperty
@@ -1262,16 +1290,20 @@ class Extractor_level_2(Extractor_level_1):
         for o in self.ORDERS:
             tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie[voie][o](n+b),
                         fill_value='extrapolate')
+        
+        self.end_logging()
         return tmp
 
     @lazyproperty
     def pix_to_lambda_map_voie1(self):
         self.logging('pix_to_lambda_map_voie1 on level2')
+        self.end_logging()
         return self._pix_to_lambda_map_level2(1)
     
     @lazyproperty
     def pix_to_lambda_map_voie2(self):
         self.logging('pix_to_lambda_map_voie2 on level2')
+        self.end_logging()
         return self._pix_to_lambda_map_level2(2)
     
     @property
@@ -1285,13 +1317,10 @@ class Extractor_level_2(Extractor_level_1):
 class Extractor(Extractor_level_2):
     """
     A class for the data reduction pipeline
-
     """
 
     def __init__(self, fitsfile, **kwargs):
         super(Extractor, self).__init__(fitsfile, **kwargs)
-        self.snippets_voie1.sn
-        self.snippets_voie2.sn
         
 
     @lazyproperty
@@ -1332,9 +1361,19 @@ class Extractor(Extractor_level_2):
         del self.ccd_voie1
         del self.ccd_voie2
 
+        self.ccd_voie1
+        self.ccd_voie2
+
+    def update_lambdamap(self):
+
         self.pix_to_lambda_map_voie1 = self.ccd_voie1._final_map_l_x_o
         self.pix_to_lambda_map_voie2 = self.ccd_voie2._final_map_l_x_o
          
+    def update(self):
+        self.update_snippets()
+        self.update_ccds()
+        self.update_lambdamap()
+
 
     #---------PLOT methods----------------#
     def color_1(self, voie, o):
@@ -1360,7 +1399,7 @@ class Extractor(Extractor_level_2):
                l[I], v[I], '-', color=self.color_2(voie, o)
         )
 
-    def plot_used_catalog(self, voie, oo):
+    def plot_catalog(self, voie, oo):
         if type(oo) is int:
             oo = list(oo)
         I = self.I[33]
@@ -1379,13 +1418,13 @@ class Extractor(Extractor_level_2):
 
         for o in (ooo for ooo in oo if ooo%2==0):
             s = self.snippets_voie()[voie].atlasext(o)
-            l =s['atlas_line']
+            l =s['ref_lambda']
             if len(l)>0:
                 plt.plot(l, len(l)*[0], 'o', color=self.color_2(voie, o))
 
         for o in (ooo for ooo in oo if ooo%2==1):
             s = self.snippets_voie()[voie].atlasext(o)
-            l =s['atlas_line']
+            l =s['ref_lambda']
             if len(l)>0:
                 plt.plot(l, len(l)*[0], '.', color=self.color_2(voie, o))
 

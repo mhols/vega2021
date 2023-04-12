@@ -173,34 +173,34 @@ class CCD2d:
         I = np.identity(Nlo + 1)
         Cheb_o = [np.polynomial.chebyshev.Chebyshev(c, window=[-1,1], domain=lo_range) for c in I]
 
-    def bootstrap_data(self):
-        """
-        bootstrap estimate of location uncertainty
-        """
-        res = []
-        new_mean_pixel_pos = []
-        sigma_new_mean = []
-        shit = 0
-        print('\n-------------\nbootstrapping\n')
-        for i, line in self._data.iterrows():
-            position = np.nan
-            sigma = np.nan
-            try:
-                delta_p, sigma = bootstrap_estimate_location(
-                    np.array(line['flux_values_extract']),
-                    **self.kwargs
-                    )
-                position = line['pixels_extract'][0] + delta_p
+    # def bootstrap_data(self):
+    #     """
+    #     bootstrap estimate of location uncertainty
+    #     """
+    #     res = []
+    #     new_mean_pixel_pos = []
+    #     sigma_new_mean = []
+    #     shit = 0
+    #     print('\n-------------\nbootstrapping\n')
+    #     for i, line in self._data.iterrows():
+    #         position = np.nan
+    #         sigma = np.nan
+    #         try:
+    #             delta_p, sigma = bootstrap_estimate_location(
+    #                 np.array(line['flux_values_extract']),
+    #                 **self.kwargs
+    #                 )
+    #             position = line['pixels_extract'][0] + delta_p
 
-            except Exception as ex:
-                print("problem at ", i, line, ex)  ## TODO: better logging
-                shit += 1
-            new_mean_pixel_pos.append(position)
-            sigma_new_mean.append(sigma)
-            progress(i,len(self._data), status='')
-        self._data['new_mean_pixel_pos'] = pd.Series(new_mean_pixel_pos)
-        self._data['sigma_new_mean'] = pd.Series(sigma_new_mean)
-        self._bootstraped = True
+    #         except Exception as ex:
+    #             print("problem at ", i, line, ex)  ## TODO: better logging
+    #             shit += 1
+    #         new_mean_pixel_pos.append(position)
+    #         sigma_new_mean.append(sigma)
+    #         progress(i,len(self._data), status='')
+    #     self._data['new_mean_pixel_pos'] = pd.Series(new_mean_pixel_pos)
+    #     self._data['sigma_new_mean'] = pd.Series(sigma_new_mean)
+    #     self._bootstraped = True
 
     def color_of_order(self, o):
         cmap = cm.get_cmap(self.kwargs['palette_order'])
@@ -386,20 +386,6 @@ class CCD2d:
         factor = (o * dp(o*l))**(-1) / l
         return self.kwargs['C_LIGHT'] * factor
 
-
-    # def delta_radial_velocity_model(self):
-    #     res = {}
-    #     for o in self.all_order():
-    #         I = self.index_order(o)
-    #         p = self.polynomial_fit[o]
-    #         dp = p.deriv()
-    #         dxdl = o*dp(o*self.l[I])
-    #         dx = p(o*self.l[I]) - self.x[I]
-    #         factor = dxdl**(-1) / self.l[I]
-    #         tmp = C_LIGHT * factor * dx / (M/S) 
-    #         res[o] = np.sqrt(np.mean(tmp)**2+np.var(tmp))
-    #     return res
-
     def delta_l_over_l(self):
         lmaps = self.lambda_maps()
         return np.array([(lmaps[o](x)/l-1) for o, l,x in zip(self.o, self.l, self.x)])
@@ -425,47 +411,6 @@ class CCD2d:
         ) / o
 
         return lam
-
-    # def lambda_at_x_o(self, x, o):
-    #     nn = 10001
-    #     olams = np.linspace(self.ol.min()/1.05, self.ol.max()*1.05, nn, endpoint=True)
-    #     p = interp1d(
-    #         self.polynomial_fit[o] (olams),
-    #         olams)
-    #     return p(x)/o
-
-    # def _inverse_map_at_o(self, p, o):
-    #     nn = 10001
-    #     # p = self.polynomial_fit[o]
-    #     olams = np.linspace(self._ol.min(), self._ol.max(), nn, endpoint=True)
-    #     der = p.deriv()
-    #     I, = np.where(der(olams) > 0)
-    #     II, = np.where(I[1:]-I[:-1] > 1)
-    #     if len(II)==0:
-    #         olmin, olmax = olams[I[0]], olams[I[-1]]
-    #     else:
-    #         III = np.argmax(II[1:]-II[:-1])
-    #         olmin = olams[I[II[III]]]
-    #         olmax = olams[I[II[III-1]]]
-
-    #     olams = np.linspace(olmin, olmax, nn, endpoint=True)
-    #     xx = self.polynomial_fit[o](olams)
-    #     return interpolate_extend(xx, olams/o)
-       
-
-    # """
-    # def _compute_lambda_maps(self, dxolo):
-    #     """
-    #     from a solution x = P(ol, o) compute the corresponding solution
-    #     for l = P(x, o)
-    #     """
-    #     self._lambda_map = {o: self.lambda_map_at_o(p, o) for p, o in listitems(dxolo)} 
-    # """
-    # @property
-
-    #def lambda_map(self):
-    #    return self._lambda_map
-
 
     @property
     def _x(self):
