@@ -69,7 +69,7 @@ def estimate_location(intens, **kwargs):
     Amin = max(0, A-4*np.sqrt(A))
     Amax = A+4*np.sqrt(A)
 
-    mu = len(intens)/2
+    mu = np.argmax(intens)
     mumin = 0
     mumax = len(intens)-1
 
@@ -97,28 +97,37 @@ def estimate_location(intens, **kwargs):
 
 
 def bootstrap_estimate_location(intens, **kwargs):
-    if np.any(np.isnan(intens)):
-        return np.NaN, np.NaN
+    if len(intens) <=1:
+        raise Exception('intens is empty')
+    try:
+        isn = np.any(np.isnan(intens))
+    except Exception as ex:
+        print(intens)
+    
+    if isn:
+        raise Exception('intens not finite...')
 
-    if len(intens) == 0:
-        return np.NaN, np.NaN
-    if len(intens) == 1:
-        return 0,  np.NaN
+
     g = function_map[kwargs['profile']]
     size = kwargs['n_bootstrap']
         
     fun = function_map[kwargs['loss_function']]
     intens = intens - min(0, np.min(intens))
+    
     if size <= 2:
+        
+        return estimate_location(intens, **kwargs)
+
+
+    res = []
+    for i in range(size):
         try:
-            return estimate_location(intens, **kwargs)
+            params = estimate_location(np.random.poisson(intens), **kwargs) 
         except:
-            return np.NaN, np.NaN
-
-
-    res = np.array(
-        [ estimate_location(np.random.poisson(intens), **kwargs) for i in range(size)]
-    )
+            continue
+        res.append(params)
+    
+    res = np.array(res)
 
     return np.mean(res[:,1]), np.std(res[:,1]), res
 

@@ -38,6 +38,8 @@ class Snippets:
     def kwargs(self):
         return self.extractor.kwargs
 
+
+    # TODO implement specific atlas routines
     @property
     def atlasline(self):
         if not self._atlasline is None:
@@ -95,7 +97,9 @@ class Snippets:
 
         NMAX_LINES = 150 # maximal number of lines to extract
 
-        # the signal used to define the snippets 
+        # the signal used to define the snippets
+        # TODO wrong name and use additional voices... singal to noise
+    
         v = self.bare_voie(o)
 
         # hierarchical decomposition of signal into chuncs
@@ -115,7 +119,6 @@ class Snippets:
             try:
                 A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
             except Exception as ex:
-                print(s, ex)
                 continue
             
             bs.append( {
@@ -125,12 +128,12 @@ class Snippets:
                 'left': a, 
                 'right': b, 
                 'pixel_A': A,
-                'pixel_mu': a+mu,
+                'pixel_mu': mu,
                 'pixel_sigma': sigma,
                 'pixel_offset': offset,
-                'pixel_mean': a + mu,
+                'pixel_mean': a + mu,   # TODO change name to pixel_lage
                 'pixel_std' : 1./ np.sqrt(np.sum(s)),  
-                'pixel_sum_intens': np.sum(s),
+                'pixel_sum_intens': np.sum(s),  # TODO A???
                 'pixel_max_intens': v[x],
                 'bare_voie': s,      # TODO include true bare voie
                 'bootstraped': False
@@ -139,7 +142,7 @@ class Snippets:
         # map the central positions of the snippets to the lambda axis
         try:
             bs['est_lambda'] = self.extractor.pix_to_lambda_map_voie[self.voie][o](
-                bs.loc[:, 'pixel_mu']
+                bs.loc[:, 'pixel_mean']
             )
         except:
             print('problem in order ', o)
@@ -155,6 +158,9 @@ class Snippets:
         res = np.zeros(self.NROWS)
         res[I] = v[I]
         return util.clean_nans(res)
+    
+    def clean_voie(self, o):
+        pass
 
     def _match_snippets(self, o):
         """
@@ -207,7 +213,7 @@ class Snippets:
 
             # bootstrapping
             if self.kwargs['n_bootstrap'] > 1:
-                intens = pot_snip['bare_voie']
+                intens = self._snippets.loc[idx, 'bare_voie']
                 mu, s, sample = util.bootstrap_estimate_location(intens, **self.kwargs)
 
                 self._snippets.loc[idx,'pixel_mean'] = pot_snip.loc[idx, 'left']+mu
@@ -227,6 +233,8 @@ class Snippets:
             tmp.append(self._potential_snippets(o))
         tmp = pd.concat(tmp, ignore_index=True, axis=0)
 
+        self.extractor.end_logging()
+
         self._snippets = tmp
         self._snippets['goodsnippet'] = False
         self._snippets['ref_lambda'] = -1.0
@@ -238,6 +246,7 @@ class Snippets:
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))
             self._match_snippets(o)
+        self.extractor.end_logging()
         return self._snippets
 
 

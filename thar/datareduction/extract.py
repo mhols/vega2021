@@ -515,6 +515,8 @@ class Extractor_level_1:
         background: np.array of background image
         dir: path to folder containing all fits files
 
+        fitsfile must be a Thorium!!
+
         """
 
         assert is_thorium(fitsfile),\
@@ -559,14 +561,14 @@ class Extractor_level_1:
         write a log string with info
         """
         pref = self._logindent * ' '
-        print('\n' + pref + 'Extractor, SETTING_ID: ' + self.SETTINGS_ID + ',\n' + pref + 'ThArg: ', 
+        print(pref + 'Extractor, SETTING_ID: ' + self.SETTINGS_ID + ',\n' + pref + 'ThArg: ', 
               self._tharfits + '\n' + pref +message + '.....\n')
         self._logn += 2
 
     def end_logging(self):
 
         self._logn = max(0, self._logn-2)
-        print('\n'+self._logn*' ' + '......done')
+        print(self._logn*' ' + '......done\n')
 
     @property
     def SETTINGS_ID(self):
@@ -603,8 +605,6 @@ class Extractor_level_1:
     def set_fitsfile(self, fitsfile):
         self._restart()
         self._fitsfile = fitsfile
-
-    #fitsfile = property(get_fitsfile, set_fitsfile)
 
     def loadimage(self):
         return load_image_from_fits(self.fitsfile, **self.kwargs)
@@ -657,8 +657,7 @@ class Extractor_level_1:
     def _pix_to_lambda_map_level1(self):
         """
         The preliminary lambda map
-        Either you specify a file containing the lambdas
-        or you try to obtain by homothetic mapping from some reference
+        based on a datafile containing the lambdas
         """
         print('_pix_to_lambda_map_level1 called\n')
         return { o: interp1d(np.arange(self.NROWS), \
@@ -670,16 +669,22 @@ class Extractor_level_1:
     @property
     def DATADIR(self):
         try:
-            return self.kwargs['DATADIR']
+            datadir = self.kwargs['DATADIR']
         except:
             pass
         try:
-            return os.path.dirname(self._fitsfile)
+            datadir = os.path.dirname(self._fitsfile)
         except Exception as ex:
             raise Exception('DIRNAME, reason :', ex)
+        self.logging('DATADIR is ' + datadir)
+        self.end_logging()
+        return datadir
 
     @property
     def pix_to_lambda_map_voie1(self):
+        """
+        is dictionary of mappings fractionary pixel -> wavelength
+        """
         self.logging('pix_to_lambda_map_voie1 on level 1')
         self.end_logging()
         return self._pix_to_lambda_map_level1
@@ -699,7 +704,7 @@ class Extractor_level_1:
         return {
             1: self.pix_to_lambda_map_voie1, 
             2: self.pix_to_lambda_map_voie2, 
-            # 3: self.pix_to_lambda_map_voie3
+            3: None
         }
 
     @property
@@ -954,9 +959,9 @@ class Extractor_level_1:
             self.logging('computing masterflat')
             try:
                 DIR = self.DATADIR
-            except:
-                self.end_logging
-                raise Exception('no masterflat and no DATADIR specified...')
+            except Exception as ex:
+                self.end_logging()
+                raise Exception('no masterflat and no DATADIR specified...'+ str(ex))
             self._masterflat = self._compute_masterflat(DIR)
             self.end_logging()
         return self._masterflat
@@ -993,6 +998,7 @@ class Extractor_level_1:
             o: self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
         }
         self.end_logging()
+
     @property
     def flat_voie1(self):
         if self._flat_voie1 is None:
@@ -1268,9 +1274,10 @@ class Extractor_level_2(Extractor_level_1):
         or you try to obtain by homothetic mapping from some reference
         """
 
-        self.logging('using a homothetic mapping to get lambda map')
+        self.logging('using a homothetic mapping to get lambda map in level2')
         REFORDER = 33  ## the order used to estimate the homothetie
         
+        # TODO use good range self.I
         rv1 = self.reference_extract.voie[voie][REFORDER]
         rv1 = np.where(np.isnan(rv1), 0, rv1)
 
@@ -1281,6 +1288,7 @@ class Extractor_level_2(Extractor_level_1):
         n = np.arange(self.NROWS)
         d = np.argmax(np.correlate(rv1, mv1, 'full')) - self.NROWS + 1
 
+        # TODO: check gridsearch fro homathetie 
         b, a = util.homothetie(n, rv1, n, mv1, d-1, d+1, 0.99999, 1.00001) 
 
         tmp = {}
@@ -1443,16 +1451,13 @@ TODO: interorder-background contains strange negative values and perturbates the
 
 if __name__ == '__main__':
     from settingspegasus import kwargs
+    from settingsmoon import kwargs as kwargsmoon
     from settings import kwargs as refkwargs
     fitsfile = os.path.join(kwargs['BASEDIR'], '51Peg_raw/2020_0917/NEO_20200917_173122_th0.fits')
     reffitsfile = os.path.join(kwargs['BASEDIR'], 'datafiles/NEO_20220903_191404_th0.fits')
-    
-    myext1 = get_ext(reffitsfile, 'level_1', **refkwargs)
-    myext1.voie1
-    myext1.voie2
-    myext1.save_to_store()
+    fitsfilemoon = os.path.join(kwargs['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
 
     kwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
-    myext2 = Extractor_level_2(fitsfile, **kwargs)
 
-    myext = Extractor(fitsfile, **kwargs)
+    kwargsmoon.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
+    myext = Extractor(fitsfilemoon, **kwargsmoon)
