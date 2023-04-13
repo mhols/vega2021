@@ -216,6 +216,43 @@ def local_maxima(v):
     tmp = sorted(tmp, key=lambda r: -v[r[0]])
     return np.array(tmp)
 
+def monotoneous_chunks(v):
+
+    lm = local_maxima(v)
+    chunks = np.row_stack((lm[:, [0,1]], lm[:, [1,2]]))
+    I = np.argsort(-np.abs(chunks[:,0]- chunks[:,1]))
+    chunks = chunks[I]
+
+    growing = v[chunks[:,0]] < v[chunks[:,1]]
+    decreasing = v[chunks[:,0]] > v[chunks[:,1]]
+
+    return chunks, growing, decreasing
+
+def sigma_clipping_linear_map( y, G, sigma=1., clipmap=None, *clipargs):
+    NMAX = 200
+
+    if clipmap is None:
+        clipmap = lambda r: np.abs(r) < np.quantile(np.abs(r), 0.9)
+ 
+    sigma = np.atleast_1d(sigma)
+    I = np.full(y.shape[0], True)
+
+    sigma = np.array(sigma)
+    GG = np.array(sigma)[:,None]**(-1) * G
+    yy = np.array(sigma)**(-1) * y
+    
+    for i in range(NMAX):
+        xx = np.linalg.lstsq(GG, yy, rcond=None)[0]
+        x = sigma * xx
+        r = y - np.dot(G, x)
+        II = clipmap(r, *clipargs)
+
+        if np.all(I == II):
+            break
+    
+    return x, I
+
+
 
 def homothetie_wasserstein(x,y,xx,yy, rb0, rb1, ra0, ra1):
     """

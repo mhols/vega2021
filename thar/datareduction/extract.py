@@ -1450,14 +1450,14 @@ TODO: interorder-background contains strange negative values and perturbates the
 """
 
 if __name__ == '__main__':
-    from settingspegasus import kwargs
+    from settingspegasus import kwargs as kwargspegasus
     from settingsmoon import kwargs as kwargsmoon
     from settings import kwargs as refkwargs
-    fitsfile = os.path.join(kwargs['BASEDIR'], '51Peg_raw/2020_0917/NEO_20200917_173122_th0.fits')
-    reffitsfile = os.path.join(kwargs['BASEDIR'], 'datafiles/NEO_20220903_191404_th0.fits')
-    fitsfilemoon = os.path.join(kwargs['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
+    fitsfile = os.path.join(refkwargs['BASEDIR'], '51Peg_raw/2020_0917/NEO_20200917_173122_th0.fits')
+    reffitsfile = os.path.join(refkwargs['BASEDIR'], 'datafiles/NEO_20220903_191404_th0.fits')
+    fitsfilemoon = os.path.join(refkwargs['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
 
-    kwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
+    refkwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
 
     kwargsmoon.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
-    myext = Extractor(fitsfilemoon, **kwargsmoon)
+    # myext = Extractor(fitsfilemoon, **kwargsmoon)
