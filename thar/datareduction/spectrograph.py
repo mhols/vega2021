@@ -123,22 +123,16 @@ class CCD2d:
     def __init__(self, data, **kwargs):
         self.kwargs = kwargs  # saving for later use
        
-        self._data =  data    # reference data
+        self._data =  data.copy()    # reference data
         self._mdata = None   # matching data
         self.kwargs = kwargs  # saving for later use
-        if data is None:
-            try:
-                data = pd.DataFrame(pd.read_json(kwargs['datafile']))
-            except:
-                raise Exception('could not read datafile. Does it exist ?')
-        
-        self._data = data
+
         self.ORDERS = self.kwargs['ORDERS']
 
-        self._data.loc[:, 'selected'] = True # we are using only this subset
+        self._data.loc[self._data.index, 'selected'] = True # we are using only this subset
         # self._mdata['selected'] = True # matching data
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
-        self._data.loc[:, 'total_flux'] = total_flux
+        self._data.loc[self._data.index, 'total_flux'] = 1.0* total_flux
 
         #if self.kwargs.get('bootstrap_data', 'True')=='True':
         # self.bootstrap_data()   # TODO move to snippets or extract

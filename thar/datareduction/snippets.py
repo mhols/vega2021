@@ -239,7 +239,7 @@ class Snippets:
         self._snippets['goodsnippet'] = False
         self._snippets['ref_lambda'] = -1.0
         self._snippets['catalog_index'] = -1
-        self._snippets['selected'] = False
+        self._snippets['selected'] = True
         self._snippets['total_flux'] = 0.0
 
         self.extractor.logging('matching snippets for voie '+str(self.voie))

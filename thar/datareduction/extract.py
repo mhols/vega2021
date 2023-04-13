@@ -5,6 +5,7 @@ import numpy as np
 import regal
 import snippets
 import spectrograph
+from plottextractmixin import PlotExtractMixin
 import astropy.io.fits as pyfits
 import os
 import sys
@@ -908,6 +909,10 @@ class Extractor_level_1:
         return tmp
 
     @property
+    def n(self):
+        return np.arange(self.NORDER)
+
+    @property
     def masterflat_high(self):
         return meanfits(*getallflatfits(self.DATADIR, self.kwargs['HIGHEXP']), **self.kwargs)
 
@@ -1322,7 +1327,7 @@ class Extractor_level_2(Extractor_level_1):
 #####
 #  Final level 
 #####
-class Extractor(Extractor_level_2):
+class Extractor(PlotExtractMixin, Extractor_level_2):
     """
     A class for the data reduction pipeline
     """
@@ -1382,59 +1387,6 @@ class Extractor(Extractor_level_2):
         self.update_ccds()
         self.update_lambdamap()
 
-
-    #---------PLOT methods----------------#
-    def color_1(self, voie, o):
-        cmap = cm.get_cmap(self.kwargs.get('palette_order', 'rgb'))
-        orders = self.ORDERS
-        colors = cmap(np.linspace(0,1, max(orders) - min(orders) +1))
-        return colors[o-min(orders)]
-
-    def color_2(self, voie, o):
-        if voie==1:
-            return 'r' if o%2==0 else 'b'
-        if voie==2:
-            return 'k' if o%2==0 else 'y'
-
-    def plot_voie(self, voie, oo, **kwargs):
-        if type(oo) is int:
-            oo = list(oo)
-        for o in oo:
-            l =  self.lambdas_per_order_voie[voie][o]
-            I = self.I[o]
-            v = self.voie[voie][o]
-            plt.plot(
-               l[I], v[I], '-', color=self.color_2(voie, o)
-        )
-
-    def plot_catalog(self, voie, oo):
-        if type(oo) is int:
-            oo = list(oo)
-        I = self.I[33]
-        v = util.clean_nans(self.voie1[33][I])
-        m = np.max(v)
-        dashes = np.linspace(0, 0.5 * m, 50)
-        for o in oo:
-            s = self.snippets_voie()[voie].sn
-            I = s['true_order_number'] == o
-            d = dashes if o%2 == 0 else dashes[1:]
-            for a, b in zip(d[:-1:2], d[1::2]):
-                plt.vlines(
-                    s[I]['ref_lambda'], a, b,
-                    color=self.color_2(voie, o))
-        sn = self.snippets_voie()[voie]._snippets
-
-        for o in (ooo for ooo in oo if ooo%2==0):
-            s = self.snippets_voie()[voie].atlasext(o)
-            l =s['ref_lambda']
-            if len(l)>0:
-                plt.plot(l, len(l)*[0], 'o', color=self.color_2(voie, o))
-
-        for o in (ooo for ooo in oo if ooo%2==1):
-            s = self.snippets_voie()[voie].atlasext(o)
-            l =s['ref_lambda']
-            if len(l)>0:
-                plt.plot(l, len(l)*[0], '.', color=self.color_2(voie, o))
 
                     
 
