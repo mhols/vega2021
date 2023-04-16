@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import util
+import numpy as np
+
 class PlotExtractMixin:
     def __init__(self):
         pass

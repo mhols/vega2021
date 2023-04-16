@@ -6,15 +6,6 @@ import sys
 from numpy.polynomial import Polynomial
 from scipy.interpolate import interp1d, UnivariateSpline, LSQUnivariateSpline
 
-used_params = {}    # for the documentation of used parameters
-                    # pass **kwargs to every method
-                    # and use get_kwarg(kwargs, 'key', default)
-
-
-def get_kwarg(kwargs, key, default):
-    res  = kwargs.get(key, default)
-    used_params[key] = res
-    return res
 
 def gauss(x, A, mu, sigma, y_offset):
     return y_offset + (A/  (np.sqrt(2*np.pi)*sigma)) * np.exp(-(x-mu)**2/(2*sigma**2))
@@ -44,8 +35,6 @@ def loss_3(params, *args):
     n = np.arange(intens.shape[0])
     i = func(n, *params)
     return (i-intens)/np.sqrt(np.where(intens>1, intens, 1))
-
-
 
 
 function_map = {
@@ -173,23 +162,16 @@ def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
     pp = UnivariateSpline(t[2:-2], d, s=0)
     return p  ####lambda x: pp(x) + p(x)
 
-def pseudo_inverse(x, increasing=True):
+def pseudo_inverse(x):
     """
-    computes the pseudo inversion of x
+    computes the pseudo based on the largest 
+    interbal on which x is monotoneous
     """
-    if not increasing:
-        x = -x
-
     if len(x) <= 1:
         raise Exception('pseudo_inverse: too few elements')
     
-    tmp = [x[0]]
-    for a, b in zip(x[:-1], x[1:]):
-        tmp.append(max(a, b))
-    tmp = np.array(tmp)
-    if not increasing:
-        tmp = -tmp
-    return tmp
+    mc, inc, dec = monotoneous_chunks(x) 
+    
 
 def local_maxima(v):
     v = np.array(v)
@@ -219,38 +201,40 @@ def local_maxima(v):
 def monotoneous_chunks(v):
 
     lm = local_maxima(v)
-    chunks = np.row_stack((lm[:, [0,1]], lm[:, [1,2]]))
+    chunks = np.row_stack((lm[:, [1,0]], lm[:, [0,2]]))
     I = np.argsort(-np.abs(chunks[:,0]- chunks[:,1]))
     chunks = chunks[I]
+    chunks = chunks[chunks[:,0] < chunks[:,1]]
 
     growing = v[chunks[:,0]] < v[chunks[:,1]]
     decreasing = v[chunks[:,0]] > v[chunks[:,1]]
 
     return chunks, growing, decreasing
 
-def sigma_clipping_linear_map( y, G, sigma=1., clipmap=None, *clipargs):
+def sigma_clipping_general_map(fitmachine, lossmachine, clipmachine, I0):
+    """
+    fitmachine (x, y, I) -> fitted 
+    clipmachine(residuums) -> indices retained
+    """
     NMAX = 200
 
-    if clipmap is None:
-        clipmap = lambda r: np.abs(r) < np.quantile(np.abs(r), 0.9)
- 
-    sigma = np.atleast_1d(sigma)
-    I = np.full(y.shape[0], True)
+    p = fitmachine(I0)
+    r = lossmachine(p)
+    I = clipmachine(r)
 
-    sigma = np.array(sigma)
-    GG = np.array(sigma)[:,None]**(-1) * G
-    yy = np.array(sigma)**(-1) * y
-    
+    nclip = 1
     for i in range(NMAX):
-        xx = np.linalg.lstsq(GG, yy, rcond=None)[0]
-        x = sigma * xx
-        r = y - np.dot(G, x)
-        II = clipmap(r, *clipargs)
+        p = fitmachine(I)
+        r = lossmachine(p)
+        II = clipmachine(r)
 
         if np.all(I == II):
             break
     
-    return x, I
+        I = II
+        nclip += 1
+    
+    return p, I, r, nclip
 
 
 

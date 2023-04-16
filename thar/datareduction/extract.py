@@ -910,7 +910,7 @@ class Extractor_level_1:
 
     @property
     def n(self):
-        return np.arange(self.NORDER)
+        return np.arange(self.NROWS)
 
     @property
     def masterflat_high(self):
@@ -921,7 +921,7 @@ class Extractor_level_1:
         return meanfits(*getallflatfits(self.DATADIR, self.kwargs['LOWEXP']), **self.kwargs)
 
 
-    def _compute_masterflat(self, dirname):
+    def _compute_masterflat(self):
         """
         Bias removed flat
         """
@@ -1319,7 +1319,7 @@ class Extractor_level_2(Extractor_level_1):
         self.end_logging()
         return self._pix_to_lambda_map_level2(2)
     
-    @property
+    @lazyproperty
     def pix_to_lambda_map_voie3(self):
         return self._pix_to_lambda_map_level2(3)
     
@@ -1412,4 +1412,4 @@ if __name__ == '__main__':
     refkwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
 
     kwargsmoon.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
-    # myext = Extractor(fitsfilemoon, **kwargsmoon)
+    myext = Extractor(fitsfilemoon, **kwargsmoon)
