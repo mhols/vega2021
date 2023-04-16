@@ -167,10 +167,38 @@ class DictOfMapsPerOrder(UserDict):
         a, b = c[0]
         return interpolate_extend(y[a:b+1], x[a:b+1])
     
+    def _inverse_o_map(self, p, o):   
+        nn = 10001
+        """
+        mi, ma = p.domain
+        x = np.linspace(mi, ma, nn, endpoint=True)
+        y = p(x)
+        yy = pseudo_inverse(y)
+        return interpolate_extend(yy, x)
+        """
+        if p is None:
+            return None
+        mi, ma = p.domain
+        x = np.linspace(mi, ma, nn, endpoint=True)
+        y = p(x)
+        try:
+            c, grow, decr = monotoneous_chunks(y)
+        except:
+            return None
+        a, b = c[0]
+        return interpolate_extend(y[a:b+1], x[a:b+1]/o)
+    
     def inverse_map(self):   
         return DictOfMapsPerOrder(
             self.ccd,
             { o: self._inverse_map(p) for o, p in 
+                self.items()},
+        )
+
+    def inverse_o_map(self):   
+        return DictOfMapsPerOrder(
+            self.ccd,
+            { o: self._inverse_o_map(p,o) for o, p in 
                 self.items()},
         )
 
@@ -383,13 +411,9 @@ class CCD2d:
          
         self._map_2D_x_ol_o = p
         self._map_2D_ol_x_o = p.inverse_map()
+        self._final_map_l_x_o = p.inverse_o_map()
 
-        self._final_map_l_x_o = DictOfMapsPerOrder(
-            self, 
-            {o: lambda x, o=o: p(x)/o for o, p in self._map_2D_ol_x_o.items()},
-        )
-        return p
-
+       
         """
         # sigma clipping for x=P(ol) (i.e. 1D) and x = P(ol, o) (i.e. 2D)
         def _get_threshold(epsilon, fit_now):
@@ -725,7 +749,7 @@ class CCD2d:
                 weight[I] = C_LIGHT / (np.abs(oldp[I]))
 
         elif (tmp == "flux"):
-            weight = 1./np.sqrt(self._data['total_flux'])
+            weight = np.sqrt(self._data['total_flux'])
 
         else:
             raise Exception('no such fitweight' +tmp )

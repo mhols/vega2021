@@ -967,7 +967,7 @@ class Extractor_level_1:
             except Exception as ex:
                 self.end_logging()
                 raise Exception('no masterflat and no DATADIR specified...'+ str(ex))
-            self._masterflat = self._compute_masterflat(DIR)
+            self._masterflat = self._compute_masterflat()
             self.end_logging()
         return self._masterflat
 
@@ -1333,7 +1333,7 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
     """
 
     def __init__(self, fitsfile, **kwargs):
-        super(Extractor, self).__init__(fitsfile, **kwargs)
+        Extractor_level_2.__init__(self, fitsfile, **kwargs)
         
 
     @lazyproperty
