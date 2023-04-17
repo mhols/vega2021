@@ -167,27 +167,6 @@ class DictOfMapsPerOrder(UserDict):
         a, b = c[0]
         return interpolate_extend(y[a:b+1], x[a:b+1])
     
-    def _inverse_o_map(self, p, o):   
-        nn = 10001
-        """
-        mi, ma = p.domain
-        x = np.linspace(mi, ma, nn, endpoint=True)
-        y = p(x)
-        yy = pseudo_inverse(y)
-        return interpolate_extend(yy, x)
-        """
-        if p is None:
-            return None
-        mi, ma = p.domain
-        x = np.linspace(mi, ma, nn, endpoint=True)
-        y = p(x)
-        try:
-            c, grow, decr = monotoneous_chunks(y)
-        except:
-            return None
-        a, b = c[0]
-        return interpolate_extend(y[a:b+1], x[a:b+1]/o)
-    
     def inverse_map(self):   
         return DictOfMapsPerOrder(
             self.ccd,
@@ -195,12 +174,11 @@ class DictOfMapsPerOrder(UserDict):
                 self.items()},
         )
 
-    def inverse_o_map(self):   
-        return DictOfMapsPerOrder(
-            self.ccd,
-            { o: self._inverse_o_map(p,o) for o, p in 
-                self.items()},
-        )
+    def inverse_o_map(self): 
+        tmp = self.inverse_map()  
+        return DictOfMapsPerOrder(self.ccd, 
+            { o: (lambda o,p: lambda x: p(x)/o)(o,p) for o, p in tmp.items()
+        })        
 
 
     def __call__(self, xol, o):
@@ -338,17 +316,32 @@ class CCD2d:
         return len(self.mo)
     
 
+    def _clippings(self):
+
+        clip = self.kwargs.get('CLIPMETHOD', 'quantile')
+        alpha = self.kwargs.get('CLIPTHRESHOLD', 0.8)
+
+        def quantile(r):
+            return np.abs
+        clippings = {
+            'quantile': lambda r: np.abs(r) < np.quantile(np.abs(r), alpha),
+            'sigma': lambda r: np.abs(r) < alpha*np.std(r),
+            'chi2': lambda r: np.abs(r) < alpha*np.std(r) / self._sigma[r.index]
+        }
+
+        return clippings[clip]
 
     def sigma_clipping_global_polynomial(self):
 
         w = self._fit_weight()
 
         fitmachine = lambda I: Polynomial.fit(self._ol[I], self._x[I], w=w[I], deg=6)
+        clipmachine = self._clippings()
 
         p, I, res, nclip = sigma_clipping_general_map(
             fitmachine,
             lambda p: self._x - p(self._ol),
-            lambda r: (np.abs(r) < np.quantile(np.abs(r), 0.3)),
+            clipmachine,
             I0 = self._data.index
         )
 
@@ -370,10 +363,12 @@ class CCD2d:
             weight=w[I], I=I
         )        
 
+        clipmachine = self._clippings()
+
         p, I, res, nclip = sigma_clipping_general_map(
             fitmachine,
             lambda p: self._x - p(self._ol, self._o),
-            lambda r: (np.abs(r) < np.quantile(np.abs(r), 0.6)),
+            clipmachine,
             I0 = self._data.index
         )
 
@@ -396,10 +391,12 @@ class CCD2d:
             weight=w[I], I=I
         )        
 
+        clipmachine = self._clippings()
+
         p, I, res, nclip = sigma_clipping_general_map(
             fitmachine,
             lambda p: self._x - p(self._ol, self._o),
-            lambda r: (np.abs(r) < np.quantile(np.abs(r), 0.6)),
+            clipmachine,
             I0 = self._data.index
         )
 
