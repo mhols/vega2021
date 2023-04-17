@@ -9,4 +9,5 @@ KHZ = KILO * HZ # Kiloherz
 KM = KILO * M   # Kilometer
 C_LIGHT = 300000 * KM / S    # speed of ligth
 ADU = 1.0       # astronical data unit ????
+Angstrom = 10**(-10) * M
 
