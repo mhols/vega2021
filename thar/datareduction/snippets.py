@@ -40,8 +40,8 @@ class Snippets:
 
 
     # TODO implement specific atlas routines
-    @property
-    def atlasline(self):
+    @lazyproperty
+    def atlasline_uves(self):
         if not self._atlasline is None:
             return self._atlasline
 
@@ -61,6 +61,36 @@ class Snippets:
         )
     
         return self._atlasline
+
+    @lazyproperty 
+    def atlasline_redman(self):
+        """
+        usage of Redman catalogue 
+        """
+
+        f = os.path.join(self.kwargs['REFFILES'], 'Redman_table6.dat')
+        d = pd.read_fwf(f, names=[i for i in range(1,14)])
+
+        # extract information...
+        # atlaslines =  np.array([float(l.split()[1]) for l in alines])
+        # self._atlasline = atlaslines
+        l = (1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
+        r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
+
+        tmp = pd.DataFrame(
+            {'ref_lambda': d[3],
+             'lower':  l * d[3] ,
+             'upper':  r * d[3], 
+             'uncertainty': d[4],
+             'relative_intensity': d[7]}
+        )
+    
+        return tmp
+    
+    @property
+    def atlasline(self):
+        return self.atlasline_redman
+
 
     def lambda_range(self, o):
         return  self.extractor.pix_to_lambda_map_voie[self.voie][o](
