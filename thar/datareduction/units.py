@@ -10,4 +10,5 @@ KM = KILO * M   # Kilometer
 C_LIGHT = 300000 * KM / S    # speed of ligth
 ADU = 1.0       # astronical data unit ????
 DIFRACTION_INDEX_AIR = 1.000293
+ANGSTROM = 1e-10 * M
 
