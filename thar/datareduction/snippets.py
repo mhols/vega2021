@@ -78,10 +78,10 @@ class Snippets:
         r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
 
         tmp = pd.DataFrame(
-            {'ref_lambda': d[3] / DIFRACTION_INDEX_AIR,
-             'lower':  l * d[3] / DIFRACTION_INDEX_AIR,
-             'upper':  r * d[3] / DIFRACTION_INDEX_AIR, 
-             'uncertainty': d[4],
+            {'ref_lambda': util.vac_to_air(d[3] * ANGSTROM),
+             'lower':  l * util.vac_to_air(d[3] * ANGSTROM),
+             'upper':  r * util.vac_to_air(d[3] * ANGSTROM),
+             'uncertainty': util.vac_to_air(d[4] * ANGSTROM),
              'relative_intensity': d[7]}
         )
     
@@ -250,6 +250,8 @@ class Snippets:
                 self._snippets.loc[idx,'pixel_std'] = s
             else:
                 pass
+
+
     @property 
     def snippets(self):
         if not self._snippets is None:
