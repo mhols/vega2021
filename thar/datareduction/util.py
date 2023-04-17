@@ -25,14 +25,14 @@ def loss_1(params, *args):
     i = func(n, *params)
     return np.abs(i-intens)/np.sqrt(np.abs(i)+1e-8)
     
-def air_to_vac(lam)
+def air_to_vac(lam):
 	#lambda_vac (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
 	#lambda_air = lambda_vac/refindex
 	s = 10**4/(lam/ANGSTROM)
 	refindex = 1 + 0.0000834254 + 0.02406147 / (130 - s**2) + 0.00015998 / (38.9 - s**2)
 	return refindex
 	
-def vac_to_air(lam)
+def vac_to_air(lam):
 	#lambda_air (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
 	#lambda_vac =  lmabda_air/refindex
 	s = 10**4/(lam/ANGSTROM)
