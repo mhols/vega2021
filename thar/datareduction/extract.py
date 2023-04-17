@@ -772,6 +772,10 @@ class Extractor_level_1:
         else:
             raise Exception('no such voie')
     
+    def lambda_range_voie1(self, o):
+        return self.pix_to_lambda_map_voie1[o]([self.I[o][0], self.I[o][-1]])    
+
+
     def _compute_voie1et2(self):
         choice =  self.kwargs['VOIE_METHOD']
         if choice == 'SUM_DIVIDE':
