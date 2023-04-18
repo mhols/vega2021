@@ -79,10 +79,10 @@ class Snippets:
         r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
 
         tmp = pd.DataFrame(
-            {'ref_lambda': util.vac_to_air(d[3] * ANGSTROM),
-             'lower':  l * util.vac_to_air(d[3] * ANGSTROM),
-             'upper':  r * util.vac_to_air(d[3] * ANGSTROM),
-             'uncertainty': util.vac_to_air(d[4] * ANGSTROM),
+            {'ref_lambda': d[3] / util.vac_to_air(d[3] * ANGSTROM),
+             'lower':  l * d[3] / util.vac_to_air(d[3] * ANGSTROM),
+             'upper':  r * d[3] / util.vac_to_air(d[3] * ANGSTROM),
+             'uncertainty': d[4] / util.vac_to_air(d[3] * ANGSTROM),
              'relative_intensity': d[7]}
         )
     
@@ -211,6 +211,9 @@ class Snippets:
         # and finding the matching snippets
 
         matchings = []
+
+
+        # take  
 
         for ic in atlasext.index:
 
