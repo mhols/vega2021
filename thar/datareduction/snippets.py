@@ -43,7 +43,7 @@ class Snippets:
     @lazyproperty
     def atlasline_uves(self):
 
-        print('using atlas UVES')
+        # print('using atlas UVES')
         
         with open(self.kwargs['REF_ATLASLINES'], 'r') as f:
             alines = f.readlines()
@@ -68,7 +68,7 @@ class Snippets:
         usage of Redman catalogue 
         """
 
-        print('using atlas REDMAN')
+        # print('using atlas REDMAN')
 
         f = os.path.join(self.kwargs['REFFILES'], 'Redman_table6.dat')
         d = pd.read_fwf(f, names=[i for i in range(1,14)], infer_nrows=10000)
@@ -95,9 +95,9 @@ class Snippets:
             'REDMAN': self.atlasline_redman,
             'UVES': self.atlasline_uves
         }
-        key = self.kwargs.get('ATLAS_FOR_SNIIPETS', 'UVES')
+        key = self.kwargs.get('ATLAS_FOR_SNIPPETS', 'UVES')
         
-        print('using now atlas', key)
+        # print('using now atlas', key)
         return atlas_dict[key]
 
 
@@ -134,7 +134,7 @@ class Snippets:
         with the catalog
         """
 
-        NMAX_LINES = 150 # maximal number of lines to extract
+        NMAX_LINES = 50 # maximal number of lines to extract
 
         # the signal used to define the snippets
         # TODO wrong name and use additional voices... singal to noise
@@ -217,6 +217,14 @@ class Snippets:
         # possibly use a matching table but for the moment we
         # have implemented a one way search starting from the catalog lines
         # and finding the matching snippets
+
+        # take 50 strongest in each order
+
+        n = len(atlasext)
+        try:
+            atlasext = atlasext[atlasext.relative_intensity >= np.quantile(atlasext.relative_intensity, 1 - 50 / n)].copy()
+        except:
+            pass
 
 
         matchings = []
