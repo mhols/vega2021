@@ -1416,4 +1416,5 @@ if __name__ == '__main__':
     refkwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
 
     kwargsmoon.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
-    myext = Extractor(fitsfilemoon, **kwargsmoon)
+    #myext = Extractor(fitsfilemoon, **kwargsmoon)
+    myext = Extractor(reffitsfile, **refkwargs)

@@ -138,7 +138,7 @@ VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
 voie_method = VOIE_METHOD
-n_bootstrap = 5                       # number of bootstrap experiments
+n_bootstrap = 1                       # number of bootstrap experiments
 profile = 'gauss'                      # fit profile for bootstrap estimate of centroid
 loss_function = 'loss_1'               # weighted L2-loss for bootstrap estimate of centroid
 epsilon_sigma_bootstrap = 3*PIXEL      # locations with larger pixel uncertainty are removed
