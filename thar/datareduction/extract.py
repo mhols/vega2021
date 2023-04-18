@@ -1368,8 +1368,11 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
 
     def update_snippets(self):
-        del self.snippets_voie1
-        del self.snippets_voie2
+        #del self.snippets_voie1
+        #del self.snippets_voie2
+
+        self.snippets_voie1.update_snippets()
+        self.snippets_voie2.update_snippets()
 
         self.snippets_voie1.sn
         self.snippets_voie2.sn
@@ -1416,4 +1419,5 @@ if __name__ == '__main__':
     refkwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
 
     kwargsmoon.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
-    myext = Extractor(fitsfilemoon, **kwargsmoon)
+    
+    myext = Extractor(reffitsfile, **refkwargs)

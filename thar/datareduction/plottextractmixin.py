@@ -46,7 +46,7 @@ class PlotExtractMixin:
                 plt.vlines(
                     s[I]['ref_lambda'], a, b,
                     color=self.color_2(voie, o))
-        sn = self.snippets_voie()[voie]._snippets
+        sn = self.snippets_voie()[voie].snippets
 
         for o in (ooo for ooo in oo if ooo%2==0):
             s = self.snippets_voie()[voie].atlasext(o)
