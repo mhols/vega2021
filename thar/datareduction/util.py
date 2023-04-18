@@ -3,6 +3,7 @@ import scipy.optimize as sop
 from scipy.stats import wasserstein_distance as wd
 import numpy as np
 import sys
+from units import *
 from numpy.polynomial import Polynomial
 from scipy.interpolate import interp1d, UnivariateSpline, LSQUnivariateSpline
 
@@ -23,7 +24,22 @@ def loss_1(params, *args):
     n = np.arange(intens.shape[0])
     i = func(n, *params)
     return np.abs(i-intens)/np.sqrt(np.abs(i)+1e-8)
-
+    
+def air_to_vac(lam):
+	#lambda_vac (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
+	#lambda_air = lambda_vac/refindex
+	s = 10**4/(lam/ANGSTROM)
+	refindex = 1 + 0.0000834254 + 0.02406147 / (130 - s**2) + 0.00015998 / (38.9 - s**2)
+	return refindex
+	
+def vac_to_air(lam):
+	#lambda_air (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
+	#lambda_vac =  lmabda_air/refindex
+	s = 10**4/(lam/ANGSTROM)
+	refindex = 1 + 0.00008336624212083 + 0.02408926869968 / (130.1065924522 - s**2)\
+	+ 0.0001599740894897 / (38.92568793293 - s**2)
+	return refindex
+	
 def loss_2(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])

@@ -21,7 +21,7 @@ import scipy
 import util
 from scipy.optimize import curve_fit
 import extract
-
+from units import *
 
 class Snippets:
 
@@ -69,18 +69,20 @@ class Snippets:
         """
 
         f = os.path.join(self.kwargs['REFFILES'], 'Redman_table6.dat')
+
         d = pd.read_fwf(f, names=[i for i in range(1,14)],infer_nrows=10000)
 		# extract information...
+
         # atlaslines =  np.array([float(l.split()[1]) for l in alines])
         # self._atlasline = atlaslines
         l = (1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
         r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
 
         tmp = pd.DataFrame(
-            {'ref_lambda': d[3],
-             'lower':  l * d[3] ,
-             'upper':  r * d[3], 
-             'uncertainty': d[4],
+            {'ref_lambda': util.vac_to_air(d[3] * ANGSTROM),
+             'lower':  l * util.vac_to_air(d[3] * ANGSTROM),
+             'upper':  r * util.vac_to_air(d[3] * ANGSTROM),
+             'uncertainty': util.vac_to_air(d[4] * ANGSTROM),
              'relative_intensity': d[7]}
         )
     
@@ -249,6 +251,8 @@ class Snippets:
                 self._snippets.loc[idx,'pixel_std'] = s
             else:
                 pass
+
+
     @property 
     def snippets(self):
         if not self._snippets is None:
