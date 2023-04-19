@@ -42,9 +42,9 @@ class Snippets:
     # TODO implement specific atlas routines
     @lazyproperty
     def atlasline_uves(self):
-        if not self._atlasline is None:
-            return self._atlasline
 
+        # print('using atlas UVES')
+        
         with open(self.kwargs['REF_ATLASLINES'], 'r') as f:
             alines = f.readlines()
 
@@ -54,19 +54,21 @@ class Snippets:
         l = (1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
         r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
 
-        self._atlasline = pd.DataFrame(
+        atlasline = pd.DataFrame(
             {'ref_lambda': pd.Series(atlaslines),
              'lower': pd.Series( l * atlaslines ),
              'upper': pd.Series( r * atlaslines)}
         )
     
-        return self._atlasline
+        return atlasline
 
     @lazyproperty 
     def atlasline_redman(self):
         """
         usage of Redman catalogue 
         """
+
+        # print('using atlas REDMAN')
 
         f = os.path.join(self.kwargs['REFFILES'], 'Redman_table6.dat')
 
@@ -90,7 +92,14 @@ class Snippets:
     
     @property
     def atlasline(self):
-        return self.atlasline_redman
+        atlas_dict = {
+            'REDMAN': self.atlasline_redman,
+            'UVES': self.atlasline_uves
+        }
+        key = self.kwargs.get('ATLAS_FOR_SNIPPETS', 'UVES')
+        
+        # print('using now atlas', key)
+        return atlas_dict[key]
 
 
     def lambda_range(self, o):
@@ -126,7 +135,7 @@ class Snippets:
         with the catalog
         """
 
-        NMAX_LINES = 150 # maximal number of lines to extract
+        NMAX_LINES = 50 # maximal number of lines to extract
 
         # the signal used to define the snippets
         # TODO wrong name and use additional voices... singal to noise
@@ -147,10 +156,10 @@ class Snippets:
             if len(s)==0:
                 continue
 
-            try:
-                A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
-            except Exception as ex:
-                continue
+            #try:
+            #    A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
+            #except Exception as ex:
+            #    continue
             
             bs.append( {
                 'true_order_number': o, 
@@ -158,11 +167,11 @@ class Snippets:
                 'posmax': x,
                 'left': a, 
                 'right': b, 
-                'pixel_A': A,
-                'pixel_mu': mu,
-                'pixel_sigma': sigma,
-                'pixel_offset': offset,
-                'pixel_mean': a + mu,   # TODO change name to pixel_lage
+                'pixel_A': 0.0, #A,
+                'pixel_mu': 0.0, #mu,
+                'pixel_sigma': 1.0, #sigma,
+                'pixel_offset': 0.0, #offset,
+                'pixel_mean': x, #a + mu,   # TODO change name to pixel_lage
                 'pixel_std' : 1./ np.sqrt(np.sum(s)),  
                 'pixel_sum_intens': np.sum(s),  # TODO A???
                 'pixel_max_intens': v[x],
@@ -203,12 +212,21 @@ class Snippets:
         atlasext = self.atlasext(o)
         
         # select potential snippet lines at order o
-        pot_snip = self._snippets.loc[self._snippets['true_order_number'] == o]
+        pot_snip = self.snippets.loc[self.snippets['true_order_number'] == o]
 
         # put your matchin logic here....
         # possibly use a matching table but for the moment we
         # have implemented a one way search starting from the catalog lines
         # and finding the matching snippets
+
+        # take 50 strongest in each order
+
+        n = len(atlasext)
+        try:
+            atlasext = atlasext[atlasext.relative_intensity >= np.quantile(atlasext.relative_intensity, 1 - 50 / n)].copy()
+        except:
+            pass
+
 
         matchings = []
 
@@ -232,28 +250,48 @@ class Snippets:
             if not goodlam:
                 continue
 
-            # else, we have a match
+            # Gaussian fit for good snippets
+            
 
             i = I[0]  # index of single good snippet belonging to l
-
             idx = pot_snip.index[i]
 
-            # keep track of matchings for later use 
-            matchings.append([ic, idx])
+            if not self._snippets.loc[idx, 'gaussfit']:
+                s = self._snippets.loc[idx,'bare_voie'] 
+                try:
+                    A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
+                except Exception as ex:
+                    continue
+                self._snippets.loc[idx, 'pixel_A'] = A,
+                self._snippets.loc[idx, 'pixel_mu'] = mu,
+                self._snippets.loc[idx, 'pixel_sigma'] = sigma,
+                self._snippets.loc[idx, 'pixel_offset'] = offset,
+                self._snippets.loc[idx, 'gaussfit'] = True
+                self._snippets.loc[idx, 'pixel_mean'] = self._snippets.loc[idx, 'left'] + mu
+             # else, we have a matchi
 
+            # keep track of matchings for later use 
+
+            
             self._snippets.loc[idx,'goodsnippet'] = True
             self._snippets.loc[idx,'ref_lambda'] = c
             self._snippets.loc[idx,'catalog_index'] = int(ic)
-
+           
             # bootstrapping
-            if self.kwargs['n_bootstrap'] > 1:
+            if self.kwargs['n_bootstrap'] > 1 and not \
+                self._snippets.loc[idx, 'bootstraped']:
                 intens = self._snippets.loc[idx, 'bare_voie']
                 mu, s, sample = util.bootstrap_estimate_location(intens, **self.kwargs)
 
                 self._snippets.loc[idx,'pixel_mean'] = pot_snip.loc[idx, 'left']+mu
                 self._snippets.loc[idx,'pixel_std'] = s
+                self._snippets.loc[idx, 'bootstraped'] = True
             else:
                 pass
+
+            self._snippets.loc[idx, 'est_lambda'] = \
+                self.extractor.pix_to_lambda_map_voie[self.voie][o](self._snippets.loc[idx, 'pixel_mean'])
+            matchings.append([ic, idx])
 
 
     @property 
@@ -277,8 +315,17 @@ class Snippets:
         self._snippets['catalog_index'] = -1
         self._snippets['selected'] = True
         self._snippets['total_flux'] = 0.0
+        self._snippets['bootstraped'] = False
+        self._snippets['gaussfit'] = False
+
+        return self.update_snippets()
+        
+
+    def update_snippets(self):
 
         self.extractor.logging('matching snippets for voie '+str(self.voie))
+        self.snippets.loc[:,'goodsnippet'] = False
+
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))
             self._match_snippets(o)
