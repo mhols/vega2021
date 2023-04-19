@@ -30,6 +30,19 @@ class PlotExtractMixin:
             plt.plot(
                l[I], v[I], '-', color=self.color_2(voie, o)
         )
+            
+    def plot_snippets(self, voie, oo):
+        if type(oo) is int:
+            oo = list(oo)
+        
+        for o in oo:
+            s = self.snippets_voie()[voie].sn
+            I = s['true_order_number'] == o
+            for i in s[I].index:
+                pix = s.loc[i, 'pixel_range']
+                lams = self.pix_to_lambda_map_voie[voie][o](pix)
+                plt.fill_between(lams, self.voie[voie][o][pix], color='gray') 
+ 
 
     def plot_catalog(self, voie, oo):
         if type(oo) is int:
@@ -64,15 +77,15 @@ class PlotExtractMixin:
         if type(oo) is int:
             oo = list(oo)
         for o in oo:
-       		I = self.I[33]
-        	v = util.clean_nans(self.voie1[33][I])
-        	m = np.max(v)
-        	cr=self.snippets_voie1.atlasline_redman
-        	lamlimits=self.lambda_range_voie1(o)
-        	I=(cr["ref_lambda"] > lamlimits[0]) & (cr["ref_lambda"] < lamlimits[1])
-        	cr=cr[I]
-        	cm = np.max(cr["relative_intensity"])
-        	plt.vlines(cr["ref_lambda"],0,cr["relative_intensity"]*0.5*m/cm,'k')
+            I = self.I[33]
+            v =util.clean_nans(self.voie1[33][I])
+            m = np.max(v)
+            cr=self.snippets_voie1.atlasline_redman
+            lamlimits=self.lambda_range_voie1(o)
+            I=(cr["ref_lambda"] > lamlimits[0]) & (cr["ref_lambda"] < lamlimits[1])
+            cr=cr[I]
+            cm = np.max(cr["relative_intensity"])
+            plt.vlines(cr["ref_lambda"],0,cr["relative_intensity"]*0.5*m/cm,'k')
         
 
     def plot_polynomial(self, voie, oo):

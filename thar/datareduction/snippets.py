@@ -135,7 +135,7 @@ class Snippets:
         with the catalog
         """
 
-        NMAX_LINES = 50 # maximal number of lines to extract
+        NMAX_LINES = self.kwargs.get('MAX_LINES', 50) # maximal number of lines to extract
 
         # the signal used to define the snippets
         # TODO wrong name and use additional voices... singal to noise
@@ -162,7 +162,7 @@ class Snippets:
             #    continue
             
             bs.append( {
-                'true_order_number': o, 
+                'true_order_number': o,
                 'index_pixel_snippet': i, 
                 'posmax': x,
                 'left': a, 
@@ -175,6 +175,7 @@ class Snippets:
                 'pixel_std' : 1./ np.sqrt(np.sum(s)),  
                 'pixel_sum_intens': np.sum(s),  # TODO A???
                 'pixel_max_intens': v[x],
+                'pixel_range' : np.arange(a, b+1),
                 'bare_voie': s,      # TODO include true bare voie
                 'bootstraped': False
             })
@@ -222,10 +223,15 @@ class Snippets:
         # take 50 strongest in each order
 
         n = len(atlasext)
-        try:
-            atlasext = atlasext[atlasext.relative_intensity >= np.quantile(atlasext.relative_intensity, 1 - 50 / n)].copy()
-        except:
-            pass
+
+        NCATAL = self.kwargs.get('NCATAL', 50)
+
+        if NCATAL < n:
+            try:
+                atlasext = atlasext[atlasext.relative_intensity >= 
+                        np.quantile(atlasext.relative_intensity, 1 - NCATAL / n)].copy()
+            except:
+                pass
 
 
         matchings = []
