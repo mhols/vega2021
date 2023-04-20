@@ -73,7 +73,7 @@ class Snippets:
         f = os.path.join(self.kwargs['REFFILES'], 'Redman_table6.dat')
 
         d = pd.read_fwf(f, names=[i for i in range(1,14)],infer_nrows=10000)
-		# extract information...
+        # extract information...
 
         # atlaslines =  np.array([float(l.split()[1]) for l in alines])
         # self._atlasline = atlaslines
@@ -135,7 +135,7 @@ class Snippets:
         with the catalog
         """
 
-        NMAX_LINES = 50 # maximal number of lines to extract
+        NMAX_LINES = self.kwargs.get('MAX_LINES', 50) # maximal number of lines to extract
 
         # the signal used to define the snippets
         # TODO wrong name and use additional voices... singal to noise
@@ -162,7 +162,7 @@ class Snippets:
             #    continue
             
             bs.append( {
-                'true_order_number': o, 
+                'true_order_number': o,
                 'index_pixel_snippet': i, 
                 'posmax': x,
                 'left': a, 
@@ -175,6 +175,7 @@ class Snippets:
                 'pixel_std' : 1./ np.sqrt(np.sum(s)),  
                 'pixel_sum_intens': np.sum(s),  # TODO A???
                 'pixel_max_intens': v[x],
+                'pixel_range' : np.arange(a, b+1),
                 'bare_voie': s,      # TODO include true bare voie
                 'bootstraped': False
             })
@@ -222,10 +223,15 @@ class Snippets:
         # take 50 strongest in each order
 
         n = len(atlasext)
-        try:
-            atlasext = atlasext[atlasext.relative_intensity >= np.quantile(atlasext.relative_intensity, 1 - 50 / n)].copy()
-        except:
-            pass
+
+        NCATAL = self.kwargs.get('NCATAL', 50)
+
+        if NCATAL < n:
+            try:
+                atlasext = atlasext[atlasext.relative_intensity >= 
+                        np.quantile(atlasext.relative_intensity, 1 - NCATAL / n)].copy()
+            except:
+                pass
 
 
         matchings = []
@@ -320,7 +326,31 @@ class Snippets:
 
         return self.update_snippets()
         
-
+    def filter_snippets_max_amplitude(self,o):
+        alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 1.)
+        # filter says true or false for each snippe
+        res = pd.Series(False,index=self._snippets.index)
+        II = self._snippets["true_order_number"] == o
+        sn = self._snippets[II]
+        A_crit = np.quantile(sn["pixel_A"],alpha)
+        III = sn["pixel_A"] > A_crit
+        res.loc[III.index] = True
+        return res
+        
+    def filter_snippets_width(self,o):
+        alpha = self.kwargs.get("FILTER_WIDTH_QUANTILE", 1.)
+        # filter says true or false for each snippe
+        res = pd.Series(False,index=self._snippets.index)
+        II = self._snippets["true_order_number"] == o
+        sn = self._snippets[II]
+        sigma_crit = np.quantile(sn["pixel_sigma"],alpha)
+        
+        #vorsicht in m/s
+        
+        III = sn["pixel_A"] > sigma_crit
+        res.loc[III.index] = True
+        return res
+               
     def update_snippets(self):
 
         self.extractor.logging('matching snippets for voie '+str(self.voie))

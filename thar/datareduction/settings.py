@@ -47,8 +47,9 @@ MEMORY_POSITION = 0.7  # memory of AR1 process for line following
 BLAZE_RANGE = list(range(-OFFSETRED, OFFSETBLUE+1))                     # range for the blase function
 DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
 CLUM = 3e5
-
-## ----- unities 
+NMAX_LINES=150  #number of snippets per order
+NCATAL=150 		#number of catalog lines per order
+##---- unities 
 M = 1.0         # Meter
 S = 1.0         # Second
 PIXEL = 1       # Pixel unit
