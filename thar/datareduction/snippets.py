@@ -135,7 +135,6 @@ class Snippets:
         with the catalog
         """
 
-        NMAX_LINES = self.kwargs.get('MAX_LINES', 50) # maximal number of lines to extract
 
         # the signal used to define the snippets
         # TODO wrong name and use additional voices... singal to noise
@@ -147,7 +146,13 @@ class Snippets:
 
         # collect all information about the chuncs
         bs = []
-        for i,xab in enumerate ( lm[:min(NMAX_LINES, len(lm))]):
+        for i,xab in enumerate (lm):
+            try:
+                if i in self._potential_snippets['index_pixel_snippet']:
+                    continue
+            except:
+                pass
+
             x, a, b = xab  # the position of max and the limits
             if b-a<=1:
                 continue
@@ -160,6 +165,7 @@ class Snippets:
             #    A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
             #except Exception as ex:
             #    continue
+
             
             bs.append( {
                 'true_order_number': o,
@@ -168,7 +174,7 @@ class Snippets:
                 'left': a, 
                 'right': b, 
                 'pixel_A': 0.0, #A,
-                'pixel_mu': 0.0, #mu,
+                'pixel_mu': x-a, #mu,
                 'pixel_sigma': 1.0, #sigma,
                 'pixel_offset': 0.0, #offset,
                 'pixel_mean': x, #a + mu,   # TODO change name to pixel_lage
@@ -177,17 +183,12 @@ class Snippets:
                 'pixel_max_intens': v[x],
                 'pixel_range' : np.arange(a, b+1),
                 'bare_voie': s,      # TODO include true bare voie
-                'bootstraped': False
+                'bootstraped': False,
+                'selected': False,
+                'goodsnippet': False,
+                'gaussfit': False
             })
         bs = pd.DataFrame(bs)
-        # map the central positions of the snippets to the lambda axis
-        try:
-            bs['est_lambda'] = self.extractor.pix_to_lambda_map_voie[self.voie][o](
-                bs.loc[:, 'pixel_mean']
-            )
-        except:
-            print('problem in order ', o)
-            pass
         return bs
 
     def bare_voie(self, o):
@@ -213,7 +214,8 @@ class Snippets:
         atlasext = self.atlasext(o)
         
         # select potential snippet lines at order o
-        pot_snip = self.snippets.loc[self.snippets['true_order_number'] == o]
+        pot_snip = self._snippets.loc[self._snippets['true_order_number'] == o]
+
 
         # put your matchin logic here....
         # possibly use a matching table but for the moment we
@@ -224,7 +226,7 @@ class Snippets:
 
         n = len(atlasext)
 
-        NCATAL = self.kwargs.get('NCATAL', 50)
+        NCATAL = self.kwargs.get('NCATAL', 500000)
 
         if NCATAL < n:
             try:
@@ -234,7 +236,6 @@ class Snippets:
                 pass
 
 
-        matchings = []
 
 
         # take  
@@ -250,6 +251,8 @@ class Snippets:
                 l <= pot_snip['est_lambda'].values, pot_snip['est_lambda'].values <= r)
             )
 
+            print(len(I))
+
             goodlam = len(I) == 1 ## exacly one peak in interval
             goodlam = goodlam and True ## SEUIL in extract TODO
 
@@ -262,46 +265,57 @@ class Snippets:
             i = I[0]  # index of single good snippet belonging to l
             idx = pot_snip.index[i]
 
-            if not self._snippets.loc[idx, 'gaussfit']:
-                s = self._snippets.loc[idx,'bare_voie'] 
-                try:
-                    A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
-                except Exception as ex:
-                    continue
-                self._snippets.loc[idx, 'pixel_A'] = A,
-                self._snippets.loc[idx, 'pixel_mu'] = mu,
-                self._snippets.loc[idx, 'pixel_sigma'] = sigma,
-                self._snippets.loc[idx, 'pixel_offset'] = offset,
-                self._snippets.loc[idx, 'gaussfit'] = True
-                self._snippets.loc[idx, 'pixel_mean'] = self._snippets.loc[idx, 'left'] + mu
-             # else, we have a matchi
-
-            # keep track of matchings for later use 
-
-            
             self._snippets.loc[idx,'goodsnippet'] = True
             self._snippets.loc[idx,'ref_lambda'] = c
             self._snippets.loc[idx,'catalog_index'] = int(ic)
-           
-            # bootstrapping
-            if self.kwargs['n_bootstrap'] > 1 and not \
-                self._snippets.loc[idx, 'bootstraped']:
+        
+
+    def update_snippet_parameters(self):
+
+        for idx in self._snippets[
+            np.logical_and(
+                np.logical_not (self._snippets['gaussfit']),
+                self._snippets['goodsnippet']
+            )].index:
+       
+            s = self._snippets.loc[idx,'bare_voie'] 
+            try:
+                A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
+            except Exception as ex:
+                continue
+            self._snippets.loc[idx, 'pixel_A'] = A,
+            self._snippets.loc[idx, 'pixel_mu'] = mu,
+            self._snippets.loc[idx, 'pixel_sigma'] = sigma,
+            self._snippets.loc[idx, 'pixel_offset'] = offset,
+            self._snippets.loc[idx, 'gaussfit'] = True
+            self._snippets.loc[idx, 'pixel_mean'] = self._snippets.loc[idx, 'left'] + mu
+
+
+        
+        if self.kwargs['n_bootstrap'] > 1:
+            for idx in self._snippets[np.logical_not(self._snippets['bootstraped'])].index:
+                
                 intens = self._snippets.loc[idx, 'bare_voie']
                 mu, s, sample = util.bootstrap_estimate_location(intens, **self.kwargs)
 
-                self._snippets.loc[idx,'pixel_mean'] = pot_snip.loc[idx, 'left']+mu
+                self._snippets.loc[idx,'pixel_mean'] = self._snippets.loc[idx, 'left']+mu
                 self._snippets.loc[idx,'pixel_std'] = s
                 self._snippets.loc[idx, 'bootstraped'] = True
-            else:
-                pass
+        
 
-            self._snippets.loc[idx, 'est_lambda'] = \
-                self.extractor.pix_to_lambda_map_voie[self.voie][o](self._snippets.loc[idx, 'pixel_mean'])
-            matchings.append([ic, idx])
+        
+    def compute_est_lambda(self):
+        for o in self.ORDERS:
+            p = self.extractor.pix_to_lambda_map_voie[self.voie][o]
+            I = self._snippets['true_order_number'] == o 
+            self._snippets.loc[I, 'est_lambda'] = \
+                p(
+                self._snippets.loc[I, 'left'] + self._snippets.loc[I, 'pixel_mu']
+            )
 
-
-    @property 
-    def snippets(self):
+  
+        
+    def prepare_snippets(self):
         if not self._snippets is None:
             return self._snippets
         self.extractor.logging('computing snippets for voie '+str(self.voie))
@@ -316,26 +330,43 @@ class Snippets:
         self.extractor.end_logging()
 
         self._snippets = tmp
-        self._snippets['goodsnippet'] = False
-        self._snippets['ref_lambda'] = -1.0
-        self._snippets['catalog_index'] = -1
-        self._snippets['selected'] = True
-        self._snippets['total_flux'] = 0.0
-        self._snippets['bootstraped'] = False
-        self._snippets['gaussfit'] = False
+
+        #self._snippets['goodsnippet'] = False
+        #self._snippets['ref_lambda'] = -1.0
+        #self._snippets['catalog_index'] = -1
+        #self._snippets['selected'] = True
+        #self._snippets['total_flux'] = 0.0
+        #self._snippets['bootstraped'] = False
+        #self._snippets['gaussfit'] = False
 
         return self.update_snippets()
+
         
 
     def update_snippets(self):
 
-        self.extractor.logging('matching snippets for voie '+str(self.voie))
-        self.snippets.loc[:,'goodsnippet'] = False
+        # estimate lamda for snippet
+        self.compute_est_lambda()
 
+        self.extractor.logging('matching snippets for voie '+str(self.voie))
+        
+
+        # nobody is good (memoryless matching) 
+        self._snippets.loc[:,'goodsnippet'] = False
+        
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))
             self._match_snippets(o)
         self.extractor.end_logging()
+
+        # compute the Gaussfit and bootstrap for the used snippets
+        self.update_snippet_parameters()
+
+        # recompute the estimated lambda based on the present wavemap
+        # estimate lamda for snippet
+        self.compute_est_lambda()
+
+
         return self._snippets
 
 
@@ -344,10 +375,10 @@ class Snippets:
         tmp = []
         for o, oo in zip(self.ORDERS[:-1], self.ORDERS[1:]):
 
-            Io = self.snippets['true_order_number'] == o
-            Ioo = self.snippets['true_order_number'] == oo
-            pp1 = self.snippets.loc[Io, 'pixel_mean']
-            pp2 = self.snippets.loc[Ioo,'pixel_mean']
+            Io = self._snippets['true_order_number'] == o
+            Ioo = self._snippets['true_order_number'] == oo
+            pp1 = self._snippets.loc[Io, 'pixel_mean']
+            pp2 = self._snippets.loc[Ioo,'pixel_mean']
 
 
             p1 = self.extractor.pix_to_lambda_map_voie[self.voie][o](pp1)
@@ -378,16 +409,16 @@ class Snippets:
         """
         indices of good snippets of order o
         """
-        return self.snippets['true_order_number']==o & self.good_snippet
+        return self._snippets['true_order_number']==o & self.good_snippet
 
    
     @property
     def good_snippet(self):
-        return self.snippets['goodsnippet'] == True
+        return self._snippets['goodsnippet'] == True
     
     @property
     def _x(self):
-        return self.snippets['pixel_mean']
+        return self._snippets['pixel_mean']
     
     @property
     def x(self):
@@ -395,7 +426,7 @@ class Snippets:
     
     @property
     def _o(self):
-        return self.snippets['true_order_number']
+        return self._snippets['true_order_number']
     
     @property
     def o(self):
@@ -403,7 +434,7 @@ class Snippets:
 
     @property
     def _l(self):
-        return self.snippets['ref_lambda']
+        return self._snippets['ref_lambda']
     
     @property
     def l(self):
@@ -411,7 +442,7 @@ class Snippets:
       
     @property
     def _sigma(self):
-        return self.snippets['pixel_std']
+        return self._snippets['pixel_std']
     
     @property
     def sigma(self):
@@ -419,15 +450,15 @@ class Snippets:
 
     @property
     def _sn(self):
-        return self.snippets
+        return self._snippets
 
     @property
     def sn(self):
-        return self.snippets[self.good_snippet]
+        return self._snippets[self.good_snippet]
     
     @property
     def ci(self):
-        return self.snippets[self.good_snippet]['catalog_index']    
+        return self._snippets[self.good_snippet]['catalog_index']    
 
 
     @property

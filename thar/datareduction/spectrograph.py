@@ -146,7 +146,7 @@ class DictOfMapsPerOrder(UserDict):
             {o: p.deriv() for o, p in self.items()}
         )    
 
-    def _inverse_map(self, p):   
+    def _inverse_map(self, p, factor = 1.0):   
         nn = 10001
         """
         mi, ma = p.domain
@@ -165,20 +165,20 @@ class DictOfMapsPerOrder(UserDict):
         except:
             return None
         a, b = c[0]
-        return interpolate_extend(y[a:b+1], x[a:b+1])
+        return interpolate_extend(y[a:b+1], factor * x[a:b+1])
     
     def inverse_map(self):   
         return DictOfMapsPerOrder(
             self.ccd,
-            { o: self._inverse_map(p) for o, p in 
+            { o: self._inverse_map(p, factor=1) for o, p in 
                 self.items()},
         )
 
     def inverse_o_map(self): 
-        tmp = self.inverse_map()  
         return DictOfMapsPerOrder(self.ccd, 
-            { o: (lambda o,p: lambda x: p(x)/o)(o,p) for o, p in tmp.items()
-        })        
+            { o: self._inverse_map(p, factor = 1./o) for o,p in self.items()
+            }
+        )        
 
 
     def __call__(self, xol, o):

@@ -1338,6 +1338,8 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
 
     def __init__(self, fitsfile, **kwargs):
         Extractor_level_2.__init__(self, fitsfile, **kwargs)
+        self.snippets_voie1
+        self.snippets_voie2
         
 
     @lazyproperty
