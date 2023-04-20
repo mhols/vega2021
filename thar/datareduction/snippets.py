@@ -251,8 +251,6 @@ class Snippets:
                 l <= pot_snip['est_lambda'].values, pot_snip['est_lambda'].values <= r)
             )
 
-            print(len(I))
-
             goodlam = len(I) == 1 ## exacly one peak in interval
             goodlam = goodlam and True ## SEUIL in extract TODO
 
