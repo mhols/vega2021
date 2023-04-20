@@ -1338,6 +1338,8 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
 
     def __init__(self, fitsfile, **kwargs):
         Extractor_level_2.__init__(self, fitsfile, **kwargs)
+        self.snippets_voie1.prepare_snippets()
+        self.snippets_voie2.prepare_snippets()
         
 
     @lazyproperty
@@ -1419,4 +1421,6 @@ if __name__ == '__main__':
     refkwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
 
     kwargsmoon.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
-    myext = Extractor(reffitsfile, **refkwargs)
+    #myext = Extractor(reffitsfile, **refkwargs)
+
+    myext = get_ext(reffitsfile)
