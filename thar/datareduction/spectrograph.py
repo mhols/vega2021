@@ -238,35 +238,6 @@ class CCD2d:
     def NROWS(self):
         return self.kwargs['NROWS']
 
-    # def bootstrap_data(self):
-    #     """
-    #     bootstrap estimate of location uncertainty
-    #     """
-    #     res = []
-    #     new_mean_pixel_pos = []
-    #     sigma_new_mean = []
-    #     shit = 0
-    #     print('\n-------------\nbootstrapping\n')
-    #     for i, line in self._data.iterrows():
-    #         position = np.nan
-    #         sigma = np.nan
-    #         try:
-    #             delta_p, sigma = bootstrap_estimate_location(
-    #                 np.array(line['flux_values_extract']),
-    #                 **self.kwargs
-    #                 )
-    #             position = line['pixels_extract'][0] + delta_p
-
-    #         except Exception as ex:
-    #             print("problem at ", i, line, ex)  ## TODO: better logging
-    #             shit += 1
-    #         new_mean_pixel_pos.append(position)
-    #         sigma_new_mean.append(sigma)
-    #         progress(i,len(self._data), status='')
-    #     self._data['new_mean_pixel_pos'] = pd.Series(new_mean_pixel_pos)
-    #     self._data['sigma_new_mean'] = pd.Series(sigma_new_mean)
-    #     self._bootstraped = True
-
     def color_of_order(self, o):
         cmap = cm.get_cmap(self.kwargs['palette_order'])
         orders = self.all_order()
@@ -321,8 +292,7 @@ class CCD2d:
         clip = self.kwargs.get('CLIPMETHOD', 'quantile')
         alpha = self.kwargs.get('CLIPTHRESHOLD', 0.8)
 
-        def quantile(r):
-            return np.abs
+        
         clippings = {
             'quantile': lambda r: np.abs(r) < np.quantile(np.abs(r), alpha),
             'sigma': lambda r: np.abs(r) < alpha*np.std(r),

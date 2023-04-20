@@ -307,9 +307,7 @@ class Snippets:
             p = self.extractor.pix_to_lambda_map_voie[self.voie][o]
             I = self._snippets['true_order_number'] == o 
             self._snippets.loc[I, 'est_lambda'] = \
-                p(
-                self._snippets.loc[I, 'left'] + self._snippets.loc[I, 'pixel_mu']
-            )
+                p( self._snippets.loc[I, 'pixel_mean'] )
 
   
         
