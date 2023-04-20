@@ -326,6 +326,17 @@ class Snippets:
 
         return self.update_snippets()
         
+    def filter_snippets_min_length(self,o):
+        alpha = self.kwargs.get("FILTER_MIN_LENGTH", 1.)
+        # filter says true or false for each snippe
+        res = pd.Series(False,index=self._snippets.index)
+        II = self._snippets["true_order_number"] == o
+        sn = self._snippets[II]
+        l_crit = alpha
+        III = sn["right"-"left"+1] > l_crit
+        res.loc[III.index] = True
+        return res
+        
     def filter_snippets_max_amplitude(self,o):
         alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 1.)
         # filter says true or false for each snippe
