@@ -180,7 +180,7 @@ class Snippets:
                 'pixel_mean': x, #a + mu,   # TODO change name to pixel_lage
                 'pixel_std' : 1./ np.sqrt(np.sum(s)),  
                 'pixel_sum_intens': np.sum(s),  # TODO A???
-                'pixel_max_intens': v[x],
+                'pixel_max_intens': v[x]-np.min(v),
                 'pixel_range' : np.arange(a, b+1),
                 'bare_voie': s,      # TODO include true bare voie
                 'bootstraped': False,
@@ -347,19 +347,23 @@ class Snippets:
         II = self._snippets["true_order_number"] == o
         sn = self._snippets[II]
         l_crit = alpha
-        III = sn["right"-"left"+1] > l_crit
-        res.loc[III.index] = True
+        right=sn["right"]
+        left =sn["left"]
+        cent =sn["posmax"]
+        length=right-left+1
+        III = length > l_crit
+        res.loc[III[III].index] = True
         return res
         
     def filter_snippets_max_amplitude(self,o):
-        alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 1.)
+        alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 0.8)
         # filter says true or false for each snippe
         res = pd.Series(False,index=self._snippets.index)
         II = self._snippets["true_order_number"] == o
         sn = self._snippets[II]
-        A_crit = np.quantile(sn["pixel_A"],alpha)
-        III = sn["pixel_A"] > A_crit
-        res.loc[III.index] = True
+        A_crit = np.quantile(sn["pixel_max_intens"],alpha)
+        III = sn["pixel_max_intens"] > A_crit
+        res.loc[III[III].index] = True
         return res
         
     def filter_snippets_width(self,o):
@@ -373,8 +377,40 @@ class Snippets:
         #vorsicht in m/s
         
         III = sn["pixel_A"] > sigma_crit
-        res.loc[III.index] = True
+        res.loc[III[III].index] = True
         return res
+        
+    def snippet_match_tor(self,o):
+        #selection of uves atlas lines in order o
+        cu=self.atlasline_uves
+        lamlimits=self.extractor.lambda_range_voie1(o)
+       
+        I=(cu["ref_lambda"] > lamlimits[0]) & (cu["ref_lambda"] < lamlimits[1])
+        cu=cu[I]
+        
+        #selection of snippets in order o, after filter with intensity
+        I = self.filter_snippets_max_amplitude(o)
+        selection=self._snippets.loc[I]
+        print(selection)
+    
+        vrange = self.kwargs["VRANGE"]
+        
+        for i in cu.index:
+            c = cu.loc[i,"ref_lambda"]
+            l = c * (1 - vrange/C_LIGHT)
+            r = c * (1 + vrange/C_LIGHT)
+            J = np.logical_and (l <= selection["est_lambda"], selection\
+            ["est_lambda"] <=r)
+            #print(sum(J))
+            if sum(J) != 1:
+                continue
+            ind=J[J].index[0]
+            print(ind)
+            self._snippets.loc[ind,"goodsnippet"] = True
+            self._snippets.loc[ind,'ref_lambda'] = c
+            self._snippets.loc[ind,'catalog_index'] = int(i)        
+
+        
                
     def update_snippets(self):
 
