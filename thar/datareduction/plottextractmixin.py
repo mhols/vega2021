@@ -76,17 +76,33 @@ class PlotExtractMixin:
     def plot_catalog_redman(self, oo):
         if type(oo) is int:
             oo = list(oo)
-        for o in oo:
-            I = self.I[33]
-            v =util.clean_nans(self.voie1[33][I])
-            m = np.max(v)
-            cr=self.snippets_voie1.atlasline_redman
-            lamlimits=self.lambda_range_voie1(o)
-            I=(cr["ref_lambda"] > lamlimits[0]) & (cr["ref_lambda"] < lamlimits[1])
-            cr=cr[I]
-            cm = np.max(cr["relative_intensity"])
-            plt.vlines(cr["ref_lambda"],0,cr["relative_intensity"]*0.5*m/cm,'k')
+        for o in oo: 
+       		I = self.I[33]
+        	v = util.clean_nans(self.voie1[33][I])
+        	m = np.max(v)
+        	cr=self.snippets_voie1.atlasline_redman
+        	lamlimits=self.lambda_range_voie1(o)
+        	I=(cr["ref_lambda"] > lamlimits[0]) & (cr["ref_lambda"] < lamlimits[1])
+        	cr=cr[I]
+        	cm = np.max(cr["relative_intensity"])
+        	plt.vlines(cr["ref_lambda"],-10000,cr["relative_intensity"]*0.5*m/cm,'k')
+
         
+    def plot_catalog_uves(self, oo):
+        if type(oo) is int:
+            oo = list(oo)
+        for o in oo:
+       		I = self.I[33]
+        	v = util.clean_nans(self.voie1[33][I])
+        	m = np.max(v)
+        	cr=self.snippets_voie1.atlasline_uves
+        	lamlimits=self.lambda_range_voie1(o)
+        	I=(cr["ref_lambda"] > lamlimits[0]) & (cr["ref_lambda"] < lamlimits[1])
+        	cr=cr[I]
+        	#cm = np.max(cr["relative_intensity"])
+        	plt.vlines(cr["ref_lambda"],0,m,'y')
+ 
+
 
     def plot_polynomial(self, voie, oo):
         if type(oo) is int:

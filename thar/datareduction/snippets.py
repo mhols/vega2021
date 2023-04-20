@@ -73,7 +73,7 @@ class Snippets:
         f = os.path.join(self.kwargs['REFFILES'], 'Redman_table6.dat')
 
         d = pd.read_fwf(f, names=[i for i in range(1,14)],infer_nrows=10000)
-		# extract information...
+        # extract information...
 
         # atlaslines =  np.array([float(l.split()[1]) for l in alines])
         # self._atlasline = atlaslines
@@ -342,7 +342,31 @@ class Snippets:
         return self.update_snippets()
 
         
-
+    def filter_snippets_max_amplitude(self,o):
+        alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 1.)
+        # filter says true or false for each snippe
+        res = pd.Series(False,index=self._snippets.index)
+        II = self._snippets["true_order_number"] == o
+        sn = self._snippets[II]
+        A_crit = np.quantile(sn["pixel_A"],alpha)
+        III = sn["pixel_A"] > A_crit
+        res.loc[III.index] = True
+        return res
+        
+    def filter_snippets_width(self,o):
+        alpha = self.kwargs.get("FILTER_WIDTH_QUANTILE", 1.)
+        # filter says true or false for each snippe
+        res = pd.Series(False,index=self._snippets.index)
+        II = self._snippets["true_order_number"] == o
+        sn = self._snippets[II]
+        sigma_crit = np.quantile(sn["pixel_sigma"],alpha)
+        
+        #vorsicht in m/s
+        
+        III = sn["pixel_A"] > sigma_crit
+        res.loc[III.index] = True
+        return res
+               
     def update_snippets(self):
 
         # estimate lamda for snippet
