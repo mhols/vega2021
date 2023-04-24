@@ -899,11 +899,11 @@ class Extractor_level_1:
     def bare_voie(self):
         return {1: self.bare_voie1, 2: self.bare_voie2, 3: None}
     
-    @property
+    @lazyproperty
     def I(self):
         return {o: self.beams[o].I for o in self.ORDERS}
 
-    @property
+    @lazyproperty
     def Ic(self):
         tmp = {}
         for o in self.ORDERS:
@@ -912,7 +912,7 @@ class Extractor_level_1:
             tmp[o] = res
         return tmp
 
-    @property
+    @lazyproperty
     def Il(self):
         tmp = {}
         for o in self.ORDERS:
@@ -920,6 +920,14 @@ class Extractor_level_1:
             res[self.I[o]] = True
             tmp[o] = res
         return tmp
+    
+    @lazyproperty
+    def Ibounds(self):
+        """
+        the pixel ranges of the beams
+        """
+        return {o: (self.I[o][0], self.I[o][-1]) for o, p in self.ORDERS.items()}
+
 
     @property
     def n(self):

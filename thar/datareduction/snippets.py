@@ -93,7 +93,7 @@ class Snippets:
     @property
     def atlasline(self):
         atlas_dict = {
-            'REDMAN': self.atlasline_redman,
+            # 'REDMAN': self.atlasline_redman,
             'UVES': self.atlasline_uves
         }
         key = self.kwargs.get('ATLAS_FOR_SNIPPETS', 'UVES')

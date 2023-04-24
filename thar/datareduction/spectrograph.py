@@ -236,11 +236,17 @@ class CCD2d:
         p = self.get_global_polynomial()
 
         self._global_polynomial =  DictOfMapsPerOrder(self, {
-                o: p for o in self.ORDERS
+                o: MonotoneFunction( 
+                    *self.extractor.lambda_range_voie1[o], 
+                    p, p.deriv(1))  
+                for o in self.ORDERS
             })
 
         self._final_map_x_ol_o = DictOfMapsPerOrder(self, {
-                o: p for o in self.ORDERS
+                o: MonotoneFunction( 
+                    *self.extractor.lambda_range_voie1[o], 
+                    p, p.deriv(1))
+                for o in self.ORDERS
             })
         
         # basic outlier removal / quality filter
@@ -639,6 +645,8 @@ class CCD2d:
         ol = (self._o * self._l).loc[I]
         x = self._x.loc[I]
 
+        ols = np.linspace(self._ol.min(), self._ol.max(), 10001)
+
         domain = [ol.min()*(1-ENLARGEMENT_FACTOR), 
                   ol.max()*(1+ENLARGEMENT_FACTOR)]
 
@@ -648,15 +656,16 @@ class CCD2d:
         for o in self.ORDERS:
             Io = (oo==o)  # boolean series True on order o
             try:
-                res[o] = np.polynomial.Polynomial.fit(
+                p = np.polynomial.Polynomial.fit(
                     ol[Io], x[Io],
                     domain=domain,
                     deg=min(n, max(0, sum(Io)-1)),
                     w = weight[Io]
                 )
+                res[o] = MonotoneFunction( *self.extractor.lambda_range_voie1[o], p, p.deriv(1))
             except Exception as ex:
                 print(o, ex)
-                res[o] = pglobal
+                res[o] = MonotoneFunction( *self.extractor.lambda_range_voie1[o], pglobal, pglobal.deriv(1))
         
         return DictOfMapsPerOrder(self, res)
 
@@ -722,6 +731,9 @@ class CCD2d:
                 for i, (nol, no) in enumerate(nolko)])
                      for o in self.all_order() 
         }
+        
+        res = {o: MonotoneFunction(*self.extractor.lambda_range_voie1[o], p, p.deriv(1)) for o, p in res.items()}
+
         return DictOfMapsPerOrder(self, res)
 
     def quality(self):

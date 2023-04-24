@@ -300,68 +300,114 @@ def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     return res.x
    
 
-class MonotoneSampledFunction:
+class MonotoneFunction:
     """
     operations on monotone relations x <--> y
+    the function are linearly extendet to +/- infinity
     """
-    def __init__(self, x, y):
-        assert np.all(np.diff(x) > 0), 'x values are growing'
-        assert np.all(np.diff(y) > 0) or np.all(np.diff(y) < 0), 'y values are not monotone'
-        assert len(x) == len(y), 'length differ'
-        assert len(x) >= 2, 'at least two points are needed' 
-        self.x = x
-        self.y = y
-        self.growing =  y[1]>y[0]
-        self.domain = 0, len(x)-1
-    
-    def range(self):
-        da, db = self.domain
-        return min(self.y[da], self.y[db]), max(self.y[da], self.y[db])
-    
-    def restrict_domain(self, ab):
-        a, b = ab
-        da, db = self.domain
-        assert a < b and a>=da and a<b and b > da and b <= db,  'not a subdomain'
-        self.domain = a, b
-
-    def restrict_range(self, ra, rb):
-        a = np.argmin(self.y >= ra)
-        b = np.argmax(self.y <= rb)
-
-        if abs(b-a) <= 2:
-            raise Exception ('Domain restriction too small')
-        
-        if a < b:
-            self.domain = a, b
-        else:
-            self.domain = b, a
-        
-    def inverse(self):
-        if self.growing:
-            return MonotoneSampledFunction(self.y, self.x)
-        else:
-            return MonotoneSampledFunction(self.y[::-1], self.x[::-1])
-    
-
-class MonotoneFunction(MonotoneSampledFunction):
-
     def __init__(self, a, b, f, df):
-        n = np.linspace(a, b, 10001, endpoint=True)
-        super(MonotoneFunction, self).__init__(n, f(n))
-        self._eval = f
-        self._evald = df
+        """
+        on the interval [a, b] the function f should be strictly monoton
+        """
+        assert a < b, 'a should be smaller than b'
+        self.f = f
+        self.df = df
+        self.a, self.b = a, b
+        self.ra, self.rb = min(f(a), f(b)), max(f(a), f(b))
+        
 
-    def deriv(self, x):
-        return self._evald(x)
+        # the toggle between the direct evaluation or its inverse
+        self._direct = True
 
+    @property
+    def is_growing(self):
+        return self.df(self.a + self.b) > 0    
+
+    @property
+    def domain(self):
+        return (self.a, self.b) if self._direct else (self.ra, self.rb)
+
+    @property 
+    def range(self):
+        return (self.ra, self.rb) if self._direct else (self.a, self.b)
+
+
+    def deriv(self):
+        if not self._direct:
+            raise Exception('for inverse function on yet implementet')
+        return self._df
+
+
+    def _der_at_lower_upper(self):
+        """
+        derivative at lower and larger part of range
+        """
+        return (self.df(self.a), self.df(self.b)) if self.is_growing else (self.df(self.b), self.df(self.a))
+
+
+    def _inverse(self, y):
+
+        r1, r2 = self.ra, self.rb
+        mi, ma = np.min(y), np.max(y)
+        d1, d2 = self._der_at_lower_upper()
+
+        
+        xmi = self.a + (mi - r1)/d1 if mi < r1 else self.a
+        xma = self.b + (ma - r2)/d2 if ma > r2 else self.b
+
+        n = 10001
+        x = np.linspace(xmi, xma, n)
+        f = self._call(x)
+
+        xx = np.interp(y, f, x) if self.is_growing else np.interp(y, f[::-1], x[::-1])
+
+        # some Newton iterations....
+        for i in range(10):
+            xx = xx - (self._call(xx) - y) / self._df(xx)
+        
+        return xx
+       
+    def _df(self, x):
+        a, b = self.a, self.b
+        dfa = self.df(a)
+        dfb = self.df(b)
+        I1, = np.where( x < a)
+        I2, = np.where( x > b)
+        I3, = np.where( np.logical_and (x >= a, x <= b))
+        res = np.zeros_like(x)
+        res[I3] = self.df(x[I3])
+        res[I1] = dfa
+        res[I2] = dfb
+
+        return res
+
+        
+    def _call(self, x):
+        a, b = self.a, self.b
+        dfa = self.df(a)
+        dfb = self.df(b)
+        I1, = np.where( x < a)
+        I2, = np.where( x > b)
+        I3, = np.where( np.logical_and (x >= a, x <= b))
+        res = np.zeros_like(x)
+        res[I3] = self.f(x[I3])
+        res[I1] = self.f(a) + dfa * ( x[I1] - a)
+        res[I2] = self.f(b) + dfb * ( x[I2] - b)
+
+        return res
+
+
+    @property
+    def inverse(self):
+        tmp = MonotoneFunction(self.a, self.b, self.f, self.df)
+        tmp._direct = not self._direct
+        return tmp
+
+        
     def __call__(self, x):
-        return self._eval(x)
-    
-    def inverse(self, range_samples=None):
-        if range_samples is None:
-            return super(MonotoneFunction, self).inverse()
-
+        return self._call(x) if self._direct else self._inverse(x)
    
+
 
 # The MIT License (MIT)
 # Copyright (c) 2016 Vladimir Ignatev
@@ -399,12 +445,16 @@ def progress(count, total, status=''):
 if __name__ == '__main__':
 
     import matplotlib.pyplot as plt    
-    p = np.polynomial.Polynomial([0,0,0,1])
+    p = np.polynomial.Polynomial([-1,-0.5, -0.3])
 
-    c = MonotonePolynomial(p, 2, 8)
-    x = np.linspace(2, 8, 1000)
-    plt.plot(x, c(x))
-    ip = c.inverse()
+    pp = MonotoneFunction(0,4, p, p.deriv(1))
+    pi = pp.get_inverse()
 
-    plt.plot(x, ip(x))
+    x = np.linspace(-1, 5, 1000)
+    y = pp(x)
+    #plt.plot(x, pp(x))
+
+    plt.plot(x, pi(pp(x))-x)
+    plt.plot(x, pp(pi(x))-x)
+
     plt.show()
