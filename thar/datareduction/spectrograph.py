@@ -74,7 +74,7 @@ def to_list(x):
     else:
         return [x]
 
-def inverse_map(p):   
+def inverse_map(p, domain=None):   
     nn = 10001
     """
     mi, ma = p.domain
@@ -83,7 +83,9 @@ def inverse_map(p):
     yy = pseudo_inverse(y)
     return interpolate_extend(yy, x)
     """
-    mi, ma = p.domain
+    if domain is None:
+        domain = p.domain
+    mi, ma = domain
     x = np.linspace(mi, ma, nn, endpoint=True)
     der = p.deriv(1)
     ## locate connected region where the functions monoton and hence has an inverse.
@@ -146,8 +148,8 @@ class DictOfMapsPerOrder(UserDict):
             {o: p.deriv() for o, p in self.items()}
         )    
 
-    def _inverse_map(self, p, factor = 1.0):   
-        nn = 10001
+    def _inverse_map(self, p, factor = 1.0, I=None, domain=None):   
+        nn = 100001
         """
         mi, ma = p.domain
         x = np.linspace(mi, ma, nn, endpoint=True)
@@ -157,26 +159,38 @@ class DictOfMapsPerOrder(UserDict):
         """
         if p is None:
             return None
-        mi, ma = p.domain
+        if domain is None:
+            mi, ma = p.domain
+        else:
+            pass
+        mi, ma = domain
+        
         x = np.linspace(mi, ma, nn, endpoint=True)
         y = p(x)
+        n = np.arange(self.ccd.NROWS)
+        a, b = I
+        J = (a <= y & y <= b)
+
         try:
-            c, grow, decr = monotoneous_chunks(y)
+            c, grow, decr = monotoneous_chunks(y[J])
         except:
             return None
         a, b = c[0]
-        return interpolate_extend(y[a:b+1], factor * x[a:b+1])
+        return interpolate_extend(y[J][a:b+1], factor * x[J][a:b+1])
+        #return interpolate_extend(y, factor * x)
     
     def inverse_map(self):   
         return DictOfMapsPerOrder(
             self.ccd,
-            { o: self._inverse_map(p, factor=1) for o, p in 
+            { o: self._inverse_map(p, factor=1, 
+                        domain = o * self.ccd.extractor.lambda_range_voie1(o)) for o, p in 
                 self.items()},
         )
 
     def inverse_o_map(self): 
         return DictOfMapsPerOrder(self.ccd, 
-            { o: self._inverse_map(p, factor = 1./o) for o,p in self.items()
+            { o: self._inverse_map(p, factor = 1./o,
+                domain = o * self.ccd.extractor.lambda_range_voie1(o)) for o,p in self.items()
             }
         )        
 
@@ -203,36 +217,37 @@ class CCD2d:
     """
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
-    def __init__(self, data, **kwargs):
+    def __init__(self, extractor, data, **kwargs):
         self.kwargs = kwargs  # saving for later use
-       
-        self._data =  data.copy()    # reference data
+        self.extractor = extractor
+        self._data =  data.copy()    # data coming from snippets
         self._mdata = None   # matching data
-        self.kwargs = kwargs  # saving for later use
-
         self.ORDERS = self.kwargs['ORDERS']
-
         self._data.loc[self._data.index, 'selected'] = True # we are using only this subset
-        # self._mdata['selected'] = True # matching data
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
         self._data.loc[self._data.index, 'total_flux'] = 1.0* total_flux
-
-        #if self.kwargs.get('bootstrap_data', 'True')=='True':
-        # self.bootstrap_data()   # TODO move to snippets or extract
-
         self._map_1D_x_ol_o = None
         self._map_1D_ol_x_o = None
         self._map_2D_x_ol_o = None
         self._map_2D_ol_x_o = None
         self._final_map_l_x_o = None
+
+        # as default start polynome use a global polynomial
+        p = self.get_global_polynomial()
+
+        self._global_polynomial =  DictOfMapsPerOrder(self, {
+                o: p for o in self.ORDERS
+            })
+
+        self._final_map_x_ol_o = DictOfMapsPerOrder(self, {
+                o: p for o in self.ORDERS
+            })
         
         # basic outlier removal / quality filter
-        print('before outlier removal', self.ndata)
         self._outlier_removal()
-        print('after outlier removal left ', self.ndata)
+        #self.sigma_clipping_global_polynomial()
         self.sigma_clipping_polynomial_order_by_order()
         self.sigma_clipping_2D_polynomial()
-        self._report_fitresult()
         
     @property
     def NROWS(self):
@@ -253,11 +268,165 @@ class CCD2d:
         epsilon = self.kwargs['epsilon_sigma_bootstrap']
         self._data = self._data[self._sigma < epsilon].copy().reset_index(drop=True)
 
-    def clear_index(self):
-        """
-        makes all data selected again
-        """
-        self._data['selected'] = True
+        #dx = self._global_polynomial(self._ol, self._o) - self._x
+        #I = np.abs(dx * C_LIGHT * self._dldx / self._l) < 1000 * M/S
+        #self._data = self._data[I].copy().reset_index(drop=True)
+        
+    # clipping procedures
+    def _clippings(self):
+
+
+        clip = self.kwargs.get('CLIPMETHOD', 'quantile')
+        alpha = self.kwargs.get('CLIPTHRESHOLD', 0.7)
+
+        def clipp_max_vrad(r):
+            maxvrad = self.kwargs.get('CLIP_MAX_VRAD', 1000 * M/S)
+            return np.abs(C_LIGHT * r * self._dldx / self._l) < maxvrad
+        
+        def clip_quantile(r):
+            I = clipp_max_vrad(r)
+            absr = np.abs(r)
+            return np.logical_and(I, absr < np.quantile(absr, alpha))
+
+        def clip_quantile_order_by_order(r):
+            res = pd.Series(False, self._data.index)
+            absr = np.abs(r)
+            I = clipp_max_vrad(r)
+            for o in self.ORDERS:
+                II = self.index_order_unselected(o)
+                try:
+                    res.loc[II] = np.logical_and(I, absr.loc[II] < np.quantile(absr.loc[II], alpha))
+                except:
+                    print('in order ', o, 'fall back to default')
+                    res.loc[II] = False
+            return res
+
+        def clip_threshold(r):
+            I = clipp_max_vrad(r)
+            absr = np.abs(r)
+            return np.logical_and(I, absr < alpha)
+
+        def clip_noclip(r):
+            return np.abs(r) > -1.0
+
+        clippings = {
+            'quantile': clip_quantile,
+            'quantile_order_by_order': clip_quantile_order_by_order,
+            'threshold': clip_threshold,
+            'noclip': clip_noclip,
+            'maxvrad': clipp_max_vrad,
+        }
+
+        return clippings[clip]
+
+    # mismaches
+    def _mismatches(self):
+        mismatch = self.kwargs.get('MISMATCH', 'deltax')
+
+        mismatches = {
+            'deltax': lambda p: self._x - p(self._ol, self._o),
+            'deltavr': lambda p: (self._x - p(self._ol, self._o)) * C_LIGHT * self._dldx / self._l,
+            'chi2': lambda p: (self._x - p(self._ol, self._o))/self._sigma,
+        }
+
+        return mismatches[mismatch]       
+
+
+    def _fit_weight(self):  ## TODO: change name to fit_weight_x_ol_o
+        
+        tmp =self.kwargs.get('fitweight', 'sigma') 
+
+
+        if (tmp == 'equal'):
+            weight = pd.Seris(1.0, index=self._data.index) 
+        
+        elif (tmp == 'sigma'):
+            weight = 1/self._sigma
+        
+        elif (tmp == 'vrad'):
+            weight = pd.Series(1.0, index=self._data.index)
+            for o in self.all_order():
+                I = self.index_order_unselected(o)
+                weight.loc[I] = C_LIGHT * self._dldx.loc[I] / self._l.loc[I]
+
+        elif (tmp == "flux"):
+            weight = np.sqrt(self._data['total_flux'])
+
+        else:
+            raise Exception('no such fitweight' +tmp )
+
+        return weight      
+
+    def sigma_clipping_polynomial_order_by_order(self):
+
+        w = self._fit_weight()
+
+        fitmachine = lambda I: self._fit_polynomial_order_by_order(
+            weight=w[I], I=I
+        )
+
+        mismatchmachine = self._mismatches()
+
+        clipmachine = self._clippings()
+
+        p, I, res, nclip = sigma_clipping_general_map(
+            fitmachine,
+            mismatchmachine,
+            clipmachine,
+            I0 = self._data.index   # start from all points
+        )
+
+
+        self._data.loc[:, 'selected_order_by_order'] = False
+        self._data.loc[I, 'selected_order_by_order'] = True
+
+        print('stable clipping after ', nclip, 'operations')
+         
+
+        self._map_1D_x_ol_o = p
+        self._map_1D_ol_x_o = p.inverse_map()
+        self._final_map_x_ol_o = p
+        self._final_map_l_x_o = p.inverse_o_map()
+
+        self._data["x_1D_ol_o"] = self._map_1D_x_ol_o(self._ol, self._o)
+        self._data["l_1D_x_o"] = self._map_1D_ol_x_o(self._x, self._o) / self._o
+        self._data["dvrad_1D"] = C_LIGHT * (self._data['x_1D_ol_o'] - self._x) * self._dldx /self._l/(M/S)
+
+        return p
+
+    def sigma_clipping_2D_polynomial(self):
+        w = self._fit_weight()
+
+        # w = self._data['pixel_max_intens']**0.5
+
+        fitmachine = lambda I: self._fit_2d_polynomial(
+            weight=w[I], I=I
+        )
+
+        mismatchmachine = self._mismatches()        
+
+        clipmachine = self._clippings()
+
+        p, I, res, nclip = sigma_clipping_general_map(
+            fitmachine,
+            mismatchmachine,
+            clipmachine,
+            I0 = self._data.index
+        )
+
+
+        self._data.loc[:, 'selected'] = False
+        self._data.loc[I, 'selected'] = True
+
+        print('stable clipping after ', nclip, 'operations')
+         
+        self._map_2D_x_ol_o = p
+        self._map_2D_ol_x_o = p.inverse_map()
+        self._final_map_x_ol_o = p
+        self._final_map_l_x_o = p.inverse_o_map()
+        self._data["x_2D_ol_o"] = self._map_2D_x_ol_o(self._ol, self._o)
+        self._data["l_2D_x_o"] = self._map_2D_ol_x_o(self._x, self._o) / self._o
+        self._data["dvrad_2D"] = C_LIGHT * (self._data['x_2D_ol_o'] - self._x) * self._dldx /self._l/(M/S)
     
     @property
     def ndata(self):
@@ -285,269 +454,6 @@ class CCD2d:
     @property
     def noverlap(self):
         return len(self.mo)
-    
-
-    def _clippings(self):
-
-        clip = self.kwargs.get('CLIPMETHOD', 'quantile')
-        alpha = self.kwargs.get('CLIPTHRESHOLD', 0.8)
-
-        
-        clippings = {
-            'quantile': lambda r: np.abs(r) < np.quantile(np.abs(r), alpha),
-            'sigma': lambda r: np.abs(r) < alpha*np.std(r),
-            'chi2': lambda r: np.abs(r) < alpha*np.std(r) / self._sigma[r.index]
-        }
-
-        return clippings[clip]
-
-    def sigma_clipping_global_polynomial(self):
-
-        w = self._fit_weight()
-
-        fitmachine = lambda I: Polynomial.fit(self._ol[I], self._x[I], w=w[I], deg=6)
-        clipmachine = self._clippings()
-
-        p, I, res, nclip = sigma_clipping_general_map(
-            fitmachine,
-            lambda p: self._x - p(self._ol),
-            clipmachine,
-            I0 = self._data.index
-        )
-
-
-        self._data.loc[:, 'selected'] = False
-        self._data.loc[I.index, 'selected'] = True
-
-        print('stable clipping after ', nclip, 'operations')
-         
-        return DictOfMapsPerOrder(
-            self, { o: p for o in self.all_order()}
-        )
-
-    def sigma_clipping_polynomial_order_by_order(self):
-
-        w = self._fit_weight()
-
-        fitmachine = lambda I: self._fit_polynomial_order_by_order(
-            weight=w[I], I=I
-        )        
-
-        clipmachine = self._clippings()
-
-        p, I, res, nclip = sigma_clipping_general_map(
-            fitmachine,
-            lambda p: self._x - p(self._ol, self._o),
-            clipmachine,
-            I0 = self._data.index
-        )
-
-
-        self._data.loc[:, 'selected'] = False
-        self._data.loc[I, 'selected'] = True
-
-        print('stable clipping after ', nclip, 'operations')
-         
-
-        self._map_1D_x_ol_o = p
-        self._map_1D_ol_x_o = p.inverse_map()
-
-        return p
-
-    def sigma_clipping_2D_polynomial(self):
-        w = self._fit_weight()
-
-        fitmachine = lambda I: self._fit_2d_polynomial(
-            weight=w[I], I=I
-        )        
-
-        clipmachine = self._clippings()
-
-        p, I, res, nclip = sigma_clipping_general_map(
-            fitmachine,
-            lambda p: self._x - p(self._ol, self._o),
-            clipmachine,
-            I0 = self._data.index
-        )
-
-
-        self._data.loc[:, 'selected'] = False
-        self._data.loc[I, 'selected'] = True
-
-        print('stable clipping after ', nclip, 'operations')
-         
-        self._map_2D_x_ol_o = p
-        self._map_2D_ol_x_o = p.inverse_map()
-        self._final_map_l_x_o = p.inverse_o_map()
-
-       
-        """
-        # sigma clipping for x=P(ol) (i.e. 1D) and x = P(ol, o) (i.e. 2D)
-        def _get_threshold(epsilon, fit_now):
-            d_fit_now = {o: p.deriv(1) for o, p in fit_now.items() }
-            dxdl = self._o * np.abs(self._eval_order_by_order_full(d_fit_now, self._ol))
-
-            # how to define the clipping
-            if self.kwargs['clipp_method'] == 'pixerror':   # absolute error in pixel
-                thd = 1 * epsilon
-            elif self.kwargs['clipp_method'] == 'rel_std':  # relative error in std of each pixel
-                thd = self._sigma * epsilon
-            elif self.kwargs['clipp_method'] == 'vrad':     # radial velocity uncertainty
-                thd = self._l * dxdl * epsilon / C_LIGHT
-            else:
-                raise Exception ('no such method') 
-                # thd = epsilon * np.std(res)
-            return thd
-
-        # order by order fitting first
-        self._fit_global_polynomial(full=True)  ## just to have a start
-        epsilon = self.kwargs['epsilon_sigma_clipp']
-        thd = epsilon 
-        self._data['selected'] = True   ## start with all data
-        fit_now = self._fit_polynomial_order_by_order(weight=1./self._sigma) # fit on selected data set
-
-        for i in range(self.kwargs['n_sigma_clipp']):
-            res = self._eval_order_by_order_full(fit_now, self._ol) - self._x # give all points a chance
-            res = np.abs(res)
-            # res = np.abs(res) / self._sigma
-
-            # clipping 
-            #thd = _get_threshold(epsilon, fit_now)
-            thd = np.quantile(res,0.8)
-            I = np.abs(res)<=thd
-
-            if np.all(I==self._data['selected']):
-                print('\nstable 1D clipping after {} iterations'.format(i))
-                break
-            self._data.loc[:, 'selected'] = I[:]
-            fit_now = self._fit_polynomial_order_by_order(weight=self._fit_weight(fit_now)) # fit on selected data set
-
-        epsilon=self.kwargs['epsilon_sigma_clipp_2d']
-
-        fit_now2 = self._fit_2d_polynomial(weight=self._fit_weight(fit_now))
-        for i in range(self.kwargs['n_sigma_clipp_2d']):
-            
-            res = self._eval_order_by_order_full(fit_now2, self._ol) - self._x
-            res = np.abs(res)
-            # res /= self._sigma
-            #thd = _get_threshold(epsilon, fit_now2)
-            thd = np.quantile(res,0.8)
-            
-            I = np.abs(res)<=thd
-
-            if np.all(I==self._data['selected']):
-                print('stable 2D clipping after {} iterations'.format(i))
-                break
-
-            self._data.loc[:, 'selected'] = I[:]
-            fit_now2 = self._fit_2d_polynomial(weight=self._fit_weight(fit_now2))
-
-    def sigma_clipping(self):
-        self._map_1D_x_ol_o = fit_now #self._fit_polynomial_order_by_order(weight=self._fit_weight(fit_now2)) 
-        self._map_2D_x_ol_o = fit_now2
-        self._map_1D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_1D_x_ol_o.items()}
-        self._map_2D_ol_x_o = {o: inverse_map(p) for o, p in  self._map_2D_x_ol_o.items()}
-
-        n = np.arange(self.NROWS)
-        self._final_map_l_x_o = {o: 
-                interp1d( n, self._map_2D_ol_x_o[o](n)/o, fill_value='extrapolate')
-                  for o in self.ORDERS}
-
-        self._report_fitresult()
-    """
-    def sigma_clipping_l_x_o(self):
-        # sigma clipping for l=P_o(x)/o (i.e. 1D) and l = P(ol, o)/o (i.e. 2D)
-        
-        def _get_threshold(epsilon):
-            dldx = np.abs(self.eval_dpolynomial_dl(self._o*self._l, self._o))
-            # how to define the clipping
-            if self.kwargs['clipp_method'] == 'pixerror':   # absolute error in pixel
-                thd = 1 * epsilon
-            elif self.kwargs['clipp_method'] == 'rel_std':  # relative error in std of each pixel
-                thd = self._sigma * epsilon
-            elif self.kwargs['clipp_method'] == 'vrad':     # radial velocity uncertainty
-                thd = self._l * dxdl * epsilon / C_LIGHT
-            else:
-                raise Exception ('no such method') 
-                # thd = epsilon * np.std(res)
-            return thd
-
-
-        # order by order fitting first
-        epsilon = self.kwargs['epsilon_sigma_clipp']
-        thd = epsilon 
-        self._data['selected'] = True
-        o = self.o
-        l = self.l
-        x = self.x
-
-        for i in range(self.kwargs['n_sigma_clipp']):
-
-            self.fit_polynomial_order_by_order()
-            res = self.eval_polynomial(self._o*self._l, self._o) - self._x
-
-           # clipping 
-            thd = _get_threshold(epsilon)
-            I = np.abs(res)<=thd
-
-            if np.all(I==self._data['selected']):
-                print('stable clipping after {} iterations'.format(i))
-                break
-            self._data.loc[:, 'selected'] = I[:]
-
-        epsilon=self.kwargs['epsilon_sigma_clipp_2d']
-
-        for i in range(self.kwargs['n_sigma_clipp_2d']):
-            self.fit_2d_polynomial()
-            res = self.eval_polynomial(self._o*self._l, self._o) - self._x
-            thd = _get_threshold(epsilon)
-            I = np.abs(res)<=thd
-
-            if np.all(I==self._data['selected']):
-                print('stable clipping after {} iterations'.format(i))
-                break
-
-            self._data.loc[:, 'selected'] = I[:]
-
-        self._report_fitresult()
-
-    def delta_lam_over_lam_factor(self, l, o):
-        """
-        dl / l = (dl / dx)  dx / l = ((dx / dl)^{-1} / l) * dx
-        at o we have x = p(ol) => dx/dl = p'(ol) * o
-        returns (dx / dl)^{-1} * x / l 
-        """
-        p = self.polynomial_fit[o]
-        dp = p.deriv(1)
-        factor = (o * dp(o*l))**(-1) / l
-        return self.kwargs['C_LIGHT'] * factor
-
-    def delta_l_over_l(self):
-        lmaps = self.lambda_maps()
-        return np.array([(lmaps[o](x)/l-1) for o, l,x in zip(self.o, self.l, self.x)])
-
-    def delta_pixel(self):
-        return self.eval_polynomial(self.ol, self.o) - self.x
-
-    def bare_x_to_lambda(self, x, o):
-        """
-        solution of implicit equation for given order to
-        recover lambda from x
-        """
-        ol = self.o * self.l
-        p = np.polyfit(self.x, ol, 1)
-        ol0 = np.polyval(p, x)
-        i=1
-        while (self.P(ol0-i,o)-x)*(self.P(ol0+i,o)-x)>0:
-            i+=1
-        lam = bisect(
-            lambda ol: self.P(ol, o)-x,
-            ol0-i,
-            ol0+i,
-        ) / o
-
-        return lam
-
     @property
     def _x(self):
        return self._data['pixel_mean']
@@ -568,6 +474,32 @@ class CCD2d:
     def _sigma(self):
         return self._data['pixel_std']    
 
+    @property
+    def dll(self):
+        lmaps = self._final_map_l_x_o
+        return 1 - lmaps(self.x, self.o)/self.l
+
+    @property
+    def _dll(self):
+        lmaps = self._final_map_l_x_o
+        return 1 - lmaps(self._x, self._o)/self._l
+    
+    @property
+    def dxdl(self):
+        return self.o * self._global_polynomial.deriv(self.ol, self.o)
+
+    @property
+    def dldx(self):
+        return 1./ self.dxdl
+
+    @property
+    def _dxdl(self):
+        return self._o * self._global_polynomial.deriv(self._ol, self._o)
+    
+    @property
+    def _dldx(self):
+        return 1. / self._dxdl 
+   
     @property
     def _mx(self):
        return self._mdata['pixel_mean_o']
@@ -687,68 +619,6 @@ class CCD2d:
             raise Exception ('problem fitting global polynomial\n')
         return p
 
-    #def _fit_global_polynomial(self, full=False):
-    #    """
-    #    make frequmap a global polynomial
-    #    """
-    #    p = self.get_global_polynomial(full=full)
-    #    self.polynomial_fit = {
-    #        o: p 
-    #        for o in self.all_order()
-    #    }
-
-    def _fit_weight(self, p=None):  ## TODO: change name to fit_weight_x_ol_o
-        
-        tmp =self.kwargs.get('fitweight', 'sigma') 
-        
-        if (tmp == 'equal'):
-            weight = np.ones(self._ndata) 
-        
-        elif (tmp == 'sigma'):
-            weight = 1/self._sigma
-        
-        elif (tmp == 'vrad'):
-            weight = np.ones(self._ndata)
-            dp = p.deriv(self._ol, self._o)
-            oldp = self._ol * dp
-            for o in self.all_order():
-                I = self.index_order_unselected(o)
-                weight[I] = C_LIGHT / (np.abs(oldp[I]))
-
-        elif (tmp == "flux"):
-            weight = np.sqrt(self._data['total_flux'])
-
-        else:
-            raise Exception('no such fitweight' +tmp )
-        return weight      
-
-    #def _eval_order_by_order_full(self, dofmaps, xol):
-    #    """
-    #    evaluates a dictionary of maps at its arguments
-    #    """
-    #    tmp = np.zeros(self.ndata_total)
-    #    for o in self.all_order():
-    #        I = self.index_order_unselected(o)
-    #        tmp[I] = dofmaps[o](xol[I])
-    #    return tmp
-
-    #def get_polynomial_fit_of_order(self, o, weight=None, full=False):
-    #    I = self.index_order_unselected(o) if full else self.index_order(o)
-    #    if weight is None:
-    #        weight = 1./self._sigma if full else 1./self.sigma
-    #    w = weight[I]
-    #    x = self._x[I]  if full else self.x[I]
-    #    l = self._l[I]  if full else self.l[I]
-    #    n = self.kwargs['order_ol']
-    #    return np.polynomial.chebyshev.Chebyshev.fit(
-    #                o*l, x,
-    #                domain= (np.min(o*l)*0.99, np.max(o*l)*1.01),
-    #                deg=n,
-    #                w = w
-    #            )
-
-
-
     def _fit_polynomial_order_by_order(self, weight=None, I = None):
         """
         x = P_o(ol)
@@ -772,22 +642,21 @@ class CCD2d:
         domain = [ol.min()*(1-ENLARGEMENT_FACTOR), 
                   ol.max()*(1+ENLARGEMENT_FACTOR)]
 
-        orders = self.all_order()
 
-        #pglobal = self.get_global_polynomial()
+        pglobal = self.get_global_polynomial()
 
-        for o in orders:
+        for o in self.ORDERS:
             Io = (oo==o)  # boolean series True on order o
             try:
-                res[o] = np.polynomial.chebyshev.Chebyshev.fit(
+                res[o] = np.polynomial.Polynomial.fit(
                     ol[Io], x[Io],
                     domain=domain,
                     deg=min(n, max(0, sum(Io)-1)),
                     w = weight[Io]
                 )
             except Exception as ex:
-                print(ex)
-                res[o] = None
+                print(o, ex)
+                res[o] = pglobal
         
         return DictOfMapsPerOrder(self, res)
 
@@ -855,51 +724,28 @@ class CCD2d:
         }
         return DictOfMapsPerOrder(self, res)
 
-
-    def _report_fitresult(self):
-        """
-        updates the self._data field with the fit results
-        """
-        self._data["x_1D_ol_o"] = self._map_1D_x_ol_o(self._ol, self._o)
-        self._data["x_2D_ol_o"] = self._map_2D_x_ol_o(self._ol, self._o)
-        self._data["l_1D_x_o"] = self._map_1D_ol_x_o(self._x, self._o) / self._o
-        self._data["l_2D_x_o"] = self._map_2D_ol_x_o(self._x, self._o) / self._o
-        self._data["dvrad_1D"] = C_LIGHT * ((self._data['l_1D_x_o']/self._l) -1)/(M/S)
-        self._data["dvrad_2D"] = C_LIGHT * ((self._data['l_2D_x_o']/self._l) -1)/(M/S)
-
     def quality(self):
+        J = self._data['selected_order_by_order']
         totalrms2D=np.sqrt(np.mean(self.data["dvrad_2D"]**2))
-        totalrms1D=np.sqrt(np.mean(self.data["dvrad_1D"]**2))
+        totalrms1D=np.sqrt(np.mean(self._data.loc[J, "dvrad_1D"]**2))
         order_rms2D=[]
         order_rms1D=[]
         nlines=[]
+        nlines_1D=[]
         for o in self.all_order():
             I=self.index_order(o)
+            JJ = self.index_order_unselected(o)
             nlines.append(np.sum(I))
-            order_rms2D.append(np.sqrt(np.mean(self.data[I]["dvrad_2D"]**2)))
-            order_rms1D.append(np.sqrt(np.mean(self.data[I]["dvrad_1D"]**2)))
+            nlines_1D.append(np.sum(JJ*J))
+            order_rms2D.append(np.sqrt(np.mean(self.data.loc[I, "dvrad_2D"]**2)))
+            order_rms1D.append(np.sqrt(np.mean(self._data.loc[J*JJ, "dvrad_1D"]**2)))
         return pd.DataFrame({'true_order_number': self.all_order(), 
-                             'nlines': nlines, 
+                             'nlines_1D':  nlines_1D,
+                             'nlines_2D': nlines, 
                              'rms_1D': order_rms1D,
                              'rms_2D': order_rms2D}),\
                             totalrms1D, totalrms2D
    
-    def get_lambda_list(self):
-        """
-        returns lambda_mapping of 2D polynomial
-        """
-        res = np.zeros(len(self.all_order())*self.NROWS)
-        i = 0
-        x = np.arange(self.NROWS)
-        for i, o in enumerate(self.all_order()):
-            ip = self._map_2D_ol_x_o[o]
-            res[i*self.NROWS:(i+1)*self.NROWS] = ip(x)/o 
-        return np.array(res)
-
-    def get_lambda_map(self):
-        tmp = self.get_lambda_list()
-        return {o: tmp[i*self.NROWS:(i+1)*self.NROWS] for i, o in enumerate(self.all_order())}
-
 
 class FP:
     """

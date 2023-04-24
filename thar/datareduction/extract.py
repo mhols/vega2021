@@ -913,6 +913,15 @@ class Extractor_level_1:
         return tmp
 
     @property
+    def Il(self):
+        tmp = {}
+        for o in self.ORDERS:
+            res = np.full(self.NROWS, False)
+            res[self.I[o]] = True
+            tmp[o] = res
+        return tmp
+
+    @property
     def n(self):
         return np.arange(self.NROWS)
 
@@ -1359,12 +1368,12 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
     @lazyproperty
     def ccd_voie1(self):
         self.kwargs["ORDERS"] = self.ORDERS
-        return spectrograph.CCD2d(self.snippets_voie1.sn, **self.kwargs)
+        return spectrograph.CCD2d(self, self.snippets_voie1.sn, **self.kwargs)
     
     @lazyproperty
     def ccd_voie2(self):
         self.kwargs["ORDERS"] = self.ORDERS
-        return spectrograph.CCD2d(self.snippets_voie2.sn,  **self.kwargs)
+        return spectrograph.CCD2d(self, self.snippets_voie2.sn,  **self.kwargs)
 
     def ccd_voie(self):
         return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
@@ -1397,6 +1406,13 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         self.update_lambdamap()
 
 
+    def clear_ccds(self):
+        del self.ccd_voie1
+        del self.ccd_voie2
+        del self.pix_to_lambda_map_voie1
+        del self.pix_to_lambda_map_voie2
+        self.logging('lambda map back to level 2')
+        self.end_logging()
                     
 
     def __del__(self):

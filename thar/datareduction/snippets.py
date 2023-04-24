@@ -103,9 +103,7 @@ class Snippets:
 
 
     def lambda_range(self, o):
-        return  self.extractor.pix_to_lambda_map_voie[self.voie][o](
-            self.extractor.beams[o].pixel_range
-        )
+        return  self.extractor.lambda_range_voie1(o)
 
     def atlasext(self, o):
         """
@@ -201,10 +199,7 @@ class Snippets:
         res[I] = v[I]
         return util.clean_nans(res)
     
-    def clean_voie(self, o):
-        pass
-
-    def _match_snippets(self, o):
+    def _match_snippets_old(self, o):
         """
         central part of algorithm. Here we construct tha match bewteen
         snippets and catalog lines
@@ -234,8 +229,6 @@ class Snippets:
                         np.quantile(atlasext.relative_intensity, 1 - NCATAL / n)].copy()
             except:
                 pass
-
-
 
 
         # take  
@@ -296,8 +289,8 @@ class Snippets:
                 intens = self._snippets.loc[idx, 'bare_voie']
                 mu, s, sample = util.bootstrap_estimate_location(intens, **self.kwargs)
 
-                self._snippets.loc[idx,'pixel_mean'] = self._snippets.loc[idx, 'left']+mu
-                self._snippets.loc[idx,'pixel_std'] = s
+                self._snippets.loc[idx, 'pixel_mean'] = self._snippets.loc[idx, 'left']+mu
+                self._snippets.loc[idx, 'pixel_std'] = s
                 self._snippets.loc[idx, 'bootstraped'] = True
         
 
@@ -326,14 +319,6 @@ class Snippets:
         self.extractor.end_logging()
 
         self._snippets = tmp
-
-        #self._snippets['goodsnippet'] = False
-        #self._snippets['ref_lambda'] = -1.0
-        #self._snippets['catalog_index'] = -1
-        #self._snippets['selected'] = True
-        #self._snippets['total_flux'] = 0.0
-        #self._snippets['bootstraped'] = False
-        #self._snippets['gaussfit'] = False
 
         return self.update_snippets()
 
@@ -378,9 +363,14 @@ class Snippets:
         res.loc[III[III].index] = True
         return res
         
-    def snippet_match_tor(self,o):
+    def _match_snippets(self, o):
+        return self._snippet_match_tor(o)
+
+    def _snippet_match_tor(self,o):
         #selection of uves atlas lines in order o
-        cu=self.atlasline_uves
+        #cu=self.atlasline_uves
+        
+        cu = self.atlasext(o)
         lamlimits=self.extractor.lambda_range_voie1(o)
        
         I=(cu["ref_lambda"] > lamlimits[0]) & (cu["ref_lambda"] < lamlimits[1])
@@ -389,7 +379,6 @@ class Snippets:
         #selection of snippets in order o, after filter with intensity
         I = self.filter_snippets_max_amplitude(o)
         selection=self._snippets.loc[I]
-        print(selection)
     
         vrange = self.kwargs["VRANGE"]
         
@@ -403,7 +392,6 @@ class Snippets:
             if sum(J) != 1:
                 continue
             ind=J[J].index[0]
-            print(ind)
             self._snippets.loc[ind,"goodsnippet"] = True
             self._snippets.loc[ind,'ref_lambda'] = c
             self._snippets.loc[ind,'catalog_index'] = int(i)        

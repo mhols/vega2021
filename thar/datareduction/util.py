@@ -230,7 +230,7 @@ def monotoneous_chunks(v):
 def sigma_clipping_general_map(fitmachine, lossmachine, clipmachine, I0):
     """
     fitmachine (x, y, I) -> fitted 
-    clipmachine(residuums) -> indices retained
+    clipmachine(residuums, fitted) -> indices retained
     """
     NMAX = 200
 
@@ -300,6 +300,69 @@ def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     return res.x
    
 
+class MonotoneSampledFunction:
+    """
+    operations on monotone relations x <--> y
+    """
+    def __init__(self, x, y):
+        assert np.all(np.diff(x) > 0), 'x values are growing'
+        assert np.all(np.diff(y) > 0) or np.all(np.diff(y) < 0), 'y values are not monotone'
+        assert len(x) == len(y), 'length differ'
+        assert len(x) >= 2, 'at least two points are needed' 
+        self.x = x
+        self.y = y
+        self.growing =  y[1]>y[0]
+        self.domain = 0, len(x)-1
+    
+    def range(self):
+        da, db = self.domain
+        return min(self.y[da], self.y[db]), max(self.y[da], self.y[db])
+    
+    def restrict_domain(self, ab):
+        a, b = ab
+        da, db = self.domain
+        assert a < b and a>=da and a<b and b > da and b <= db,  'not a subdomain'
+        self.domain = a, b
+
+    def restrict_range(self, ra, rb):
+        a = np.argmin(self.y >= ra)
+        b = np.argmax(self.y <= rb)
+
+        if abs(b-a) <= 2:
+            raise Exception ('Domain restriction too small')
+        
+        if a < b:
+            self.domain = a, b
+        else:
+            self.domain = b, a
+        
+    def inverse(self):
+        if self.growing:
+            return MonotoneSampledFunction(self.y, self.x)
+        else:
+            return MonotoneSampledFunction(self.y[::-1], self.x[::-1])
+    
+
+class MonotoneFunction(MonotoneSampledFunction):
+
+    def __init__(self, a, b, f, df):
+        n = np.linspace(a, b, 10001, endpoint=True)
+        super(MonotoneFunction, self).__init__(n, f(n))
+        self._eval = f
+        self._evald = df
+
+    def deriv(self, x):
+        return self._evald(x)
+
+    def __call__(self, x):
+        return self._eval(x)
+    
+    def inverse(self, range_samples=None):
+        if range_samples is None:
+            return super(MonotoneFunction, self).inverse()
+
+   
+
 # The MIT License (MIT)
 # Copyright (c) 2016 Vladimir Ignatev
 #
@@ -334,10 +397,14 @@ def progress(count, total, status=''):
 
 
 if __name__ == '__main__':
-    pass
-    #d = np.loadtxt('voi35.dat')
-    #l = np.arange(len(d))
-    #p = background(l,d,nnodes=25,q=0.4, qq=0.6, qqq=0.)
 
-    #plot(l, d)
-    #plot(l, p(l))
+    import matplotlib.pyplot as plt    
+    p = np.polynomial.Polynomial([0,0,0,1])
+
+    c = MonotonePolynomial(p, 2, 8)
+    x = np.linspace(2, 8, 1000)
+    plt.plot(x, c(x))
+    ip = c.inverse()
+
+    plt.plot(x, ip(x))
+    plt.show()
