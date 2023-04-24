@@ -314,7 +314,6 @@ class MonotoneFunction:
         self.df = df
         self.a, self.b = a, b
         self.ra, self.rb = min(f(a), f(b)), max(f(a), f(b))
-        
 
         # the toggle between the direct evaluation or its inverse
         self._direct = True
@@ -336,7 +335,7 @@ class MonotoneFunction:
         if not self._direct:
             raise Exception('for inverse function on yet implementet')
         return self._df
-
+    
 
     def _der_at_lower_upper(self):
         """
@@ -397,12 +396,13 @@ class MonotoneFunction:
         return res
 
 
-    @property
     def inverse(self):
         tmp = MonotoneFunction(self.a, self.b, self.f, self.df)
         tmp._direct = not self._direct
         return tmp
 
+    def deriv(self):
+        return self._df
         
     def __call__(self, x):
         return self._call(x) if self._direct else self._inverse(x)

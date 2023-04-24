@@ -18,7 +18,7 @@ from cvxopt.blas import dot
 from cvxopt.solvers import qp
 from astropy.utils.decorators import lazyproperty
 
-
+import traceback
 
 ##  local units
 from units import *
@@ -148,51 +148,51 @@ class DictOfMapsPerOrder(UserDict):
             {o: p.deriv() for o, p in self.items()}
         )    
 
-    def _inverse_map(self, p, factor = 1.0, I=None, domain=None):   
-        nn = 100001
-        """
-        mi, ma = p.domain
-        x = np.linspace(mi, ma, nn, endpoint=True)
-        y = p(x)
-        yy = pseudo_inverse(y)
-        return interpolate_extend(yy, x)
-        """
-        if p is None:
-            return None
-        if domain is None:
-            mi, ma = p.domain
-        else:
-            pass
-        mi, ma = domain
+    # def _inverse_map(self, p, factor = 1.0, I=None, domain=None):   
+    #     nn = 100001
+    #     """
+    #     mi, ma = p.domain
+    #     x = np.linspace(mi, ma, nn, endpoint=True)
+    #     y = p(x)
+    #     yy = pseudo_inverse(y)
+    #     return interpolate_extend(yy, x)
+    #     """
+    #     if p is None:
+    #         return None
+    #     if domain is None:
+    #         mi, ma = p.domain
+    #     else:
+    #         pass
+    #     mi, ma = domain
         
-        x = np.linspace(mi, ma, nn, endpoint=True)
-        y = p(x)
-        n = np.arange(self.ccd.NROWS)
-        a, b = I
-        J = (a <= y & y <= b)
+    #     x = np.linspace(mi, ma, nn, endpoint=True)
+    #     y = p(x)
+    #     n = np.arange(self.ccd.NROWS)
+    #     a, b = I
+    #     J = (a <= y & y <= b)
 
-        try:
-            c, grow, decr = monotoneous_chunks(y[J])
-        except:
-            return None
-        a, b = c[0]
-        return interpolate_extend(y[J][a:b+1], factor * x[J][a:b+1])
-        #return interpolate_extend(y, factor * x)
+    #     try:
+    #         c, grow, decr = monotoneous_chunks(y[J])
+    #     except:
+    #         return None
+    #     a, b = c[0]
+    #     return interpolate_extend(y[J][a:b+1], factor * x[J][a:b+1])
+    #     #return interpolate_extend(y, factor * x)
     
     def inverse_map(self):   
         return DictOfMapsPerOrder(
             self.ccd,
-            { o: self._inverse_map(p, factor=1, 
-                        domain = o * self.ccd.extractor.lambda_range_voie1(o)) for o, p in 
-                self.items()},
+            { o: p.inverse() for o, p in self.items()},
         )
 
     def inverse_o_map(self): 
-        return DictOfMapsPerOrder(self.ccd, 
-            { o: self._inverse_map(p, factor = 1./o,
-                domain = o * self.ccd.extractor.lambda_range_voie1(o)) for o,p in self.items()
-            }
-        )        
+        res = {}
+        for o, p in self.items():
+            q = p.f.copy()
+            q.domain = q.domain / o
+            qq = MonotoneFunction(p.a/o, p.b/o, q, q.deriv(1))
+            res[o] = qq.inverse()
+        return DictOfMapsPerOrder(self.ccd, res)
 
 
     def __call__(self, xol, o):
@@ -208,7 +208,7 @@ class DictOfMapsPerOrder(UserDict):
         for oo in self.ccd.all_order():
             I = (o==oo)
             try: 
-                tmp.loc[I] = self[oo](xol.loc[I])
+                tmp.loc[I] = self[oo](xol.loc[I].values)
             except:
                 tmp.loc[I] = np.nan
         return tmp
@@ -237,21 +237,20 @@ class CCD2d:
 
         self._global_polynomial =  DictOfMapsPerOrder(self, {
                 o: MonotoneFunction( 
-                    *self.extractor.lambda_range_voie1[o], 
+                    *self.extractor.olambda_range_voie1(o),
                     p, p.deriv(1))  
                 for o in self.ORDERS
             })
 
         self._final_map_x_ol_o = DictOfMapsPerOrder(self, {
                 o: MonotoneFunction( 
-                    *self.extractor.lambda_range_voie1[o], 
+                    *self.extractor.olambda_range_voie1(o), 
                     p, p.deriv(1))
                 for o in self.ORDERS
             })
         
         # basic outlier removal / quality filter
         self._outlier_removal()
-        #self.sigma_clipping_global_polynomial()
         self.sigma_clipping_polynomial_order_by_order()
         self.sigma_clipping_2D_polynomial()
         
@@ -320,7 +319,7 @@ class CCD2d:
             'quantile_order_by_order': clip_quantile_order_by_order,
             'threshold': clip_threshold,
             'noclip': clip_noclip,
-            'maxvrad': clipp_max_vrad,
+            'max_vrad': clipp_max_vrad,
         }
 
         return clippings[clip]
@@ -381,7 +380,6 @@ class CCD2d:
             clipmachine,
             I0 = self._data.index   # start from all points
         )
-
 
         self._data.loc[:, 'selected_order_by_order'] = False
         self._data.loc[I, 'selected_order_by_order'] = True
@@ -642,7 +640,7 @@ class CCD2d:
 
         res = {}
         oo = self._o.loc[I]
-        ol = (self._o * self._l).loc[I]
+        ol = (self._ol).loc[I]
         x = self._x.loc[I]
 
         ols = np.linspace(self._ol.min(), self._ol.max(), 10001)
@@ -662,10 +660,11 @@ class CCD2d:
                     deg=min(n, max(0, sum(Io)-1)),
                     w = weight[Io]
                 )
-                res[o] = MonotoneFunction( *self.extractor.lambda_range_voie1[o], p, p.deriv(1))
+                res[o] = MonotoneFunction( *self.extractor.olambda_range_voie1(o), p, p.deriv(1))
             except Exception as ex:
-                print(o, ex)
-                res[o] = MonotoneFunction( *self.extractor.lambda_range_voie1[o], pglobal, pglobal.deriv(1))
+                print(traceback.format_exc())
+                print('could not fit polynomial in order ', o, ex)
+                res[o] = MonotoneFunction( *self.extractor.olambda_range_voie1(o), pglobal, pglobal.deriv(1))
         
         return DictOfMapsPerOrder(self, res)
 
@@ -732,7 +731,7 @@ class CCD2d:
                      for o in self.all_order() 
         }
         
-        res = {o: MonotoneFunction(*self.extractor.lambda_range_voie1[o], p, p.deriv(1)) for o, p in res.items()}
+        res = {o: MonotoneFunction(*self.extractor.olambda_range_voie1(o), p, p.deriv(1)) for o, p in res.items()}
 
         return DictOfMapsPerOrder(self, res)
 

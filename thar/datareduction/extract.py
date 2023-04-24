@@ -775,6 +775,9 @@ class Extractor_level_1:
     def lambda_range_voie1(self, o):
         return self.pix_to_lambda_map_voie1[o]([self.I[o][0], self.I[o][-1]])    
 
+    def olambda_range_voie1(self, o):
+        l1, l2 = self.lambda_range_voie1(o)
+        return o * l1, o * l2
 
     def _compute_voie1et2(self):
         choice =  self.kwargs['VOIE_METHOD']
