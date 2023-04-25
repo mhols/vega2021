@@ -320,7 +320,7 @@ class MonotoneFunction:
 
     @property
     def is_growing(self):
-        return self.df(self.a + self.b) > 0    
+        return self.df(0.5 * (self.a + self.b)) > 0    
 
     @property
     def domain(self):
