@@ -248,7 +248,10 @@ class CCD2d:
         can be specified with 'CLIPMETHOD'. The corresponding threshold is in 
         'CLIPSHRESHOLD'
 
-        'max_vrad':  the error is measured in vrad
+        'maxvrad':  the error is measured in vrad
+        'quantile': das alpha quantile wird behalten (can be set with CLIPSHRESHOLD) 
+        'quantile_order_by_order': the same order by order
+
 
         """
         clip = self.kwargs.get('CLIPMETHOD', 'quantile')
@@ -356,13 +359,11 @@ class CCD2d:
             weight=w[I], I=I
         )
 
-        #mismatchmachine = self._mismatches   # p -> mismatch(p)
 
         clipmachine = self._clippings        # mismatch -> valid index
 
         p, I, nclip = sigma_clipping_general_map(
             fitmachine,
-            #cmismatchmachine,
             clipmachine,
             I0 = self._data.index   # start from all points
         )
@@ -387,19 +388,14 @@ class CCD2d:
     def sigma_clipping_2D_polynomial(self):
         w = self._fit_weight()
 
-        # w = self._data['pixel_max_intens']**0.5
-
         fitmachine = lambda I: self._fit_2d_polynomial(
             weight=w[I], I=I
         )
-
-        #mismatchmachine = self._mismatches        
 
         clipmachine = self._clippings
 
         p, I, nclip = sigma_clipping_general_map(
             fitmachine,
-            # mismatchmachine,
             clipmachine,
             I0 = self._data.index
         )
