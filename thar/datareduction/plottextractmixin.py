@@ -42,7 +42,24 @@ class PlotExtractMixin:
                 pix = s.loc[i, 'pixel_range']
                 lams = self.pix_to_lambda_map_voie[voie][o](pix)
                 plt.fill_between(lams, self.voie[voie][o][pix], color='gray') 
- 
+                
+    def plot_selected_lines(self,voie,oo):
+        
+        cr=self.snippets_voie()[voie].atlasline_uves
+        lamlimits=self.lambda_range_voie1(oo)
+        I=(cr["ref_lambda"] > lamlimits[0]) & (cr["ref_lambda"] < lamlimits[1])
+        cr=cr[I]
+        plt.vlines(cr["ref_lambda"],0,1000000,'b')
+        
+        self.snippets_voie()[voie]._snippets.loc[:,"goodsnippet"]=False
+        self.snippets_voie()[voie]._snippet_match_tor(oo)
+        I = self.snippets_voie()[voie]._snippets["goodsnippet"]
+        gs=self.snippets_voie()[voie]._snippets[I]
+        plt.vlines(gs["est_lambda"],0,500000,'y')
+
+        
+        
+
 
     def plot_catalog(self, voie, oo):
         if type(oo) is int:
