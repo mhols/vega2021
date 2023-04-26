@@ -232,7 +232,7 @@ def sigma_clipping_general_map(fitmachine, clipmachine, I0):
     fitmachine (x, y, I) -> fitted 
     clipmachine(residuums, fitted) -> indices retained
     """
-    NMAX = 200
+    NMAX = 0 #200
 
     p = fitmachine(I0)
     
