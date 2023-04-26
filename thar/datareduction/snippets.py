@@ -340,6 +340,22 @@ class Snippets:
 
         return self.update_snippets()
 
+    def filter_snippets_excluded(self, o):
+
+        exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
+
+        I, = np.where(exclusion[:,0] == o)
+        
+        exc = exclusion[I]
+        res = self._snippets["true_order_number"] == o
+        sn = self._snippets
+
+        for ex in exc:
+           print(ex[1], ex[2])
+           res = res  &  ( (sn['est_lambda'] < ex[1]) | (sn['est_lambda'] > ex[2]) )
+
+        return res
+        
         
     def filter_snippets_min_length(self,o):
         alpha = self.kwargs.get("FILTER_MIN_LENGTH", 1.)
@@ -395,7 +411,8 @@ class Snippets:
         cu=cu[I]
         
         #selection of snippets in order o, after filter with intensity
-        I = self.filter_snippets_max_amplitude(o)
+        I = self.filter_snippets_max_amplitude(o) & self.filter_snippets_excluded(o)
+
         selection=self._snippets.loc[I]
     
         vrange = self.kwargs["VRANGE"]
