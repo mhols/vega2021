@@ -57,7 +57,7 @@ ry_offset=yyy[iymin]
 rinit_vals = [rA, rmu,rsigma,ry_offset]  # for [amp, cen, wid]
 #        print ("rinit_vals fit EWref:", rinit_vals)
 
-rgopt, rcovar = curve_fit(gauss,xxx-mean(xxx),yyy,p0=rinit_vals)
+rgopt, rcovar = curve_fit(gauss,xxx,yyy,p0=rinit_vals)
 
 def loss(p):
    A, mu, sigma, y_offset = p
