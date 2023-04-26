@@ -58,7 +58,38 @@ class PlotExtractMixin:
         plt.vlines(gs["est_lambda"],0,500000,'y')
 
         
-        
+    def plot_final_lines(self, voie, oo):
+        if type(oo) is int:
+            oo = list(oo)
+        # I = self.I[33]
+        # v = util.clean_nans(self.voie1[33][I])
+        # m = np.max(v)
+        # dashes = np.linspace(0, 0.5 * m, 50)
+        # for o in oo:
+        #     s = self.snippets_voie()[voie].sn
+        #     I = s['true_order_number'] == o
+        #     d = dashes if o%2 == 0 else dashes[1:]
+        #     for a, b in zip(d[:-1:2], d[1::2]):
+        #         plt.vlines(
+        #             s[I]['ref_lambda'], a, b,
+        #                 color=self.color_2(voie, o))
+        # #sn = self.snippets_voie()[voie]._snippets
+
+        for o in (ooo for ooo in oo if ooo%2==0):
+            I = self.ccd_voie[voie].index_order(o)
+            s = self.ccd_voie[voie].data[I]
+            l =s['ref_lambda']
+            if len(l)>0:
+                plt.plot(l, len(l)*[-500], 'o', color=self.color_2(voie, o))
+
+        for o in (ooo for ooo in oo if ooo%2==1):
+            I = self.ccd_voie[voie].index_order(o)
+            s = self.ccd_voie[voie].data[I]
+            l =s['ref_lambda']
+            if len(l)>0:
+                plt.plot(l, len(l)*[-500], '.', color=self.color_2(voie, o))
+
+       
 
 
     def plot_catalog(self, voie, oo):

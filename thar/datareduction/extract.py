@@ -1375,6 +1375,7 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         self.kwargs["ORDERS"] = self.ORDERS
         return spectrograph.CCD2d(self, self.snippets_voie2.sn,  **self.kwargs)
 
+    @property
     def ccd_voie(self):
         return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
 
