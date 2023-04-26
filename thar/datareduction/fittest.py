@@ -23,7 +23,7 @@ from scipy.interpolate import interp1d
 from scipy import exp
 from scipy.signal import savgol_filter
 from scipy.signal import correlate
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, least_squares
 #
 
 yyy = [  807.74891654,   919.95541645,  1103.22732311,  1110.02040113,
@@ -59,4 +59,8 @@ rinit_vals = [rA, rmu,rsigma,ry_offset]  # for [amp, cen, wid]
 
 rgopt, rcovar = curve_fit(gauss,xxx-mean(xxx),yyy,p0=rinit_vals)
 
+def loss(p):
+   A, mu, sigma, y_offset = p
+   return gauss(xxx, A, mu, sigma, y_offset) -yyy
 
+lsq = least_squares( loss , x0=rinit_vals)
