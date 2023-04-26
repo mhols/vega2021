@@ -306,7 +306,6 @@ class Snippets:
                 intens = self._snippets.loc[idx, 'bare_voie']
                 mu, s, sample = util.bootstrap_estimate_location(intens, **self.kwargs)
 
-                self._snippets.loc[idx, 'pixel_mean'] = self._snippets.loc[idx, 'left']+mu
                 self._snippets.loc[idx, 'pixel_std'] = s
                 self._snippets.loc[idx, 'bootstraped'] = True
 

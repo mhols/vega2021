@@ -567,6 +567,15 @@ class Extractor_level_1:
         pref = self._logindent * ' '
         print (pref + message + '\n')
     
+    
+    def get_kwarg(self, key, default):
+        if key in self.kwargs:
+            return self.kwargs[key]
+        else:
+            self.kwargs[key] =  default
+            return default
+
+
     @property
     def SETTINGS_ID(self):
         return self.kwargs.get('SETTING_ID', 'WARNING: no setting id, you should specify one in the settings module')    
