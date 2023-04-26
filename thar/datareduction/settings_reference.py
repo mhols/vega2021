@@ -111,9 +111,15 @@ USE_SIGMA_MIN = 'False'                # do not use a minimal sigma in fitting
 sigma_min = 0.001                      # minimial sigma to avoid overfitting
 palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 5                           # order polynomial in ol
-order_o = 8                            # order polynomial in o
+order_o = 7                            # order polynomial in o
 
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # 
+
+
+CLIPMETHOD = 'threshold'
+CLIP_QUANTITY = 'deltavr'
+CLIPTHRESHOLD = 300 * M / S
+CLIP_MAX_VRAD = 400 * M / S
 
 kwargs = { k: v for k, v in globals().items() if '_'!=k[0] and
     (type(v) is str or type(v) is float or type(v) is int or type(v) is list or type(v) is dict)
