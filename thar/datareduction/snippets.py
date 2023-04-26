@@ -351,7 +351,6 @@ class Snippets:
         sn = self._snippets
 
         for ex in exc:
-           print(ex[1], ex[2])
            res = res  &  ( (sn['est_lambda'] < ex[1]) | (sn['est_lambda'] > ex[2]) )
 
         return res
@@ -376,7 +375,7 @@ class Snippets:
         alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 0.8)
         # filter says true or false for each snippe
         res = pd.Series(False,index=self._snippets.index)
-        II = self._snippets["true_order_number"] == o
+        II = (self._snippets["true_order_number"] == o) & self.filter_snippets_excluded(o)
         sn = self._snippets[II]
         A_crit = np.quantile(sn["pixel_max_intens"],alpha)
         III = sn["pixel_max_intens"] > A_crit
