@@ -235,15 +235,16 @@ def sigma_clipping_general_map(fitmachine, clipmachine, I0):
     NMAX = 200
 
     p = fitmachine(I0)
-    #r = lossmachine(p)
+    
     I = clipmachine(p)
+
+    # I = np.logical_and(I0, I)
 
     nclip = 1
     for i in range(NMAX):
         p = fitmachine(I)
-        #r = lossmachine(p)
+        #II = np.logical_and( I, clipmachine(p) )
         II = clipmachine(p)
-
         if np.all(I == II):
             break
     
