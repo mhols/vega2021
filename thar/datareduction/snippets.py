@@ -263,12 +263,18 @@ class Snippets:
 
     def update_snippet_parameters(self):
 
-        for idx in self._snippets[
+        self.extractor.logging('updating snippet parameters')
+
+        index = self._snippets[
             np.logical_and(
                 np.logical_not (self._snippets['gaussfit']),
                 self._snippets['goodsnippet']
-            )].index:
-       
+            )].index
+
+        for i, idx in enumerate(index):
+
+            util.progress(i, len(index))
+
             s = self._snippets.loc[idx,'bare_voie'] 
             try:
                 A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
@@ -282,9 +288,20 @@ class Snippets:
             self._snippets.loc[idx, 'pixel_mean'] = self._snippets.loc[idx, 'left'] + mu
 
 
+        self.extractor.end_logging()
         
         if self.kwargs['n_bootstrap'] > 1:
-            for idx in self._snippets[np.logical_not(self._snippets['bootstraped'])].index:
+            
+            self.extractor.logging('bootstrapping ')
+            index =  self._snippets[
+                np.logical_and(
+                    np.logical_not(self._snippets['bootstraped']),
+                    self._snippets['goodsnippet']
+                )
+            ].index
+            
+            for i, idx in enumerate(index):
+                util.progress(i, len(index))
                 
                 intens = self._snippets.loc[idx, 'bare_voie']
                 mu, s, sample = util.bootstrap_estimate_location(intens, **self.kwargs)
@@ -292,7 +309,8 @@ class Snippets:
                 self._snippets.loc[idx, 'pixel_mean'] = self._snippets.loc[idx, 'left']+mu
                 self._snippets.loc[idx, 'pixel_std'] = s
                 self._snippets.loc[idx, 'bootstraped'] = True
-        
+
+            self.extractor.end_logging()        
 
         
     def compute_est_lambda(self):
@@ -405,13 +423,12 @@ class Snippets:
 
         self.extractor.logging('matching snippets for voie '+str(self.voie))
         
-
         # nobody is good (memoryless matching) 
         self._snippets.loc[:,'goodsnippet'] = False
-        
         for i, o in enumerate(self.ORDERS):
             util.progress(i, len(self.ORDERS))
             self._match_snippets(o)
+        
         self.extractor.end_logging()
 
         # compute the Gaussfit and bootstrap for the used snippets

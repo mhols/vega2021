@@ -227,7 +227,7 @@ def monotoneous_chunks(v):
 
     return chunks, growing, decreasing
 
-def sigma_clipping_general_map(fitmachine, lossmachine, clipmachine, I0):
+def sigma_clipping_general_map(fitmachine, clipmachine, I0):
     """
     fitmachine (x, y, I) -> fitted 
     clipmachine(residuums, fitted) -> indices retained
@@ -235,14 +235,14 @@ def sigma_clipping_general_map(fitmachine, lossmachine, clipmachine, I0):
     NMAX = 200
 
     p = fitmachine(I0)
-    r = lossmachine(p)
-    I = clipmachine(r)
+    #r = lossmachine(p)
+    I = clipmachine(p)
 
     nclip = 1
     for i in range(NMAX):
         p = fitmachine(I)
-        r = lossmachine(p)
-        II = clipmachine(r)
+        #r = lossmachine(p)
+        II = clipmachine(p)
 
         if np.all(I == II):
             break
@@ -250,7 +250,7 @@ def sigma_clipping_general_map(fitmachine, lossmachine, clipmachine, I0):
         I = II
         nclip += 1
     
-    return p, I, r, nclip
+    return p, I, nclip
 
 
 
@@ -439,7 +439,8 @@ def progress(count, total, status=''):
 
     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
     sys.stdout.flush()  # As suggested by Rom Ruben (see: http://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console/27871113#comment50529068_27871113)
-
+    if count >= total:
+        sys.stdout.write('\n')
 
 
 if __name__ == '__main__':

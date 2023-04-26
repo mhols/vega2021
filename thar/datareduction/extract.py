@@ -288,19 +288,12 @@ def followorder(image,xstart,ystart, **kwargs):
     
 def get_lambda(order, orders, **kwargs):
     NROWS=kwargs['NROWS']
-    OFFSET_LAMBDA=kwargs['OFFSET_LAMBDA']
     ORDERS = orders
     hobolambda = np.loadtxt(kwargs['LAMBDAFILE'])
     mult = order - min(ORDERS)
     tmp = np.zeros(NROWS)
     lamb = hobolambda[mult*NROWS:(mult+1)*NROWS]
-    if OFFSET_LAMBDA > 0:
-        tmp[OFFSET_LAMBDA:]=lamb[:-OFFSET_LAMBDA]
-    elif OFFSET_LAMBDA < 0:
-        tmp[:OFFSET_LAMBDA] = lamb[-OFFSET_LAMBDA:]
-    else:
-        tmp = lamb
-    return tmp
+    return lamb
 
 class BeamOrder:
     """
@@ -374,7 +367,8 @@ class BeamOrder:
     @property
     def I(self):
         """
-        all indices (usually from NCROSS to RROWS)
+        all indices (usually from NCROSS to NROWS)
+        half open interval [lower, upper )
         """
         return np.arange(self._lower, self._upper) 
 
@@ -384,6 +378,9 @@ class BeamOrder:
 
     @property
     def II(self):
+        """
+        logical mask of I
+        """
         tmp = np.full(self.NROWS, False)
         tmp[self.I] = True
         return tmp
@@ -526,7 +523,8 @@ class Extractor_level_1:
         
         self._tharfits = fitsfile        
         self._fitsfile = fitsfile
-        
+
+        self._logindent = 0 
         self.logging('Creation of Level 1 Extract')
         
         self.CENTRALROW = kwargs['CENTRALROW']
@@ -544,33 +542,31 @@ class Extractor_level_1:
         self._image = None 
         self._pix_to_lambda_map_2 = None
         self._pix_to_lambda_map_3 = None
-
+        self._fitsfile_set_for_reduction = False
         self.end_logging()
  
     def update_kwargs(self, **kwargs):
         self.kwargs.update(kwargs)
-
-    @property
-    def _logindent(self):
-        if not hasattr(self, '_logn'):
-            self._logn = 0
-        return self._logn
-    
+   
 
     def logging(self, message):
         """
         write a log string with info
         """
         pref = self._logindent * ' '
-        print(pref + 'Extractor, SETTING_ID: ' + self.SETTINGS_ID + ',\n' + pref + 'ThArg: ', 
-              self._tharfits + '\n' + pref +message + '.....\n')
-        self._logn += 2
+        print('\n' + pref + 'Extractor, SETTING_ID: ' + self.SETTINGS_ID + ',\n' + pref + 'ThArg: ', 
+              self._tharfits + '\n' + pref +message + '.....')
+        self._logindent += 2
 
     def end_logging(self):
 
-        self._logn = max(0, self._logn-2)
-        print(self._logn*' ' + '......done\n')
+        self._logindent = max(0, self._logindent-2)
+        print(self._logindent*' ' + '......done')
 
+    def message(self, message):
+        pref = self._logindent * ' '
+        print (pref + message + '\n')
+    
     @property
     def SETTINGS_ID(self):
         return self.kwargs.get('SETTING_ID', 'WARNING: no setting id, you should specify one in the settings module')    
@@ -581,17 +577,6 @@ class Extractor_level_1:
         self._bare_image = None
         self._voie1 = None
         self._voie2 = None
-
-    #def _total_reset(self):
-    #    self._restart()
-    #    self._flat_voie1 = None
-    #    self._flat_voie2 = None
-    #    self._bias_voie1 = None
-    #    self._bias_voie2 = None
-
-        #for a in self._lazy:
-        #    del a
-        # self._lazy = []
 
     @property
     def fitsfile(self):
@@ -606,6 +591,7 @@ class Extractor_level_1:
     def set_fitsfile(self, fitsfile):
         self._restart()
         self._fitsfile = fitsfile
+        self._fitsfile_set_for_reduction = True
 
     def loadimage(self):
         return load_image_from_fits(self.fitsfile, **self.kwargs)
@@ -644,15 +630,10 @@ class Extractor_level_1:
                 self._masterbias = masterbias(self.DATADIR, **self.kwargs)
                 self.end_logging()
             except:
+                self.end_logging()
                 raise Exception('please specify DATADIR or MASTERBIAS')
         return self._masterbias
 
-
-    def bias_voie1(self, o):
-        return self.beams[o].beam_sum_voie1(self.masterbias) 
-
-    def bias_voie2(self, o):
-        return self.beams[o].beam_sum_voie2(self.masterbias) 
 
     @lazyproperty
     def _pix_to_lambda_map_level1(self):
@@ -660,7 +641,6 @@ class Extractor_level_1:
         The preliminary lambda map
         based on a datafile containing the lambdas
         """
-        print('_pix_to_lambda_map_level1 called\n')
         return { o: interp1d(np.arange(self.NROWS), \
                                  get_lambda(o, self.ORDERS, **self.kwargs), 
                                  fill_value='extrapolate') 
@@ -677,8 +657,6 @@ class Extractor_level_1:
             datadir = os.path.dirname(self._fitsfile)
         except Exception as ex:
             raise Exception('DIRNAME, reason :', ex)
-        self.logging('DATADIR is ' + datadir)
-        self.end_logging()
         return datadir
 
     @property
@@ -686,14 +664,11 @@ class Extractor_level_1:
         """
         is dictionary of mappings fractionary pixel -> wavelength
         """
-        self.logging('pix_to_lambda_map_voie1 on level 1')
-        self.end_logging()
         return self._pix_to_lambda_map_level1
 
     @property
     def pix_to_lambda_map_voie2(self):
-        self.logging('pix_to_lambda_map_voie1 on level 2')
-        self.end_logging()
+        #self.message('pix_to_lambda_map_voie1 on level 2')
         return self._pix_to_lambda_map_level1
 
     @property
@@ -1018,28 +993,28 @@ class Extractor_level_1:
             self.end_logging()
         return self._beams
 
-    def _compute_flat_voie1et2(self):
-        self.logging('computing flat_voie1 and flat_voie2')
-        self._flat_voie1 = {
-            o: self.beams[o].beam_sum_voie1(self.masterflat) for o in self.ORDERS
-        }
-        self._flat_voie2 = {
-            o: self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
-        }
-        self.end_logging()
+    # def _compute_flat_voie1et2(self):
+    #     self.logging('computing flat_voie1 and flat_voie2')
+    #     self._flat_voie1 = {
+    #         o: self.beams[o].beam_sum_voie1(self.masterflat) for o in self.ORDERS
+    #     }
+    #     self._flat_voie2 = {
+    #         o: self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
+    #     }
+    #     self.end_logging()
 
-    @property
-    def flat_voie1(self):
-        if self._flat_voie1 is None:
-            self._compute_flat_voie1et2()
-        return self._flat_voie1
+    # @property
+    # def flat_voie1(self):
+    #     if self._flat_voie1 is None:
+    #         self._compute_flat_voie1et2()
+    #     return self._flat_voie1
 
 
-    @property
-    def flat_voie2(self):
-        if self._flat_voie2 is None:
-            self._compute_flat_voie1et2()
-        return self._flat_voie2
+    # @property
+    # def flat_voie2(self):
+    #     if self._flat_voie2 is None:
+    #         self._compute_flat_voie1et2()
+    #     return self._flat_voie2
 
     @property
     def non_normalized_intens_1(self):
@@ -1268,8 +1243,13 @@ class Extractor_level_2(Extractor_level_1):
 
     @lazyproperty
     def reference_extract(self):
-        return get_ext(self.kwargs['REFFITSFILE'], level='level_1', **self.kwargs['REFKWARGS'])
-
+        try:
+            extract = get_ext(self.kwargs['REFFITSFILE'])
+            # , level='level_1', **self.kwargs['REFKWARGS'])
+            return extract
+        except:
+            self.logging('Could not retrieve reference extractor. Please create one')
+            self.end_logging()
 
     @lazyproperty
     def ORDERS(self):
@@ -1437,17 +1417,33 @@ TODO: index ranges uniformize to [a, b) i.e. half-open
 TODO: interorder-background contains strange negative values and perturbates the continuum
 """
 
+
+def setup_reference():
+    from settings_reference import kwargs
+    myext = Extractor_level_1(kwargs['REFFITSFILE'], **kwargs)
+    # myext.voie # TODO make in constructor
+    myext.save_to_store()
+
+    # make better lambda map
+    myext = Extractor(kwargs['REFFITSFILE'], **kwargs)
+    myext.update()
+    myext.update()
+    myext.update()
+    myext.save_to_store()
+
+
+
 if __name__ == '__main__':
-    from settingspegasus import kwargs as kwargspegasus
-    from settingsmoon import kwargs as kwargsmoon
-    from settings import kwargs as refkwargs
-    fitsfile = os.path.join(refkwargs['BASEDIR'], '51Peg_raw/2020_0917/NEO_20200917_173122_th0.fits')
-    reffitsfile = os.path.join(refkwargs['BASEDIR'], 'datafiles/NEO_20220903_191404_th0.fits')
-    fitsfilemoon = os.path.join(refkwargs['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
+    from settings_reference import kwargs as kwargs_reference
+    from settingspegasus import kwargs as kwargs_pegasus
+    from settingsmoon import kwargs as kwargs_moon
+    from settings_vega import kwargs as kwargs_vega
+    from units import *
+    fitsfile_reference = os.path.join(kwargs_reference['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
+    fitsfile_pegasus = os.path.join(kwargs_reference['BASEDIR'], '51Peg_raw/2020_0917/NEO_20200917_173122_th0.fits')
+    fitsfile_vega = os.path.join(kwargs_reference['BASEDIR'], 'vega_raw/NEO_20220903_191404_th0.fits')
+    fitsfile_moon = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
 
-    refkwargs.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
+    #myext = Extractor(fitsfile_moon, **kwargs_moon)
 
-    kwargsmoon.update({'REFFITSFILE': reffitsfile, 'REFKWARGS': refkwargs, 'RESULTDIR' : './'})
-    #myext = Extractor(reffitsfile, **refkwargs)
-
-    myext = get_ext(reffitsfile)
+    #myext = get_ext(fitsfile_moon)

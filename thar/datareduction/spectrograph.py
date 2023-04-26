@@ -22,50 +22,7 @@ import traceback
 
 ##  local units
 from units import *
- ##  -------------
-
-def fit_polynomial(x,y, w, I=None):
-    if I is None:
-        return Polynomial.fit(x, y, w=w, deg=6)
-    else:
-        return Polynomial.fit(x[I], y[I], w=w[I], deg=6)
-
-
-def polyfit_2d(ol, o, x, w, olrange, orange, **kwargs):
-    Nol = kwargs['order_ol']+1
-    No  = kwargs['order_o'] +1
-
-    nolko = [(n, k) for n in range(Nol) for k in range(No)]
-
-    Tshebol = [np.polynomial.chebyshev.Chebyshev.basis(
-                    window=[-1,1],
-                    domain=olrange,
-                    deg=n) for n in range(Nol)]
-
-    Tshebo = [np.polynomial.chebyshev.Chebyshev.basis(
-                    window=[-1,1],
-                    domain=orange,
-                    deg=n) for n in range(No)]
-    
-    ndata = len(x)
-    G = np.zeros((ndata, len(nolko)))
-    sigma_min = kwargs['sigma_min']
-    
-    w = np.sqrt(w**2 + sigma_min**2)
-
-    for i in range(ndata):
-        for j, (nol, no) in enumerate(nolko):
-            G[i,j] = Tshebol[nol](ol[i]) * Tshebo[no](o[i])
-
-    G = (1./ w)[:, np.newaxis] * G
-    coeffs = np.linalg.lstsq(G, w * x )[0]
-
-    polynomial_fit = {
-        o : sum([ coeffs[i] * Tshebo[no](o) * Tshebol[nol] 
-            for i, (nol, no) in enumerate(nolko)])
-                for o in orange 
-    }
-    return polynomial_fit
+##  -------------
 
 
 def to_list(x):
@@ -250,7 +207,7 @@ class CCD2d:
             })
         
         # basic outlier removal / quality filter
-        self._outlier_removal()
+        # self._outlier_removal()
         self.sigma_clipping_polynomial_order_by_order()
         self.sigma_clipping_2D_polynomial()
         
@@ -276,12 +233,17 @@ class CCD2d:
         #dx = self._global_polynomial(self._ol, self._o) - self._x
         #I = np.abs(dx * C_LIGHT * self._dldx / self._l) < 1000 * M/S
         #self._data = self._data[I].copy().reset_index(drop=True)
+    
+
+
     #===================================    
     # clipping procedures
     #===================================
-    def _clippings(self, r):
+    def _clippings(self, p):
         """
-        the residuals computed by self._mismatch are use define 
+        Actual approximation is p.
+        the residuals are computed by self._mismatch(p) 
+        they are then used to  define 
         valid sets of retained points. The following methods are available and
         can be specified with 'CLIPMETHOD'. The corresponding threshold is in 
         'CLIPSHRESHOLD'
@@ -292,18 +254,20 @@ class CCD2d:
         clip = self.kwargs.get('CLIPMETHOD', 'quantile')
         alpha = self.kwargs.get('CLIPTHRESHOLD', 0.7)
         maxvrad = self.kwargs.get('CLIP_MAX_VRAD', 1000 * M/S)
-        residuum = self.kwargs.get('CLIP_QUANTITY', 'deltavr')
-        absr = r[residuum].abs()
+        clip_quantity = self.kwargs.get('CLIP_QUANTITY', 'deltavr')
+        r = self._mismatches(clip_quantity, p)
+        absr = r.abs()
+
+        def clipp_max_vrad():
+            deltavr = self._mismatches('deltavr', p)
+            return deltavr.abs() < maxvrad
         
-        def clipp_max_vrad(r):
-            return r['deltavr'].abs() < maxvrad
+        I = clipp_max_vrad()
         
-        I = clipp_max_vrad(r)
-        
-        def clip_quantile(r):
+        def clip_quantile():
             return np.logical_and(I, absr < np.quantile(absr, alpha))
 
-        def clip_quantile_order_by_order(r):
+        def clip_quantile_order_by_order():
             res = pd.Series(False, self._data.index)
             for o in self.ORDERS:
                 II = self.index_order_unselected(o)
@@ -314,24 +278,31 @@ class CCD2d:
                     res.loc[II] = False
             return res
 
-        def clip_sreshold(r):
-            return np.logical(I, absr < alpha)
-        
-        def clip_noclip(r):
-            return np.abs(r) > -1.0
+        def clip_est_std():
+            return np.logical_and(I, absr < alpha * r.std())
 
+        def clip_threshold():
+            return np.logical_and(I, absr < alpha)
+        
+        def clip_noclip():
+            return absr > -1.0 ## always true.....
+
+        # the collection of our possible clipping functions
+        # this avoids a length if statement
         clippings = {
             'quantile': clip_quantile,
             'quantile_order_by_order': clip_quantile_order_by_order,
             'noclip': clip_noclip,
             'max_vrad': clipp_max_vrad,
-            'shreshold': clip_sreshold,
+            'threshold': clip_threshold,
+            'est_std': clip_est_std,
         }
 
-        return clippings[clip](r)
+        # evaluate the requested clipping function
+        return clippings[clip]()
 
     # mismaches
-    def _mismatches(self, p):
+    def _mismatches(self, mismatch, p):
         """
         The wavemap p us used to compute the residuums measured with different weights
 
@@ -342,18 +313,19 @@ class CCD2d:
         r = self._x - px
 
         mismatches = {
-            'deltax':   r,
-            'deltavr':  r * C_LIGHT * self._dldx / self._l,
-            'chi2':     r / self._sigma,
-            'fitweightchi2': r / self._fit_weight()
+            'deltax':   lambda: r,
+            'deltal':   lambda: r * self._dldx / self._l, 
+            'deltavr':  lambda: r * C_LIGHT * self._dldx / self._l,
+            'chi2':     lambda: r / self._sigma,
+            'fitweightchi2': lambda: r / self._fit_weight()
         }
 
-        return pd.DataFrame(mismatches)
+        return mismatches[mismatch]()
 
 
     def _fit_weight(self):  ## TODO: change name to fit_weight_x_ol_o
         
-        tmp =self.kwargs.get('fitweight', 'sigma') 
+        tmp =self.kwargs.get('FITWEIGHT', 'sigma') 
 
 
         if (tmp == 'equal'):
@@ -384,13 +356,13 @@ class CCD2d:
             weight=w[I], I=I
         )
 
-        mismatchmachine = self._mismatches   # p -> mismatch(p)
+        #mismatchmachine = self._mismatches   # p -> mismatch(p)
 
         clipmachine = self._clippings        # mismatch -> valid index
 
-        p, I, res, nclip = sigma_clipping_general_map(
+        p, I, nclip = sigma_clipping_general_map(
             fitmachine,
-            mismatchmachine,
+            #cmismatchmachine,
             clipmachine,
             I0 = self._data.index   # start from all points
         )
@@ -421,13 +393,13 @@ class CCD2d:
             weight=w[I], I=I
         )
 
-        mismatchmachine = self._mismatches        
+        #mismatchmachine = self._mismatches        
 
         clipmachine = self._clippings
 
-        p, I, res, nclip = sigma_clipping_general_map(
+        p, I, nclip = sigma_clipping_general_map(
             fitmachine,
-            mismatchmachine,
+            # mismatchmachine,
             clipmachine,
             I0 = self._data.index
         )
@@ -727,7 +699,8 @@ class CCD2d:
 
         G = np.zeros((len(o), len(nolko)))
 
-        s = np.sqrt(s**2 + self.kwargs['sigma_min']**2)
+        if self.kwargs.get('USE_SIGMA_MIN', 'False') == 'True':
+            s = np.sqrt(s**2 + self.kwargs['sigma_min']**2)
 
         for i in range(len(o)):
             for j, (nol, no) in enumerate(nolko):
@@ -757,14 +730,17 @@ class CCD2d:
         order_rms1D=[]
         nlines=[]
         nlines_1D=[]
+        totlines = []
         for o in self.all_order():
             I=self.index_order(o)
             JJ = self.index_order_unselected(o)
             nlines.append(np.sum(I))
+            totlines.append(np.sum(JJ))
             nlines_1D.append(np.sum(JJ*J))
             order_rms2D.append(np.sqrt(np.mean(self.data.loc[I, "dvrad_2D"]**2)))
             order_rms1D.append(np.sqrt(np.mean(self._data.loc[J*JJ, "dvrad_1D"]**2)))
         return pd.DataFrame({'true_order_number': self.all_order(), 
+                             'totlines': totlines,
                              'nlines_1D':  nlines_1D,
                              'nlines_2D': nlines, 
                              'rms_1D': order_rms1D,
