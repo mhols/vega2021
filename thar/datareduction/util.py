@@ -36,7 +36,7 @@ def loss_3(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
     i = func(n, *params)
-    return np.abs(i-intens)*np.sqrt(intens)
+    return (i-intens)*np.sqrt(np.where(intens>1, intens, 1))
 
 
 function_map = {
