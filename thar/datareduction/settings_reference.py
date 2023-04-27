@@ -104,23 +104,20 @@ VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
 #voie_method = VOIE_METHOD
-n_bootstrap =  0                      # number of bootstrap experiments
-profile = 'gauss'                      # fit profile for bootstrap estimate of centroid
+n_bootstrap =  0                       # number of bootstrap experiments
+profile = 'igauss'                     # fit profile for bootstrap estimate of centroid
 loss_function = 'loss_3'               # weighted L2-loss for bootstrap estimate of centroid
-USE_SIGMA_MIN = 'False'                # do not use a minimal sigma in fitting
-sigma_min = 0.001                      # minimial sigma to avoid overfitting
-palette_order = 'gist_rainbow'         # palette of orders
-order_ol = 5                           # order polynomial in ol
-order_o = 7                            # order polynomial in o
-
-VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # 
-
-
 CLIPMETHOD = 'threshold'
 CLIP_QUANTITY = 'deltavr'
 CLIPTHRESHOLD = 300 * M / S
 CLIP_MAX_VRAD = 400 * M / S
 FITWEIGHT = 'vrad'
+USE_SIGMA_MIN = 'True'                 # do not use a minimal sigma in fitting
+sigma_min = 0.5 * M / S                # minimial sigma to avoid overfitting
+palette_order = 'gist_rainbow'         # palette of orders
+order_ol = 5                           # order polynomial in ol
+order_o = 7                            # order polynomial in o
+
 kwargs = { k: v for k, v in globals().items() if '_'!=k[0] and
     (type(v) is str or type(v) is float or type(v) is int or type(v) is list or type(v) is dict)
 }

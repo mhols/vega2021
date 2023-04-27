@@ -189,25 +189,15 @@ class CCD2d:
         self._map_2D_ol_x_o = None
         self._final_map_l_x_o = None
 
-        # as default start polynome use a global polynomial
-        p = self.get_global_polynomial()
+       
+        # all fits are done in this range for ol
+        self._olmin = self._ol.min()
+        self._olmax = self._ol.max()
 
-        self._global_polynomial =  DictOfMapsPerOrder(self, {
-                o: MonotoneFunction( 
-                    *self.extractor.olambda_range_voie1(o),
-                    p, p.deriv(1))  
-                for o in self.ORDERS
-            })
+        # basic outlier removal / quality filter and setting of zero base approximation
+        self._set_global_polynomial()
+        self._final_map_x_ol_o = self._global_polynomial # shall be updated later
 
-        self._final_map_x_ol_o = DictOfMapsPerOrder(self, {
-                o: MonotoneFunction( 
-                    *self.extractor.olambda_range_voie1(o), 
-                    p, p.deriv(1))
-                for o in self.ORDERS
-            })
-        
-        # basic outlier removal / quality filter
-        # self._outlier_removal()
         self.sigma_clipping_polynomial_order_by_order()
         self.sigma_clipping_2D_polynomial()
         
@@ -221,19 +211,53 @@ class CCD2d:
         colors = cmap(np.linspace(0,1, max(orders) - min(orders) +1))
         return colors[o-min(orders)]
 
-    def _outlier_removal(self):
-        """
-        removing outliers based on bootstrap uncertainty
-        of histotram expectation
-        the removed data is dropped from the .data
-        """
-        epsilon = self.kwargs['epsilon_sigma_bootstrap']
-        self._data = self._data[self._sigma < epsilon].copy().reset_index(drop=True)
 
-        #dx = self._global_polynomial(self._ol, self._o) - self._x
-        #I = np.abs(dx * C_LIGHT * self._dldx / self._l) < 1000 * M/S
-        #self._data = self._data[I].copy().reset_index(drop=True)
-    
+    def _set_global_polynomial(self):
+        """
+        set a global polynomial order by order 
+        """
+
+        # # as default start polynome use a global polynomial
+        p = self.get_global_polynomial()
+
+        self._global_polynomial =  DictOfMapsPerOrder(self, {
+                o: MonotoneFunction( 
+                    self._olmin, self._olmax,
+                    p, p.deriv(1))  
+                for o in self.ORDERS
+            })
+
+        kwargs_copy = self.kwargs.copy()
+
+        fitmachine = lambda I : self._fit_2d_polynomial()
+        clipmachine = self._clippings
+
+
+        self.kwargs['order_ol'] = 3
+        self.kwargs['order_o'] = 3
+        self.kwargs['CLIPMETHOD'] = 'threshold'
+        self.kwargs['CLIP_QUANTITY'] = 'deltax'
+        self.kwargs['CLIPTHRESHOLD'] = 3 * PIXEL
+        self.kwargs['CLIP_MAX_VRAD'] = 10000 * M / S
+        self.kwargs['FITWEIGHT'] = 'sigma'
+        self.kwargs['USE_SIGMA_MIN'] = 'True'                 # do not use a minimal sigma in fitting
+        self.kwargs['sigma_min'] = 0.001 * PIXEL                # minimial sigma to avoid overfitting
+
+
+        p, I, nclip = sigma_clipping_general_map(
+            fitmachine,
+            clipmachine,
+            I0 = self._data.index   # start from all points
+        )
+
+        self._global_polynomial = p
+
+        self.extractor.message(f"reducing from {self._ndata}  to {sum(I)}")
+
+        self._data = self._data[I].copy().reset_index(drop=True)
+
+        self.kwargs = kwargs_copy
+        
 
 
     #===================================    
@@ -591,7 +615,7 @@ class CCD2d:
         """
         n = self.kwargs['order_ol']
         ol = self.ol if not full else self._o * self._l
-        domain = [ol.min(), ol.max()]
+        domain = [self._olmin, self._olmax]
         p = None
         w = 1./self.sigma if not full else 1./self._sigma
         x = self.x if not full else self._x
@@ -605,7 +629,7 @@ class CCD2d:
             raise Exception ('problem fitting global polynomial\n')
         return p
 
-    def _fit_polynomial_order_by_order(self, weight=None, I = None):
+    def _fit_polynomial_order_by_order(self, weight=None, I = None, deg=None):
         """
         x = P_o(ol)
         """
@@ -615,10 +639,12 @@ class CCD2d:
         if weight is None:
             weight = 1./self._sigma.loc[I]
 
+        if deg is None:
+            deg = self.kwargs['order_ol']
+
         ENLARGEMENT_FACTOR = 0.01
 
         # order of polyunomial
-        n = self.kwargs['order_ol']
 
         res = {}
         oo = self._o.loc[I]
@@ -639,7 +665,7 @@ class CCD2d:
                 p = np.polynomial.Polynomial.fit(
                     ol[Io], x[Io],
                     domain=domain,
-                    deg=min(n, max(0, sum(Io)-1)),
+                    deg=min(deg, max(0, sum(Io)-1)),
                     w = weight[Io]
                 )
                 res[o] = MonotoneFunction( *self.extractor.olambda_range_voie1(o), p, p.deriv(1))
@@ -649,6 +675,12 @@ class CCD2d:
                 res[o] = MonotoneFunction( *self.extractor.olambda_range_voie1(o), pglobal, pglobal.deriv(1))
         
         return DictOfMapsPerOrder(self, res)
+       
+    def _get_basis(self):
+        Nol = self.kwargs['order_ol']+1
+        No  = self.kwargs['order_o'] +1
+
+
 
     def _fit_2d_polynomial(self, weight=None, I=None):
         """
@@ -659,7 +691,7 @@ class CCD2d:
         if weight is None:
             weight = 1./ self._sigma[I]
 
-        ENLARGEMENT_FACTOR = 1.1
+        ENLARGEMENT_FACTOR = 1
 
         Nol = self.kwargs['order_ol']+1
         No  = self.kwargs['order_o'] +1
@@ -668,13 +700,14 @@ class CCD2d:
         l = self._l[I].to_numpy()
         x = self._x[I].to_numpy()
         s = weight.to_numpy()
+        xg = self._global_polynomial(self._ol[I], self._o[I]).to_numpy()
 
         #mo = self.mo.to_numpy()
         #moo = self.moo.to_numpy()
         #mx = self.mx.to_numpy()
         #mxx = self.mxx.to_numpy()        
 
-        olrange = [(self._ol).min() / ENLARGEMENT_FACTOR, (self._ol).max() * ENLARGEMENT_FACTOR]
+        olrange = [self._olmin, self._olmax]
         orange = [self._o.min(), self._o.max()]
 
         #mxrange = [-200, self.kwargs['NROWS']+200]
@@ -703,16 +736,20 @@ class CCD2d:
                 G[i,j] = Tshebol[nol](o[i]*l[i]) * Tshebo[no](o[i])
 
         G = (1./ s)[:, np.newaxis] * G
-        xs = (1./s) * x
+        self._G = G
+
+        xs = (1./s) * (x - xg) # remove ....
         ### preparing matrix for pixel map
-        coeffs = np.linalg.lstsq(G, xs, rcond=None)[0]
+        coeffs = np.linalg.lstsq(G, xs, rcond=None)[0] 
 
         ## compute restriction to each order of 2d polynomial
         res = {
-            o : sum([ coeffs[i] * Tshebo[no](o) * Tshebol[nol] 
+            o : sum([ coeffs[i] * Tshebo[no](o) * Tshebol[nol]
                 for i, (nol, no) in enumerate(nolko)])
                      for o in self.all_order() 
         }
+        # restore
+        res = { o: p + self._global_polynomial[o].f for o, p in res.items()}
         
         res = {o: MonotoneFunction(*self.extractor.olambda_range_voie1(o), p, p.deriv(1)) for o, p in res.items()}
 

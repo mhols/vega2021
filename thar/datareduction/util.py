@@ -25,21 +25,7 @@ def loss_1(params, *args):
     i = func(n, *params)
     return np.abs(i-intens)*np.sqrt(np.abs(i))
     
-def air_to_vac(lam):
-	#lambda_vac (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
-	#lambda_air = lambda_vac/refindex
-	s = 10**4/(lam/ANGSTROM)
-	refindex = 1 + 0.0000834254 + 0.02406147 / (130 - s**2) + 0.00015998 / (38.9 - s**2)
-	return refindex
-	
-def vac_to_air(lam):
-	#lambda_air (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
-	#lambda_vac =  lmabda_air/refindex
-	s = 10**4/(lam/ANGSTROM)
-	refindex = 1 + 0.00008336624212083 + 0.02408926869968 / (130.1065924522 - s**2)\
-	+ 0.0001599740894897 / (38.92568793293 - s**2)
-	return refindex
-	
+
 def loss_2(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
@@ -136,6 +122,21 @@ def bootstrap_estimate_location(intens, **kwargs):
 
     return np.mean(res[:,1]), np.std(res[:,1]), res
 
+def air_to_vac(lam):
+	#lambda_vac (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
+	#lambda_air = lambda_vac/refindex
+	s = 10**4/(lam/ANGSTROM)
+	refindex = 1 + 0.0000834254 + 0.02406147 / (130 - s**2) + 0.00015998 / (38.9 - s**2)
+	return refindex
+	
+def vac_to_air(lam):
+	#lambda_air (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
+	#lambda_vac =  lmabda_air/refindex
+	s = 10**4/(lam/ANGSTROM)
+	refindex = 1 + 0.00008336624212083 + 0.02408926869968 / (130.1065924522 - s**2)\
+	+ 0.0001599740894897 / (38.92568793293 - s**2)
+	return refindex
+ 
 def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
     N_MAXITER = 100
     
@@ -230,14 +231,12 @@ def monotoneous_chunks(v):
 def sigma_clipping_general_map(fitmachine, clipmachine, I0):
     """
     fitmachine (x, y, I) -> fitted 
-    clipmachine(residuums, fitted) -> indices retained
+    clipmachine(fitted) -> indices retained
     """
-    NMAX = 0 #200
+    NMAX = 200
 
     p = fitmachine(I0)
-    
     I = clipmachine(p)
-
     # I = np.logical_and(I0, I)
 
     nclip = 1

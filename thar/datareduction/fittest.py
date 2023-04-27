@@ -36,6 +36,7 @@ yyy = [  807.74891654,   919.95541645,  1103.22732311,  1110.02040113,
         1068.1224808 ,  1036.92762198,   937.73875075,   814.36162358,
          785.0888952 ]
          
+w = 1./np.sqrt(yyy)
 xxx = np.arange(len(yyy))
 
 def gauss(x, A, mu, sigma, y_offset):
@@ -61,6 +62,6 @@ rgopt, rcovar = curve_fit(gauss,xxx,yyy,p0=rinit_vals)
 
 def loss(p):
    A, mu, sigma, y_offset = p
-   return gauss(xxx, A, mu, sigma, y_offset) -yyy
+   return (gauss(xxx, A, mu, sigma, y_offset) -yyy)*w
 
-lsq = least_squares( loss , x0=rinit_vals)
+lsq = least_squares( loss , x0=rinit_vals).x
