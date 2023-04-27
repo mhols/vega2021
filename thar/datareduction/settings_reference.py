@@ -104,24 +104,9 @@ VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
 #voie_method = VOIE_METHOD
-<<<<<<< HEAD
 n_bootstrap =  0                       # number of bootstrap experiments
 profile = 'igauss'                     # fit profile for bootstrap estimate of centroid
 loss_function = 'loss_3'               # weighted L2-loss for bootstrap estimate of centroid
-=======
-n_bootstrap =  0                      # number of bootstrap experiments
-profile = 'gauss'                      # fit profile for bootstrap estimate of centroid
-loss_function = 'loss_1'               # weighted L2-loss for bootstrap estimate of centroid
-USE_SIGMA_MIN = 'False'                # do not use a minimal sigma in fitting
-sigma_min = 0.001                      # minimial sigma to avoid overfitting
-palette_order = 'gist_rainbow'         # palette of orders
-order_ol = 5                           # order polynomial in ol
-order_o = 7                            # order polynomial in o
-
-VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # 
-
-
->>>>>>> parent of deea569... progressing
 CLIPMETHOD = 'threshold'
 CLIP_QUANTITY = 'deltavr'
 CLIPTHRESHOLD = 300 * M / S

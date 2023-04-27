@@ -629,13 +629,12 @@ class CCD2d:
         ol = self.ol if not full else self._o * self._l
         domain = [self._olmin, self._olmax]
         p = None
-        w = 1./self.sigma if not full else 1./self._sigma
+        #w = 1./self.sigma if not full else 1./self._sigma
         x = self.x if not full else self._x
         try:
             p = np.polynomial.chebyshev.Chebyshev.fit(ol, x,
                                                     domain=domain,
-                                                    deg=n,
-                                                    w=w)
+                                                    deg=n)
         except Exception as ex:
             print(ex)
             raise Exception ('problem fitting global polynomial\n')
