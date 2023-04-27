@@ -195,7 +195,17 @@ class CCD2d:
         self._olmax = self._ol.max()
 
         # basic outlier removal / quality filter and setting of zero base approximation
-        self._set_global_polynomial()
+        #self._set_global_polynomial()
+
+
+        p = self.get_global_polynomial()
+        self._global_polynomial =  DictOfMapsPerOrder(self, {
+                o: MonotoneFunction( 
+                    self._olmin, self._olmax,
+                    p, p.deriv(1))  
+                for o in self.ORDERS
+            })
+
         self._final_map_x_ol_o = self._global_polynomial # shall be updated later
 
         self.sigma_clipping_polynomial_order_by_order()
