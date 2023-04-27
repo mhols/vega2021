@@ -229,10 +229,6 @@ class CCD2d:
 
         kwargs_copy = self.kwargs.copy()
 
-        fitmachine = lambda I : self._fit_2d_polynomial()
-        clipmachine = self._clippings
-
-
         self.kwargs['order_ol'] = 3
         self.kwargs['order_o'] = 3
         self.kwargs['CLIPMETHOD'] = 'threshold'
@@ -242,6 +238,12 @@ class CCD2d:
         self.kwargs['FITWEIGHT'] = 'sigma'
         self.kwargs['USE_SIGMA_MIN'] = 'True'                 # do not use a minimal sigma in fitting
         self.kwargs['sigma_min'] = 0.001 * PIXEL                # minimial sigma to avoid overfitting
+
+        
+        w = self._fit_weight()
+        fitmachine = lambda I : self._fit_2d_polynomial(I=I, weight=w[I])
+        clipmachine = self._clippings
+
 
 
         p, I, nclip = sigma_clipping_general_map(
