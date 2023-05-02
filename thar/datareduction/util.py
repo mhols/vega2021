@@ -48,12 +48,19 @@ function_map = {
     'loss_3': loss_3,
 }
 
-def estimate_location(intens, **kwargs):
+def estimate_location(intens,  absorption=False, **kwargs):
 
     intens = np.array(intens)
 
+    if absorption:
+        intens = -intens
+
+    shift = np.min(intens)
+
+    intens -= shift
+
     # backproject on positivity by clipping
-    intens = np.where(intens>0, intens, 0)
+    # intens = np.where(intens>0, intens, 0)
     # first guess of parameters
     n = np.arange(intens.shape[0])
     A = np.sum(np.abs(intens))
@@ -84,7 +91,10 @@ def estimate_location(intens, **kwargs):
         params0, 
         bounds=bounds, 
         args=(intens, g))
-    return res.x
+    
+    A, mu, sigma, y_offset = res.x
+
+    return  A, mu, sigma, y_offset + shift
 
 
 def bootstrap_estimate_location(intens, **kwargs):
