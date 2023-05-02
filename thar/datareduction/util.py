@@ -56,7 +56,7 @@ def estimate_location(intens, **kwargs):
     intens = np.where(intens>0, intens, 0)
     # first guess of parameters
     n = np.arange(intens.shape[0])
-    A = np.sum(intens)
+    A = np.sum(np.abs(intens))
     Amin = max(0, A-4*np.sqrt(A))
     Amax = A+4*np.sqrt(A)
 
@@ -407,6 +407,31 @@ class MonotoneFunction:
     def __call__(self, x):
         return self._call(x) if self._direct else self._inverse(x)
    
+#--------------
+# Matching sequeces
+#------------
+def matching(v, w, dvw, dwv=None):
+    """
+    v: iteratble
+    w: iterable of same length
+    dvw: match function v -> w
+    dwc: match function w -> v
+    """
+
+    if dwv is None:
+        dwv = dvw
+    m1 =  dvw(v[:, np.newaxis], w[np.newaxis,:])
+    m2 =  dwv(v[:, np.newaxis], w[np.newaxis,:])
+
+    mm = m1 & m2
+    mm = mm & (np.count_nonzero(mm, axis=1)==1)[:, np.newaxis] \
+            & (np.count_nonzero(mm, axis=0)==1)[np.newaxis, :]
+    I, J = np.where( mm )
+
+    return I, J
+
+
+
 
 
 # The MIT License (MIT)

@@ -1452,7 +1452,7 @@ if __name__ == '__main__':
     fitsfile_reference = os.path.join(kwargs_reference['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
     fitsfile_pegasus = os.path.join(kwargs_reference['BASEDIR'], '51Peg_raw/2020_0917/NEO_20200917_173122_th0.fits')
     fitsfile_vega = os.path.join(kwargs_reference['BASEDIR'], 'vega_raw/NEO_20220903_191404_th0.fits')
-    fitsfile_moon = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
+    fitsfile_moon = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230406_190457_th0.fits')
 
     #myext = Extractor(fitsfile_moon, **kwargs_moon)
 
