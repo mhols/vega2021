@@ -14,12 +14,12 @@ sun_3 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010
 sun_4 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010755_st0.fits')
 
 # the following lines may be commented out when done..
-#mymoon = Extractor(fitsfile_moon, **kwargs_reference) # TODO moon need own setting
-#mymoon.update()
-#mymoon.update()
-#mymoon.update()
+mymoon = Extractor(fitsfile_moon, **kwargs_reference) # TODO moon need own setting
+mymoon.update()
+mymoon.update()
+mymoon.update()
 
-#mymoon.save_to_store()
+mymoon.save_to_store()
 
 # mymoon is now ready to reduce any star 
 mysun_1 = get_ext(fitsfile_moon)
