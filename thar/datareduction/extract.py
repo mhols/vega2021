@@ -718,7 +718,7 @@ class Extractor_level_1:
     def lam_to_o(self, lam):
         """the orders of lambda """
         return [ o for o in self.ORDERS if 
-                self.pix_to_lambda_map_1[o](0) <= lam and lam <= self.pix_to_lambda_map_1[o](self.NROWS-1)]
+                self.pix_to_lambda_map_voie1[o](0) <= lam and lam <= self.pix_to_lambda_map_1[o](self.NROWS-1)]
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
@@ -828,17 +828,19 @@ class Extractor_level_1:
             self.end_logging()
         return self._voie2
 
-
-    def background_voie1(self, o, nnodes, q, qq, qqq):
+    #---------------------------
+    # Continuum
+    #----------------------------
+    def continuum_voie1(self, o, nnodes, q, qq, qqq):
         v = self.voie1[o]
         l = np.arange(len(v))
-        p = util.background(l,v,nnodes,q,qq,qqq)
+        p = util.continuum(l,v,nnodes,q,qq,qqq)
         return p(l) 
 
-    def background_voie2(self, o, nnodes, q, qq, qqq):
+    def continuum_voie2(self, o, nnodes, q, qq, qqq):
         v = self.voie2[o]
         l = np.arange(len(v))
-        p = util.background(l,v,nnodes,q,qq,qqq)
+        p = util.continuum(l,v,nnodes,q,qq,qqq)
         return p(l) 
 
     def voie1_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
@@ -1049,6 +1051,17 @@ class Extractor_level_1:
     def non_normalized_intens_3(self):
         return self.non_normalized_intens_2
 
+    
+    def get_snippets_voie_order(self, voie, o, lmin, lmax):
+        """
+        returns a matrix of snippets in good range
+        """
+        l, v, I = self.get_lambda_intens(voie, o)
+        l = l[I]
+        v = v[I]
+        return util.extract_snippets(l, v, lmin, lmax)
+
+    
     @property
     def noise_1(self):
         return np.sqrt(self.non_normalized_intens_1)

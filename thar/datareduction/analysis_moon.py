@@ -14,12 +14,12 @@ sun_3 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010
 sun_4 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010755_st0.fits')
 
 # the following lines may be commented out when done..
-mymoon = Extractor(fitsfile_moon, **kwargs_reference) # TODO moon need own setting
-mymoon.update()
-mymoon.update()
-mymoon.update()
+#mymoon = Extractor(fitsfile_moon, **kwargs_reference) # TODO moon need own setting
+#mymoon.update()
+#mymoon.update()
+#mymoon.update()
 
-mymoon.save_to_store()
+#mymoon.save_to_store()
 
 # mymoon is now ready to reduce any star 
 mysun_1 = get_ext(fitsfile_moon)
@@ -45,94 +45,91 @@ mysun_4 = get_ext(fitsfile_moon)
 # reduce the first sun sprectrum
 mysun_4.set_fitsfile(sun_4)
 
-#----------- now do what you want with the etracted voices etc... -----#
-sl = pickle.load(open(os.path.join(kwargs_reference['BASEDIR'], 
-                    'reffiles/selectedlines_fit.pkl3'), 'rb'))['sellines']
-sl = np.array(list(set(sl)))
 
-ss = pickle.load(open(os.path.join(kwargs_reference['BASEDIR'], 
-                    'reffiles/SolarSpectrum.pkl3'), 'rb'))
+def doit():
+    #----------- now do what you want with the etracted voices etc... -----#
+    sl = pickle.load(open(os.path.join(kwargs_reference['BASEDIR'], 
+                        'reffiles/selectedlines_fit.pkl3'), 'rb'))['sellines']
+    sl = np.array(list(set(sl)))
 
-refl = ss['Wavelength']
-refi = ss['Intensity']
+    ss = pickle.load(open(os.path.join(kwargs_reference['BASEDIR'], 
+                        'reffiles/SolarSpectrum.pkl3'), 'rb'))
 
-"""
-plt.figure()
-res = {}
-for o in mysun_1.ORDERS:
-    lams, v, I = mysun_1.get_lambda_intens(1,o) # logical range
-    lm = util.local_maxima(-v)  # absorption lines
-    lam1, lam2 = mysun_1.lambda_range_voie1(o)
+    refl = ss['Wavelength']
+    refi = ss['Intensity']
 
-    lines = sl[ (sl>lam1) & (sl < lam2) ] 
-    pix_lines = mysun_1.ccd_voie1._map_2D_x_ol_o[o](o * lines)
+    """
+    plt.figure()
+    res = {}
+    for o in mysun_1.ORDERS:
+        lams, v, I = mysun_1.get_lambda_intens(1,o) # logical range
+        lm = util.local_maxima(-v)  # absorption lines
+        lam1, lam2 = mysun_1.lambda_range_voie1(o)
 
-    mI, mJ = util.matching(lm[:, 0], pix_lines, lambda a, b: np.abs(a-b) <= 1.0 )
+        lines = sl[ (sl>lam1) & (sl < lam2) ] 
+        pix_lines = mysun_1.ccd_voie1._map_2D_x_ol_o[o](o * lines)
 
-    tmp = []
-    for i in mI:
-        x, a, b = lm[i]
+        mI, mJ = util.matching(lm[:, 0], pix_lines, lambda a, b: np.abs(a-b) <= 1.0 )
+
+        tmp = []
+        for i in mI:
+            x, a, b = lm[i]
+            try:
+                A, mu, sigma, y_offset = util.estimate_location(v[a:b+1], absorption=True, **kwargs_reference)
+                pixel_mean = a + mu
+            except:
+                pixel_mean = x
+
+            tmp.append(pixel_mean)
+
         try:
-            A, mu, sigma, y_offset = util.estimate_location(v[a:b+1], absorption=True, **kwargs_reference)
-            pixel_mean = a + mu
+            est_lambda = mysun_1.ccd_voie1._map_2D_ol_x_o[o](np.array(tmp)) / o
         except:
-            pixel_mean = x
-
-        tmp.append(pixel_mean)
-
-    try:
-        est_lambda = mysun_1.ccd_voie1._map_2D_ol_x_o[o](np.array(tmp)) / o
-    except:
-        continue
-
-    mysun_1.plot_voie(1, [o])
-    plt.vlines(est_lambda, 0, 1e6, 'k')
-    plt.vlines(lines[mJ], 0, 1e6, 'r')
-
-    res[o] = C_LIGHT * (1-est_lambda/ lines[mJ])
-"""
-
-res = {}
-for o in mysun_1.ORDERS:
-    lams, v, I = mysun_1.get_lambda_intens(1,o) # logical range
-    lams = lams[I]
-    v = v[I]
-    lm = util.local_maxima(-v)  # absorption lines
-    lam1, lam2 = mysun_1.lambda_range_voie1(o)
-
-    extl = refl[ (refl>lam1) & (refl < lam2) ] 
-    exti = refi[ (refl>lam1) & (refl < lam2) ] 
-    reflm = util.local_maxima(-exti)
-
-    pix_lines = mysun_1.ccd_voie1._map_2D_x_ol_o[o](o * reflm[:, 0])
-
-    mI, mJ = util.matching(lm[:, 0], pix_lines, lambda a, b: np.abs(a-b) <= 2.0 )
-
-    print(o, len(mI))
-
-    tmp = []
-    for i, j in zip(mI, mJ):
-        x, a, b = lm[i]
-        xx, aa, bb = reflm[j]
-        try:
-            A, mu, sigma, y_offset = util.estimate_location(v[a:b+1], absorption=True, **kwargs_reference)
-            pixel_mean = a + mu
-            AA, mumu, sigsig, yy_offset = util.estimate_location(exti[aa:bb+1], absorption=True, **kwargs_reference)
-            pixel_meanmean = aa + mumu
-            tmp.append([A, a + mu, sigma, y_offset, AA, aa + mumu, sigsig, yy_offset])
-        except Exception as ex:
-            print('cucou', ex)
             continue
 
-    tmp = np.array(tmp)
-    try:
-        est_lambda = mysun_1.ccd_voie1._map_2D_ol_x_o[o](tmp[:,1]) / o
-        est_lambdalam =  mysun_1.ccd_voie1._map_2D_ol_x_o[o](tmp[:,5]) / o
-    except Exception as ex:
-        print (ex)
-        continue
+        mysun_1.plot_voie(1, [o])
+        plt.vlines(est_lambda, 0, 1e6, 'k')
+        plt.vlines(lines[mJ], 0, 1e6, 'r')
 
+        res[o] = C_LIGHT * (1-est_lambda/ lines[mJ])
+    """
 
-    plt.plot(est_lambdalam, tmp[:,0]*tmp[:,7]/(tmp[:,3]*tmp[:,4]), '.b')
+    res = {}
+    f = 1 + 12 * KM / S / C_LIGHT
+    for o in mysun_1.ORDERS:
 
+        lmin, lmax = mysun_1.lambda_range_voie1(o)
 
+        reflams = sl[ (sl >= lmin) & (sl <= lmax) ]
+
+        l, v, I = mysun_1.get_lambda_intens1(o)
+        l=l[I]
+        v=v[I]
+        bg = util.background(l, v, nnodes=10)
+        v = v/bg(l)
+
+        sunl, sunv = util.extract_snippets(l, v, reflams/f, reflams*f)
+        rl, rv =  util.extract_snippets(refl, refi, reflams/f, reflams*f)
+
+        N = 128
+
+        """
+        for l, v in zip(sunl, sunv):
+            plt.plot(l, v, 'r-')
+
+        for l, v in zip(rl, rv):
+            plt.plot(l, 100000 * v, 'b-')
+
+        """
+        for l, v, ll, vv in zip(sunl, sunv, rl, rv):
+            try:
+                A1, mu1, sigma1, y_offset1 = util.estimate_igauss(l, v)
+                A2, mu2, sigma2, y_offset2 = util.estimate_igauss(ll, vv)
+
+                ew1 = A1 / y_offset1
+                ew2 = A2 / y_offset2
+                plt.plot( [mu1],  [ew1 / ew2], 'o', color=mysun_1.ccd_voie1.color_of_order(o))
+            except Exception as ex:
+                print (l, v)
+                print (ex)
+       

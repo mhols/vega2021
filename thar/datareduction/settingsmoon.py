@@ -19,45 +19,7 @@ BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))  # put
 DATADIR = os.path.abspath(os.path.join(BASEDIR, 'lune_raw'));
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
 
-## ----- extractor constants
-NROWS = 4208;           comment['NROWS'] = "number of rows"
-NCOLS = 4196;           comment['NCOLS'] = "number of columns"
-NCROSS = 100;           comment['NCROSS'] = "number of rows/columns in central cross"
-NROWSBLOCK = 2054   #number of rows in individual blocks
-NCOLSBLOCK = 2048   #number of cols in individual blocks
-REMOVECROSS = int(False)
-HIGHEXP = 15
-LOWEXP = 4
-CUTORDER = 35   #means that cutting flats is between 34 and 35
-ABSORPTIONHALFW = 6 # central region beteween orders
-JUMP = 4.;              comment["JUMP"] = "allowed jump for beam extraction"
-SMOOTHWIDTH_BEAM = 101; comment["SMOOTHWIDTH_BEAM"] = "width of local polynomial fit"
-BACKGROUNDHW = 5                  
-VOIE1WIDTH = 18                 #right of separator
-VOIE2WIDTH = 18                 #left (redwards) of separator
-VOIE3WIDTH = 16
-FLUX_LIMIT = 500                # (usual: 500) below, the beam extraction is discarded
-
-SHIFT_MASK_VOIE1 = list(range(1, VOIE2WIDTH + 2))
-SHIFT_MASK_VOIE2 = list(range(-VOIE1WIDTH-1, 0))        # realtive indices of extraction mask
-OFFSETRED=16
-OFFSETBLUE=16
-MEMORY_POSITION = 0.7  # memory of AR1 process for line following
-BLAZE_RANGE = list(range(-OFFSETRED, OFFSETBLUE+1))                     # range for the blase function
-DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
-
-#from settings import kwargs as kwargsref
-#REFKWARGS = kwargsref
-
 REFFITSFILE = os.path.join(BASEDIR, 'vega_reference/NEO_20220903_191404_th0.fits')
-
-#REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
-#REFLOWEXP = 15
-#ESTIMATE_CENTRALPOSITION=str(True)
-#ESTIMATE_LAMBDAMAP=str(True)
-# REFERENCEDIR = os.path.join(BASEDIR,'datafiles')
-#REFLOWEXP = 15
-#CENTRALROW = 2161
 
 
 ## ------ snippet constants

@@ -105,8 +105,8 @@ VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 ## ------ spectrograph paramter
 #voie_method = VOIE_METHOD
 n_bootstrap =  0                       # number of bootstrap experiments
-profile = 'gauss'                     # fit profile for bootstrap estimate of centroid
-loss_function = 'loss_2'               # weighted L2-loss for bootstrap estimate of centroid
+profile = 'igauss'                     # fit profile for bootstrap estimate of centroid
+loss_function = 'loss_3'               # weighted L2-loss for bootstrap estimate of centroid
 CLIPMETHOD = 'threshold'
 CLIP_QUANTITY = 'deltavr'
 CLIPTHRESHOLD = 300 * M / S

@@ -12,9 +12,15 @@ def gauss(x, A, mu, sigma, y_offset):
     return y_offset + (A/  (np.sqrt(2*np.pi)*sigma)) * np.exp(-(x-mu)**2/(2*sigma**2))
 
 def igauss(x, A, mu, sigma, y_offset):
-    return y_offset +  0.5 * A * (
-        sps.erf((x + 0.5 - mu)/(np.sqrt(2)*sigma))
-        - sps.erf((x -0.5 -mu)/(np.sqrt(2)*sigma)))
+    xx = np.zeros(x.shape[0]+2)
+    xx[1:-1] = x
+    xx[0] = x[0]-(x[1]-x[0])
+    xx[-1] = x[-1] + (x[-1]-x[-2])
+
+    d = 0.5 * (xx[1:]+xx[:-1])
+    return y_offset * (d[1:]-d[:-1]) +  0.5 * A * (
+        sps.erf((d[1:]  - mu)/(np.sqrt(2)*sigma))
+        - sps.erf((d[:-1] - mu)/(np.sqrt(2)*sigma)))
 
 def cauchy(x, A, mu, sigma, y_offset):
     return y_offset + A*sigma/(sigma**2 + (x-mu)**2)
@@ -25,7 +31,6 @@ def loss_1(params, *args):
     i = func(n, *params)
     return np.abs(i-intens)*np.sqrt(np.abs(i))
     
-
 def loss_2(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
@@ -38,6 +43,37 @@ def loss_3(params, *args):
     i = func(n, *params)
     return (i-intens)*np.sqrt(np.where(intens>1, intens, 1))
 
+
+def loss_4(params, *args):
+    lams, intens, func = args
+    i = func(lams, *params)
+    return (i-intens)*np.sqrt(np.where(intens>1, intens, 1))
+
+
+def estimate_igauss(lams, intens):
+    """
+    simple gauss fit without weights...
+    """
+
+    # shift by mean....
+    mlams = np.mean(lams)
+    lams -= mlams
+
+    A0 = 0.5 * (np.max(intens) - np.min(intens)) * (lams[-1]-lams[0]) / (lams[1]-lams[0])
+    params0 = [-A0, 0, lams[-1], np.max(intens)/(lams[1]-lams[0])]
+
+
+    res = sop.least_squares(
+        loss_4, 
+        params0,
+        args = (lams, intens, igauss)
+
+    )
+
+    A, mu, sigma, y_offset = res.x
+
+    return A, mlams + mu, sigma, y_offset
+     
 
 function_map = {
     'gauss': gauss,
@@ -147,7 +183,7 @@ def vac_to_air(lam):
 	+ 0.0001599740894897 / (38.92568793293 - s**2)
 	return refindex
  
-def background(l, v, nnodes=5, q=0.3, qq=0.8, qqq=0.9):
+def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
     N_MAXITER = 100
     
     #s = UnivariateSpline(t, t, s=0)
@@ -440,6 +476,16 @@ def matching(v, w, dvw, dwv=None):
 
     return I, J
 
+
+def extract_snippets(l, v, lmin, lmax):
+    ll = []
+    vv = []
+    for l1, l2 in zip(lmin, lmax):
+        J = (l1 <= l) & (l <= l2)
+        if sum(J) > 0:
+            ll.append(l[J])
+            vv.append(v[J])
+    return ll, vv
 
 
 
