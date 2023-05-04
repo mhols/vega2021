@@ -846,15 +846,18 @@ class Extractor_level_1:
     def voie1_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
         res = []
         for o in self.ORDERS:
-            res.extend(self.voie1[o]/self.background_voie1(o, nnodes, q, qq, qqq))
+            res.extend(self.voie1[o]/self.continuum_voie1(o, nnodes, q, qq, qqq))
         return np.array(res)
 
     def voie2_all(self, nnodes=10, q=0.3, qq=0.7, qqq=0.95):
         res = []
         for o in self.ORDERS:
-            res.extend(self.voie2[o]/self.background_voie2(o, nnodes, q, qq, qqq))
+            res.extend(self.voie2[o]/self.continuum_voie2(o, nnodes, q, qq, qqq))
         return np.array(res)
 
+    #-------------------------
+    # the unmodified voies as sum over the bemas
+    #-------------------------
     def _bare_voie1(self, o):
         v = self.beams[o].beam_sum_voie1(self.image)
         v[np.isnan(v)] = 0
@@ -888,12 +891,21 @@ class Extractor_level_1:
     def bare_voie(self):
         return {1: self.bare_voie1, 2: self.bare_voie2, 3: None}
     
+    #-----------------------
+    # ranges of 'good' part of voie
+    #-----------------------
     @lazyproperty
     def I(self):
+        """
+        The index set of the good part for each order
+        """
         return {o: self.beams[o].I for o in self.ORDERS}
 
     @lazyproperty
     def Ic(self):
+        """
+        The logical mask for each order of the 'bad' part (i.e. the complement of good)
+        """
         tmp = {}
         for o in self.ORDERS:
             res = np.full(self.NROWS, True)
@@ -903,6 +915,9 @@ class Extractor_level_1:
 
     @lazyproperty
     def Il(self):
+        """
+        The logical mask for each order of the 'good' part
+        """
         tmp = {}
         for o in self.ORDERS:
             res = np.full(self.NROWS, False)
@@ -913,7 +928,7 @@ class Extractor_level_1:
     @lazyproperty
     def Ibounds(self):
         """
-        the pixel ranges of the beams
+        the pixel ranges of each order
         """
         return {o: (self.I[o][0], self.I[o][-1]) for o, p in self.ORDERS.items()}
 
@@ -921,6 +936,11 @@ class Extractor_level_1:
     @property
     def n(self):
         return np.arange(self.NROWS)
+
+
+    #--------------------------------
+    # the master flat 
+    #--------------------------------
 
     @property
     def masterflat_high(self):
