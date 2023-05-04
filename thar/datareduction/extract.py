@@ -1074,7 +1074,11 @@ class Extractor_level_1:
     
     def get_snippets_voie_order(self, voie, o, lmin, lmax):
         """
-        returns a matrix of snippets in good range
+        returns a list of snippets in good range [lmin, lmax]
+        voie: voie
+        o: order
+        lmin: iterable of lower bounds
+        lmax: iterable of upper bounds
         """
         l, v, I = self.get_lambda_intens(voie, o)
         l = l[I]
@@ -1116,8 +1120,16 @@ class Extractor_level_1:
         v = np.quantile(tmp.ravel(), CUTOFF_PERCENTILE/100)
         return tmp > v
 
+    #------------------------
+    # STORE manipulation
+    #---------------------------
     def save_to_store(self):
         store.store(self._tharfits, self)
+
+
+    #-------------------
+    # export results to fits
+    #-------------------
 
     def save_fits(self):
         # collecting data
@@ -1265,7 +1277,7 @@ class Extractor_level_1:
 
 
 ######
-#  Level 2
+#  Level 2 lambdamaps are obrained by matchin the level1 reference
 ####
 
 class Extractor_level_2(Extractor_level_1):
@@ -1287,7 +1299,6 @@ class Extractor_level_2(Extractor_level_1):
     def reference_extract(self):
         try:
             extract = get_ext(self.kwargs['REFFITSFILE'])
-            # , level='level_1', **self.kwargs['REFKWARGS'])
             return extract
         except:
             self.logging('Could not retrieve reference extractor. Please create one')
@@ -1382,7 +1393,13 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         Extractor_level_2.__init__(self, fitsfile, **kwargs)
         self.snippets_voie1.prepare_snippets()
         self.snippets_voie2.prepare_snippets()
-        
+        """
+        for i in range(3):
+            self.update()
+        self.save_to_store()
+        self.message(f'Saved to store, you may retrieve it with \n\
+                       get_ext({self.fitsfile}')
+        """
 
     @lazyproperty
     def snippets_voie1(self):
