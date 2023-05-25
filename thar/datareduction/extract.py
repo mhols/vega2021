@@ -1464,7 +1464,20 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         del self.pix_to_lambda_map_voie2
         self.logging('lambda map back to level 2')
         self.end_logging()
-                    
+        
+    def interpolated_voie1(self,o):
+        lams, intens, I = self.get_lambda_intens1(o)
+        v = interp1d(lams[I],intens[I],fill_value = np.NaN,bounds_error=False)
+        return v
+        
+    def interpolated_voie2(self,o):
+        lams, intens, I = self.get_lambda_intens2(o)
+        v = interp1d(lams[I],intens[I],fill_value = np.NaN,bounds_error=False)
+        return v
+        
+    def voie2_lam1(self,o):
+        lams = self.lambdas_per_order_voie1[o]
+        return lams, self.interpolated_voie2(o)(lams)
 
     def __del__(self):
         del self.snippets_voie1
