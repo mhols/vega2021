@@ -1124,7 +1124,7 @@ class Extractor_level_1:
     # STORE manipulation
     #---------------------------
     def save_to_store(self):
-        store.store(self._tharfits, self)
+        store.store(self._fitsfile, self)
 
 
     #-------------------
