@@ -775,7 +775,7 @@ class Extractor_level_1:
                 / self.beams[o].beam_sum_voie2(self.masterflat) for o in self.ORDERS
             }
         elif choice == 'DIVIDE_SUM':
-            image = self.image / (self.masterflat + 1)
+            image = self.image / (self.masterflat + 100)
         
             self._voie1 = {
                 o: self.beams[o].beam_sum_voie1(image) for o in self.self.ORDERS
@@ -1071,7 +1071,7 @@ class Extractor_level_1:
     def non_normalized_intens_3(self):
         return self.non_normalized_intens_2
 
-    
+
     def get_snippets_voie_order(self, voie, o, lmin, lmax):
         """
         returns a list of snippets in good range [lmin, lmax]

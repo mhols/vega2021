@@ -50,7 +50,19 @@ myhd108_4.update_kwargs(VOIE_METHOD ='SUM_DIVIDE')
 
 # reduce the first hd108 sprectrum
 myhd108_4.set_fitsfile(hd108_4)
+
+myhd108_1.voie
+myhd108_2.voie
+myhd108_3.voie
+myhd108_4.voie
+
+myhd108_1.save_to_store()
+myhd108_2.save_to_store()
+myhd108_3.save_to_store()
+myhd108_4.save_to_store()
+
 """
+
 
 
 myhd108_1 = get_ext(hd108_1)
@@ -58,26 +70,35 @@ myhd108_2 = get_ext(hd108_2)
 myhd108_3 = get_ext(hd108_3)
 myhd108_4 = get_ext(hd108_4)
 
-"""
-lam_1_voie1,intens_1_voie1,I = myhd108_1.get_lambda_intens1(ord)
-lam_1_voie2,intens_1_voie2 = myhd108_1.voie2_lam1(ord)
+myhds = [myhd108_1, myhd108_2, myhd108_3, myhd108_4]
 
-lam_2_voie1,intens_2_voie1,I = myhd108_2.get_lambda_intens1(ord)
-lam_2_voie2,intens_2_voie2 = myhd108_2.voie2_lam1(ord)
+lam_voie1={}
+lam_voie2={}
+intens_voie1={}
+intens_voie2={}
+I = {}
+intens_voie2_interp = {}
+weight_voie1={}
+weight_voie2={}
 
-lam_3_voie1,intens_3_voie1,I = myhd108_3.get_lambda_intens1(ord)
-lam_3_voie2,intens_3_voie2 = myhd108_3.voie2_lam1(ord)
+for i, mh in enumerate(myhds):
+    lam_voie1[i+1], intens_voie1[i], I[i] = {}, {}, {}
+    lam_voie2[i+1], intens_voie2[i], I[i] = {}, {}, {}
+    intens_voie2_interp[i+1] = {}
+    weight_voie1[i+1] = {}
+    weight_voie2[i+1] = {}
+    for o in mh.ORDERS:
+        lam_voie1[i+1][o], intens_voie1[i+1][o], I[o] = mh.get_lambda_intens1(o)
+        lam_voie2[i+1][o], intens_voie2[i+1][o], I[o] = mh.get_lambda_intens2(o)
+        intens_voie2_interp[i+1][o] = mh.voie2_lam1(o)
 
-lam_4_voie1,intens_4_voie1,I = myhd108_4.get_lambda_intens1(ord)
-lam_4_voie2,intens_4_voie2 = myhd108_4.voie2_lam1(ord)
+        weight_voie1[i+1][o] = np.median(mh.bare_voie1[o][mh.CENTRALROW-100:mh.CENTRALROW+100]) 
+
+"""
+we now have z.B. lam_voie1[3][23]
 """
 
-"""
-myhd108_1.save_to_store()
-myhd108_2.save_to_store()
-myhd108_3.save_to_store()
-myhd108_4.save_to_store()
-"""
+
 
 xlim=[5884,5898]
 ylim=[0,0.15]
@@ -146,6 +167,8 @@ def outputfile():
     res5 = []
     mask = []
     NROWS = myhd108_1.NROWS
+
+
    
     #lambda
     for o in myhd108_1.ORDERS[::-1]:
