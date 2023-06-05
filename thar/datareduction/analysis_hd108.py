@@ -80,10 +80,11 @@ I = {}
 intens_voie2_interp = {}
 weight_voie1={}
 weight_voie2={}
+sumweight=0.
 
 for i, mh in enumerate(myhds):
-    lam_voie1[i+1], intens_voie1[i], I[i] = {}, {}, {}
-    lam_voie2[i+1], intens_voie2[i], I[i] = {}, {}, {}
+    lam_voie1[i+1], intens_voie1[i+1], I[i+1] = {}, {}, {}
+    lam_voie2[i+1], intens_voie2[i+1], I[i+1] = {}, {}, {}
     intens_voie2_interp[i+1] = {}
     weight_voie1[i+1] = {}
     weight_voie2[i+1] = {}
@@ -93,18 +94,25 @@ for i, mh in enumerate(myhds):
         intens_voie2_interp[i+1][o] = mh.voie2_lam1(o)
 
         weight_voie1[i+1][o] = np.median(mh.bare_voie1[o][mh.CENTRALROW-100:mh.CENTRALROW+100]) 
-
+        sumweight = sumweight + weight_voie1[i+1][o]
 """
 we now have z.B. lam_voie1[3][23]
 """
-
+bv11 = myhd108_1.bare_voie1
+bv12 = myhd108_1.bare_voie2
+bv21 = myhd108_2.bare_voie1
+bv22 = myhd108_2.bare_voie2
+bv31 = myhd108_3.bare_voie1
+bv32 = myhd108_3.bare_voie2
+bv41 = myhd108_4.bare_voie1
+bv42 = myhd108_4.bare_voie2
 
 
 xlim=[5884,5898]
 ylim=[0,0.15]
 
 
-
+"""
 def plot1():
     plt.figure()
     plt.title("spectrum 1")
@@ -157,7 +165,7 @@ def plot_meanv():
     plt.title("meanV_over_I")
     plt.xlim(*xlim)
     plt.plot(lam_1_voie1,mean_V_over_I)
-    
+"""
     
 def outputfile():
     res1 = []
@@ -167,11 +175,9 @@ def outputfile():
     res5 = []
     mask = []
     NROWS = myhd108_1.NROWS
-
-
-   
-    #lambda
+    
     for o in myhd108_1.ORDERS[::-1]:
+    #lambda
         lam_1_voie1,intens_1_voie1,I = myhd108_1.get_lambda_intens1(o)
         res1.extend(lam_1_voie1/10.)
         for i in range(NROWS):
@@ -180,10 +186,12 @@ def outputfile():
             else:
                 mask.append(0)
     
-    #normierte intensity
-                        
-        intens_total=1/8.()
-        
+    #normierte total intensity (4 * 2 voies)
+        intens_total=(weight_voie1[1][o]*intens_voie1[1][o]+weight_voie2[1][o]*intens_voie2_interp[1][o]\
+        +weight_voie1[2][o]*intens_voie1[2][o]+weight_voie2[2][o]*intens_voie2_interp[2][o]\
+        +weight_voie1[3][o]*intens_voie1[3][o]+weight_voie2[3][o]*intens_voie2_interp[3][o]\
+        +weight_voie1[4][o]*intens_voie1[4][o]+weight_voie2[4][o]*intens_voie2_interp[4][o])\
+        /sumweight
         
         #--------------------------------
         l = np.arange(len(intens_total))
@@ -196,19 +204,13 @@ def outputfile():
         #mask of usable order
         #--------------------------------
         
-        
-
-
         intens_total_norm = intens_total_norm * mask
-        res.extend(intens_total_norm)
-    col2 = res
+        res2.extend(intens_total_norm)
     
     
-    print("jetzt Stokes V")
-    res = []
-    resn = []
-    #normierte intensity
-    for o in myhd108_1.ORDERS[::-1]:
+    #Stokes V/I
+        print("jetzt Stokes V")
+    
         q1 = myhd108_1.voie1[o]/myhd108_1.voie2[o]
         q2 = myhd108_2.voie1[o]/myhd108_2.voie2[o]
         q3 = myhd108_3.voie1[o]/myhd108_3.voie2[o]
@@ -222,36 +224,18 @@ def outputfile():
 
         mean_V_over_I = (R-1.)/(R+1.)
         mean_N_over_I = (Rnull-1.)/(Rnull+1.)
-        
-        lam_1_voie1,intens_1_voie1,I = myhd108_1.get_lambda_intens1(o)
-        mask=[]
-        NROWS = kwargs_reference['NROWS']
-        for i in range(NROWS):
-            if i in I:
-                mask.append(1)
-            else:
-                mask.append(0)
+ 
         mean_V_over_I = mean_V_over_I * mask
         mean_N_over_I = mean_N_over_I * mask
-        res.extend(mean_V_over_I)
-        resn.extend(mean_N_over_I)
-    col3 = res
-    col4 = resn
-    col5 = resn
+        res3.extend(mean_V_over_I)
+        res4.extend(mean_N_over_I)
     
-    print("jetzt noise")
-    res = []
     
-    bv11 = myhd108_1.bare_voie1
-    bv12 = myhd108_1.bare_voie2
-    bv21 = myhd108_2.bare_voie1
-    bv22 = myhd108_2.bare_voie2
-    bv31 = myhd108_3.bare_voie1
-    bv32 = myhd108_3.bare_voie2
-    bv41 = myhd108_4.bare_voie1
-    bv42 = myhd108_4.bare_voie2
+        print("jetzt noise")
     
-    for o in myhd108_1.ORDERS[::-1]:
+    
+   
+    #noise
         inte=(bv11[o]+bv12[o]+bv21[o]+bv22[o]+\
         bv31[o]+bv32[o]+bv41[o]+bv42[o])
     
@@ -275,8 +259,8 @@ def outputfile():
         
         noise = np.sqrt(inte)/p(l)
         noise=noise*mask
-        res.extend(noise)
-    col6=res
+        res5.extend(noise)
+   
     
     print("im here")
     
@@ -285,9 +269,9 @@ def outputfile():
     
     #return col1,col2,col3,col4,col5,col6
     with open("hd108_lsdtest.s","w") as f:
-        f.write("dies ist ein Versuch eines polarisationsspektrums von deneb\n")
+        f.write("dies ist ein Versuch eines polarisationsspektrums von hd108\n")
         f.write(str(len(col1)) + "   5\n")
-        np.savetxt(f,np.column_stack([col1,col2,col3,col4,col5,col6]))
+        np.savetxt(f,np.column_stack([res1,res2,res3,res4,res5,res6]))
         
         
    
