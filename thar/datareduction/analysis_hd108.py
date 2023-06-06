@@ -80,7 +80,7 @@ I = {}
 intens_voie2_interp = {}
 weight_voie1={}
 weight_voie2={}
-sumweight=0.
+
 
 for i, mh in enumerate(myhds):
     lam_voie1[i+1], intens_voie1[i+1], I[i+1] = {}, {}, {}
@@ -94,7 +94,7 @@ for i, mh in enumerate(myhds):
         intens_voie2_interp[i+1][o] = mh.voie2_lam1(o)
 
         weight_voie1[i+1][o] = np.median(mh.bare_voie1[o][mh.CENTRALROW-100:mh.CENTRALROW+100]) 
-        sumweight = sumweight + weight_voie1[i+1][o]
+        
 """
 we now have z.B. lam_voie1[3][23]
 """
@@ -191,8 +191,8 @@ def outputfile():
         +weight_voie1[2][o]*intens_voie1[2][o]+weight_voie2[2][o]*intens_voie2_interp[2][o]\
         +weight_voie1[3][o]*intens_voie1[3][o]+weight_voie2[3][o]*intens_voie2_interp[3][o]\
         +weight_voie1[4][o]*intens_voie1[4][o]+weight_voie2[4][o]*intens_voie2_interp[4][o])\
-        /sumweight
-        
+        /(weight_voie1[1][o]+weight_voie2[1]+weight_voie1[2][o]+weight_voie2[2][o]+\
+        weight_voie1[3][o]+weight_voie2[3]+weight_voie1[4][o]+weight_voie2[4][o])
         #--------------------------------
         l = np.arange(len(intens_total))
         nnodes=10
