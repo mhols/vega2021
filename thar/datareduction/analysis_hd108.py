@@ -14,15 +14,15 @@ hd108_3 = os.path.join(kwargs_reference['BASEDIR'], 'hd108/RAW/NEO_20211008_0009
 hd108_4 = os.path.join(kwargs_reference['BASEDIR'], 'hd108/RAW/NEO_20211008_003247_st0.fits')
 
 # the following lines may be commented out when done..
-"""
+
 myhd108 = Extractor(fitsfile_hd108, **kwargs_reference) # TODO hd108 need own setting
 myhd108.update()
 myhd108.update()
 myhd108.update()
 
 myhd108.save_to_store()
-"""
-"""
+
+
 # myhd108 is now ready to reduce any star
 myhd108_1 = get_ext(fitsfile_hd108)
 myhd108_1.update_kwargs(VOIE_METHOD ='SUM_DIVIDE')
@@ -61,7 +61,7 @@ myhd108_2.save_to_store()
 myhd108_3.save_to_store()
 myhd108_4.save_to_store()
 
-"""
+
 
 
 
@@ -93,7 +93,7 @@ for i, mh in enumerate(myhds):
         lam_voie2[i+1][o], intens_voie2[i+1][o], I[o] = mh.get_lambda_intens2(o)
         intens_voie2_interp[i+1][o] = mh.voie2_lam1(o)
 
-        weight_voie1[i+1][o] = np.median(mh.bare_voie1[o][mh.CENTRALROW-100:mh.CENTRALROW+100]) 
+        weight_voie1[i+1][o] = np.median(mh.bare_voie1[o][mh.CENTRALROW-100:mh.CENTRALROW+100])
         sumweight = sumweight + weight_voie1[i+1][o]
 """
 we now have z.B. lam_voie1[3][23]
@@ -120,7 +120,7 @@ def plot1():
     plt.ylim(*ylim)
     plt.plot(lam_1_voie1,intens_1_voie1)
     plt.plot(lam_1_voie2,intens_1_voie2)
-    
+
 def plot2():
     plt.figure()
     plt.title("spectrum 2")
@@ -144,7 +144,7 @@ def plot4():
     plt.ylim(*ylim)
     plt.plot(lam_4_voie1,intens_4_voie1)
     plt.plot(lam_4_voie2,intens_4_voie2)
-    
+
 def plotq():
     plt.figure(figsize=(16,6))
     plt.title("q")
@@ -153,7 +153,7 @@ def plotq():
     plt.plot(lam_2_voie1,q2)
     plt.plot(lam_3_voie1,q3)
     plt.plot(lam_4_voie1,q4)
-    
+
 def allplot():
     plot1()
     plot2()
@@ -166,7 +166,7 @@ def plot_meanv():
     plt.xlim(*xlim)
     plt.plot(lam_1_voie1,mean_V_over_I)
 """
-    
+
 def outputfile():
     res1 = []
     res2 = []
@@ -175,7 +175,7 @@ def outputfile():
     res5 = []
     mask = []
     NROWS = myhd108_1.NROWS
-    
+
     for o in myhd108_1.ORDERS[::-1]:
     #lambda
         lam_1_voie1,intens_1_voie1,I = myhd108_1.get_lambda_intens1(o)
@@ -185,14 +185,14 @@ def outputfile():
                 mask.append(1)
             else:
                 mask.append(0)
-    
+
     #normierte total intensity (4 * 2 voies)
         intens_total=(weight_voie1[1][o]*intens_voie1[1][o]+weight_voie2[1][o]*intens_voie2_interp[1][o]\
         +weight_voie1[2][o]*intens_voie1[2][o]+weight_voie2[2][o]*intens_voie2_interp[2][o]\
         +weight_voie1[3][o]*intens_voie1[3][o]+weight_voie2[3][o]*intens_voie2_interp[3][o]\
         +weight_voie1[4][o]*intens_voie1[4][o]+weight_voie2[4][o]*intens_voie2_interp[4][o])\
         /sumweight
-        
+
         #--------------------------------
         l = np.arange(len(intens_total))
         nnodes=10
@@ -203,19 +203,19 @@ def outputfile():
         intens_total_norm = intens_total/p(l)
         #mask of usable order
         #--------------------------------
-        
+
         intens_total_norm = intens_total_norm * mask
         res2.extend(intens_total_norm)
-    
-    
+
+
     #Stokes V/I
         print("jetzt Stokes V")
-    
+
         q1 = myhd108_1.voie1[o]/myhd108_1.voie2[o]
         q2 = myhd108_2.voie1[o]/myhd108_2.voie2[o]
         q3 = myhd108_3.voie1[o]/myhd108_3.voie2[o]
         q4 = myhd108_4.voie1[o]/myhd108_4.voie2[o]
-        
+
         R4 = (q1/q2)*(q4/q3)
         Rnull4 = (q1/q4) * (q2/q3)
 
@@ -224,30 +224,30 @@ def outputfile():
 
         mean_V_over_I = (R-1.)/(R+1.)
         mean_N_over_I = (Rnull-1.)/(Rnull+1.)
- 
+
         mean_V_over_I = mean_V_over_I * mask
         mean_N_over_I = mean_N_over_I * mask
         res3.extend(mean_V_over_I)
         res4.extend(mean_N_over_I)
-    
-    
+
+
         print("jetzt noise")
-    
-    
-   
+
+
+
     #noise
         inte=(bv11[o]+bv12[o]+bv21[o]+bv22[o]+\
         bv31[o]+bv32[o]+bv41[o]+bv42[o])
-    
+
         print(o)
-        
+
         l = np.arange(len(inte))
         nnodes=10
         q=0.3
         qq=0.7
         qqq=0.95
         p = util.continuum(l,inte,nnodes,q,qq,qqq)
-        
+
         lam_1_voie1,intens_1_voie1,I = myhd108_1.get_lambda_intens1(o)
         mask=[]
         NROWS = kwargs_reference['NROWS']
@@ -256,34 +256,34 @@ def outputfile():
                 mask.append(1)
             else:
                 mask.append(0)
-        
+
         noise = np.sqrt(inte)/p(l)
         noise=noise*mask
         res5.extend(noise)
-   
-    
+
+
     print("im here")
-    
-    
-    
-    
+
+
+
+
     #return col1,col2,col3,col4,col5,col6
     with open("hd108_lsdtest.s","w") as f:
         f.write("dies ist ein Versuch eines polarisationsspektrums von hd108\n")
         f.write(str(len(col1)) + "   5\n")
         np.savetxt(f,np.column_stack([res1,res2,res3,res4,res5,res6]))
-        
-        
-   
-   
+
+
+
+
 
 def doit():
     #----------- now do what you want with the etracted voices etc... -----#
-    sl = pickle.load(open(os.path.join(kwargs_reference['BASEDIR'], 
+    sl = pickle.load(open(os.path.join(kwargs_reference['BASEDIR'],
                         'reffiles/selectedlines_fit.pkl3'), 'rb'))['sellines']
     sl = np.array(list(set(sl)))
 
-    ss = pickle.load(open(os.path.join(kwargs_reference['BASEDIR'], 
+    ss = pickle.load(open(os.path.join(kwargs_reference['BASEDIR'],
                         'reffiles/SolarSpectrum.pkl3'), 'rb'))
 
     refl = ss['Wavelength']
@@ -297,7 +297,7 @@ def doit():
         lm = util.local_maxima(-v)  # absorption lines
         lam1, lam2 = myhd108_1.lambda_range_voie1(o)
 
-        lines = sl[ (sl>lam1) & (sl < lam2) ] 
+        lines = sl[ (sl>lam1) & (sl < lam2) ]
         pix_lines = myhd108_1.ccd_voie1._map_2D_x_ol_o[o](o * lines)
 
         mI, mJ = util.matching(lm[:, 0], pix_lines, lambda a, b: np.abs(a-b) <= 1.0 )
@@ -363,4 +363,4 @@ def doit():
             except Exception as ex:
                 print (l, v)
                 print (ex)
-       
+
