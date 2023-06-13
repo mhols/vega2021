@@ -668,19 +668,19 @@ class Extractor_level_1:
             raise Exception('DIRNAME, reason :', ex)
         return datadir
 
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie1(self):
         """
         is dictionary of mappings fractionary pixel -> wavelength
         """
         return self._pix_to_lambda_map_level1
 
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie2(self):
         #self.message('pix_to_lambda_map_voie1 on level 2')
         return self._pix_to_lambda_map_level1
 
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie3(self):
         return self._pix_to_lambda_map_level1
     
@@ -1364,19 +1364,19 @@ class Extractor_level_2(Extractor_level_1):
         self.end_logging()
         return tmp
 
-    @property
+    @lazyproperty
     def pix_to_lambda_map_voie1(self):
         self.logging('pix_to_lambda_map_voie1 on level2')
         self.end_logging()
         return self._pix_to_lambda_map_level2(1)
     
-    @property
+    @lazyproperty
     def pix_to_lambda_map_voie2(self):
         self.logging('pix_to_lambda_map_voie2 on level2')
         self.end_logging()
         return self._pix_to_lambda_map_level2(2)
     
-    @property
+    @lazyproperty
     def pix_to_lambda_map_voie3(self):
         return self._pix_to_lambda_map_level2(3)
     
