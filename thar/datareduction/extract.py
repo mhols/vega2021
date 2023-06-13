@@ -707,7 +707,7 @@ class Extractor_level_1:
         n = np.arange(self.NROWS)
         return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
 
-    @lazyproperty
+    @property
     def lambdas_per_order_voie(self):
         return {1: self.lambdas_per_order_voie1, 
                 2: self.lambdas_per_order_voie2,
@@ -1364,19 +1364,19 @@ class Extractor_level_2(Extractor_level_1):
         self.end_logging()
         return tmp
 
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie1(self):
         self.logging('pix_to_lambda_map_voie1 on level2')
         self.end_logging()
         return self._pix_to_lambda_map_level2(1)
     
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie2(self):
         self.logging('pix_to_lambda_map_voie2 on level2')
         self.end_logging()
         return self._pix_to_lambda_map_level2(2)
     
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie3(self):
         return self._pix_to_lambda_map_level2(3)
     
