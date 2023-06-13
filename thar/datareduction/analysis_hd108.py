@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 
 fitsfile_reference = os.path.join(kwargs_reference['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
 
-fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], 'starname/RAW/NEO_20211007_175136_th0.fits')
-starname_1 = os.path.join(kwargs_reference['BASEDIR'], 'starname/RAW/NEO_20211007_232240_st0.fits')
-starname_2 = os.path.join(kwargs_reference['BASEDIR'], 'starname/RAW/NEO_20211007_234602_st0.fits')
-starname_3 = os.path.join(kwargs_reference['BASEDIR'], 'starname/RAW/NEO_20211008_000925_st0.fits')
-starname_4 = os.path.join(kwargs_reference['BASEDIR'], 'starname/RAW/NEO_20211008_003247_st0.fits')
+starname = 'hd108'
+fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211007_175136_th0.fits')
+starname_1 = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211007_232240_st0.fits')
+starname_2 = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211007_234602_st0.fits')
+starname_3 = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211008_000925_st0.fits')
+starname_4 = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211008_003247_st0.fits')
 
 # the following lines may be commented out when done..
 """
@@ -230,7 +231,12 @@ for o in mystarname_1.ORDERS[::-1]:
     #selection of the useful part of the order
     intens_total_norm = intens_total_norm * mask
     res2.extend(intens_total_norm)
-
+    """
+    if (o % 2) == 0:
+        plt.plot(lam_1_voie1,intens_total,'r')
+    else:
+        plt.plot(lam_1_voie1,intens_total,'b')
+    """
 
 #Stokes V/I
     print("jetzt Stokes V")
@@ -265,6 +271,11 @@ for o in mystarname_1.ORDERS[::-1]:
 #noise
     inte=(bv11[o]+bv12[o]+bv21[o]+bv22[o]+\
     bv31[o]+bv32[o]+bv41[o]+bv42[o])
+    
+    if (o % 2) == 0:
+        plt.plot(lam_1_voie1[I],inte[I],'r')
+    else:
+        plt.plot(lam_1_voie1[I],inte[I],'b')
 
     print(o)
     
@@ -286,7 +297,7 @@ for o in mystarname_1.ORDERS[::-1]:
 
 print("im here")
 
-
+plt.show()
 
 
 #return col1,col2,col3,col4,col5,col6
