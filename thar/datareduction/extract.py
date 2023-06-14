@@ -586,6 +586,11 @@ class Extractor_level_1:
         self._bare_image = None
         self._voie1 = None
         self._voie2 = None
+        del self.bare_voie1
+        del self.bare_voie2
+        del self.bare_voie3
+        del self.voie
+        del self.bare_voie
 
     @property
     def fitsfile(self):
@@ -1380,7 +1385,7 @@ class Extractor_level_2(Extractor_level_1):
     def pix_to_lambda_map_voie3(self):
         return self._pix_to_lambda_map_level2(3)
     
-    
+ 
 #####
 #  Final level 
 #####
@@ -1400,6 +1405,20 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         self.message(f'Saved to store, you may retrieve it with \n\
                        get_ext({self.fitsfile}')
         """
+
+    def voie1_optimal(self):
+        """
+        optimal extraction
+        """
+        o = 44
+        M = self.beams[o].mask_voie1
+        F = self.masterflat[M]
+        v = self.image[M]
+        
+        return F, v
+
+        pass
+
 
     @lazyproperty
     def snippets_voie1(self):
