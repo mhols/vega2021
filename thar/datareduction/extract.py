@@ -389,10 +389,12 @@ class BeamOrder:
         x=np.arange(self.NCROSS+1, self.NROWS)
         return mask_along_offset(x, self(x), [0], **self.kwargs)
 
+    @property
     def mask_voie1(self):
         x=np.arange(self.NCROSS+1, self.NROWS)
         return mask_along_offset(x, self(x), self.SHIFT_MASK_VOIE1, **self.kwargs)
 
+    @property
     def mask_voie2(self):
         x=np.arange(self.NCROSS+1, self.NROWS)
         return mask_along_offset(x, self(x), self.SHIFT_MASK_VOIE2, **self.kwargs)
@@ -402,14 +404,14 @@ class BeamOrder:
         y = 0.5+ self(np.arange(self.NROWS))   ### TODO: check limits
         voie_part_1 = (np.ceil(y)-y) * np.sum(image*self.mask_central_voie12(), axis=1)
         
-        return voie_part_1 + np.sum(self.mask_voie1() * image, axis=1)
+        return voie_part_1 + np.sum(self.mask_voie1 * image, axis=1)
         
 
     def beam_sum_voie2(self, image):
         y = 0.5+self(np.arange(self.NROWS))   ### TODO: check limits
         voie_part_2 = (y -np.floor(y)) * np.sum(image*self.mask_central_voie12(), axis=1)
 
-        return voie_part_2 + np.sum(self.mask_voie2() * image, axis=1)
+        return voie_part_2 + np.sum(self.mask_voie2 * image, axis=1)
         
 
     def _beam_limits(self):
@@ -1410,15 +1412,26 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         """
         optimal extraction
         """
-        o = 44
-        M = self.beams[o].mask_voie1
-        F = self.masterflat[M]
-        v = self.image[M]
+        m = self.kwargs['SHIFT_MASK_VOIE1']
+        lm = len(m)
+
+        res = {}
+        for o in self.ORDERS:
+            M = self.beams[o].mask_voie1
+            F = self.masterflat * M
+            v = self.image * M 
+
+            lam = np.sum(F * v*v, axis=1) / np.sum(F**2*v, axis=1)
+
+            d = v - lam[:,None] * F
+            MM = np.where( np.abs(d)< 3*v, True, False)
+
+            
+
+            res[o] = lam
+
+        return res
         
-        return F, v
-
-        pass
-
 
     @lazyproperty
     def snippets_voie1(self):

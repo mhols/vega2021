@@ -7,20 +7,23 @@ import matplotlib.pyplot as plt
 
 
 starname = 'hd108'
+
+
+
 fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211007_175136_th0.fits')
 starname_1 = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211007_232240_st0.fits')
 starname_2 = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211007_234602_st0.fits')
 starname_3 = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211008_000925_st0.fits')
 starname_4 = os.path.join(kwargs_reference['BASEDIR'], starname+'/RAW/NEO_20211008_003247_st0.fits')
 
+"""
 # the following lines may be commented out when done..
 mystarname = Extractor(fitsfile_starname, **kwargs_reference) # TODO starname need own setting
 mystarname.update()
 mystarname.update()
 mystarname.update()
 mystarname.save_to_store()
-
-
+"""
 """
 # mystarname is now ready to reduce any star
 mystarname_1 = get_ext(fitsfile_starname)
@@ -60,10 +63,10 @@ mystarname_2.save_to_store()
 mystarname_3.save_to_store()
 mystarname_4.save_to_store()
 
-sys.exit(0)
+# sys.exit(0)
+
 
 """
-
 
 mystarname_1 = get_ext(starname_1)
 mystarname_2 = get_ext(starname_2)
