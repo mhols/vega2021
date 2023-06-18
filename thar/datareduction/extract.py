@@ -1480,12 +1480,13 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
             F = self.masterflat[E].reshape((N//n, n))
             v = self.image[E].reshape((N//n, n))
 
-            F = np.abs(F)
-            v = np.abs(v)
+            F = np.where(F>0, F, 0)
+            v = np.where(v>0, v, 0)
 
             sig2 = READOUT_NOISE + ADU_FACTOR * v
             M = np.ones(F.shape)  # selection mast of pixels without cosmics..
 
+            print('\n')
             for i in range(10):
                 print (o, i, np.count_nonzero(M))
 
@@ -1509,7 +1510,8 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
                     np.nan
                 )
 
-                MM = np.where(np.abs(vv - v) <= COSMIC_SIGMA_CLIP * np.sqrt(post_sig2), 1, 0)
+                # one sided test ? or better two sided outlier removal ?
+                MM = np.where((v-vv) <= COSMIC_SIGMA_CLIP * np.sqrt(post_sig2), 1, 0)
                 I = np.count_nonzero(MM, axis=1)
                 J, = np.where(I <= COSMIC_MIN_PIXEL)
                 MM[J,:] = 0
