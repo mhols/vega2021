@@ -1464,8 +1464,8 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         optimal extraction
         """
 
-        ADU_FACTOR = 1
-        READOUT_NOISE = 0
+        ADU_FACTOR = 0.3
+        READOUT_NOISE = 3
         COSMIC_SIGMA_CLIP = 5
         COSMIC_MIN_PIXEL = 4
 
