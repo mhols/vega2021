@@ -1487,35 +1487,43 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
             M = np.ones(F.shape)  # selection mast of pixels without cosmics..
 
             print('\n')
-            for i in range(10):
+            for i in range(10):      # maximal number of iterations 
                 print (o, i, np.count_nonzero(M))
 
                 # number of extracted spectral values
                 nd = np.count_nonzero(np.sum(M, axis=1))
                 nu = np.count_nonzero(M)   # number of unmasked pixels.
 
-                w = M / sig2  # weight
-                G = np.any(M>0, axis=1) # boolean mask on pixel lines
+                w = M / sig2  # weight including pixel mask
+                G = np.any(M>0, axis=1) # boolean mask on pixel lines (True if line not empty)
 
+                # lsq estimate of lam. On empty lines put nan.
                 lam = np.where( G, np.sum(w * F * v, axis=1) / np.sum(w * F**2, axis=1), np.nan)
 
-                vv = lam[:, None] * F  # estimated pixel pattern
+                vv = lam[:, None] * F  # estimated/predicted pixel pattern under model assumption
 
+                # esimating reduced chi2 sum in order to estimate global noise level
                 chi2red = np.sum(w * (v - vv)**2) / (nu-nd)
-                sig2_sf = chi2red * sig2
+                sig2_sf = chi2red * sig2   # rescaled noise level from data
+
 
                 post_sig2 = np.where( w>0, 
                     sig2_sf * \
                     (1 - w * F**2 / (np.sum(w * F**2, axis=1))[:, None]),
                     np.nan
                 )
+                sig2 = READOUT_NOISE + ADU_FACTOR * vv  # basing noise structure on estimated average
+                
 
                 # one sided test ? or better two sided outlier removal ?
                 MM = np.where((v-vv) <= COSMIC_SIGMA_CLIP * np.sqrt(post_sig2), 1, 0)
+
+                # detetect lines with many bad pixels
                 I = np.count_nonzero(MM, axis=1)
                 J, = np.where(I <= COSMIC_MIN_PIXEL)
-                MM[J,:] = 0
-                if (np.all(MM==M)):
+                MM[J,:] = 0    # elimination of whole row if not enough pixels good
+
+                if (np.all(MM==M)):   # repeat until selected set does not change anymore
                     break
                 M = MM
 
