@@ -589,6 +589,7 @@ class Extractor_level_1:
         if 'VOIE_METHOD' in kwargs:
             self._voie1 = None
             self._voie2 = None
+            del self.voie
 
     def logging(self, message):
         """
@@ -884,7 +885,7 @@ class Extractor_level_1:
         ADU_FACTOR = 3.
         READOUT_NOISE = 1.
         COSMIC_SIGMA_CLIP = 3
-        COSMIC_MIN_PIXEL = 8
+        COSMIC_MIN_PIXEL = 6
 
         m = self.kwargs['SHIFT_MASK_VOIE1'] if voie == 1 else self.kwargs['SHIFT_MASK_VOIE2']
         n = len(m)
@@ -929,11 +930,10 @@ class Extractor_level_1:
                     (1 - w * F**2 / (np.sum(w * F**2, axis=1))[:, None]),
                     np.nan
                 )
-                sig2 = READOUT_NOISE + ADU_FACTOR * vv  # basing noise structure on estimated average
                 
 
                 # one sided test ? or better two sided outlier removal ?
-                MM = np.where((v-vv) <= COSMIC_SIGMA_CLIP * np.sqrt(post_sig2), 1, 0)
+                MM = np.where(np.abs(v-vv) <= COSMIC_SIGMA_CLIP * np.sqrt(post_sig2), 1, 0)
 
                 # detetect lines with many bad pixels
                 I = np.count_nonzero(MM, axis=1)
