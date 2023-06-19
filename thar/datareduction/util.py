@@ -189,7 +189,7 @@ def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
     #s = UnivariateSpline(t, t, s=0)
 
     if np.all(np.isnan(v)):
-        return v
+        return lambda x: np.nan
     I = np.logical_not(np.isnan(v))
     II = np.logical_and(I, v<np.quantile(v[I],0.95))
     I = np.logical_and(II, v>np.quantile(v[I],0.05))
