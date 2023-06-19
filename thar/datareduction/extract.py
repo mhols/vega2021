@@ -1459,15 +1459,15 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
                        get_ext({self.fitsfile}')
         """
 
-    def voie1_optimal(self):
+        def voie1_optimal(self):
         """
         optimal extraction
         """
 
-        ADU_FACTOR = 0.3
-        READOUT_NOISE = 3
-        COSMIC_SIGMA_CLIP = 5
-        COSMIC_MIN_PIXEL = 4
+        ADU_FACTOR = 3.
+        READOUT_NOISE = 1.
+        COSMIC_SIGMA_CLIP = 3
+        COSMIC_MIN_PIXEL = 8
 
         m = self.kwargs['SHIFT_MASK_VOIE1']
         n = len(m)
@@ -1484,7 +1484,7 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
             v = np.abs(v)
 
             sig2 = READOUT_NOISE + ADU_FACTOR * v
-            M = np.ones(F.shape)  # selection mast of pixels without cosmics..
+            M = np.ones(F.shape)  # selection mask of pixels without cosmics..
 
             for i in range(10):
                 print (o, i, np.count_nonzero(M))

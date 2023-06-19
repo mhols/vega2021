@@ -175,6 +175,7 @@ def plot_meanv():
 #def outputfile():
 
 res1 = []
+res1a = []
 res2 = []
 res3 = []
 res4 = []
@@ -187,6 +188,7 @@ for o in mystarname_1.ORDERS[::-1]:
 #lambda
     lam_1_voie1,intens_1_voie1,I = mystarname_1.get_lambda_intens1(o)
     res1.extend(lam_1_voie1/10.)
+    res1a.extend(lam_1_voie1)
     mask = []
     for i in range(NROWS):
         if i in I:
