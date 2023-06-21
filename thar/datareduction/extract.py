@@ -884,8 +884,8 @@ class Extractor_level_1:
 
         ADU_FACTOR = 3.
         READOUT_NOISE = 1.
-        COSMIC_SIGMA_CLIP = 3
-        COSMIC_MIN_PIXEL = 6
+        COSMIC_SIGMA_CLIP = 5
+        COSMIC_MIN_PIXEL = 4
 
 
         m = self.kwargs['SHIFT_MASK_VOIE1'] if voie == 1 else self.kwargs['SHIFT_MASK_VOIE2']

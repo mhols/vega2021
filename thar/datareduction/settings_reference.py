@@ -27,6 +27,9 @@ NCROSS = 100;           comment['NCROSS'] = "number of rows/columns in central c
 REMOVECROSS = int(True)
 NROWSBLOCK = 2054   #number of rows in individual blocks
 NCOLSBLOCK = 2048   #number of cols in individual blocks
+#old moon
+##HIGHEXP = 15
+##LOWEXP = 4
 HIGHEXP = 60
 LOWEXP = 15
 CUTORDER = 35   #means that cutting flats is between 34 and 35
