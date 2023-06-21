@@ -9,7 +9,7 @@ from plottextractmixin import PlotExtractMixin
 import astropy.io.fits as pyfits
 import os
 import sys
-from scipy.ndimage import minimum_filter1d, generic_filter
+from scipy.ndimage import minimum_filter1d, minimum_filter, generic_filter, median_filter
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 from scipy.signal import convolve2d
@@ -1236,17 +1236,20 @@ class Extractor_level_1:
     def _estimate_background(self, image):
         MIN_FILTER_SIZE = 50
         SMOOTHING_FILTER_SIZE = 50
+        MEDIAN_FILTER_SIZE = 5
         res = np.zeros(image.shape)
         F = np.ones(SMOOTHING_FILTER_SIZE)/SMOOTHING_FILTER_SIZE
         F = np.convolve(F, F)
-        for i, r in enumerate(image):
+        ima = median_filter(image, size=MEDIAN_FILTER_SIZE, mode='reflect')
+        ima = minimum_filter(ima, size=MIN_FILTER_SIZE, mode='reflect')
+        for i, r in enumerate(ima):
             d = minimum_filter1d(r, size=MIN_FILTER_SIZE)
             res[i, :] = np.convolve(F, d, 'same')
         return res
 
     @property
     def background(self):
-        return self._estimate_background(self.bare_image)
+        return self._estimate_background(self.bare_image-self.masterbias)
 
     def cutoff_mask(self, *args):
         CUTOFF_PERCENTILE = args[0]
