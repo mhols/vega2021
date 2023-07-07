@@ -1,4 +1,5 @@
 import util
+import utilitaires
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
@@ -101,7 +102,6 @@ def secondpoly(xx, yy):
 
 def load_image_from_fits(fitsfile, **kwargs):
     # REMOVECROSS=kwargs['REMOVECROSS']==int(True)
-    a = pyfits.open(fitsfile)
     # print('fitsfile ', fitsfile)
     image = np.clip(a[0].data, -100, 65535)
     a.close()
@@ -1567,6 +1567,9 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
     @property
     def ccd_voie(self):
         return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
+        
+    def jdfirstmoment(self):
+        utilitaires.photometry2(self._fitsfile)
 
     def update_snippets(self):
         # del self.snippets_voie1
