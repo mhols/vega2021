@@ -16,13 +16,14 @@ starname_4 = os.path.join(kwargs_reference['BASEDIR'], '06oct21_Gam_Equ/NEO_2021
 
 # the following lines may be commented out when done..
 
+"""
 mystarname = Extractor(fitsfile_starname, **kwargs_reference) # TODO starname need own setting
 mystarname.update()
 mystarname.update()
 mystarname.update()
 
 mystarname.save_to_store()
-
+"""
 
 
 
