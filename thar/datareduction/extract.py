@@ -103,6 +103,7 @@ def secondpoly(xx, yy):
 def load_image_from_fits(fitsfile, **kwargs):
     # REMOVECROSS=kwargs['REMOVECROSS']==int(True)
     # print('fitsfile ', fitsfile)
+    a = pyfits.open(fitsfile)
     image = np.clip(a[0].data, -100, 65535)
     a.close()
     if has_cross(fitsfile):
@@ -1568,8 +1569,11 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
     def ccd_voie(self):
         return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
         
-    def jdfirstmoment(self):
-        utilitaires.photometry2(self._fitsfile)
+    def jdfirstm(self):
+        utilitaires.photometry2(self)
+
+    def bervbjd(self,obsname='TBL', method='astropy', julbase='juld', pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0., epoch=2451545.0, tbase=0.):
+        utilitaires.barycorr(self, obsname='TBL', method='astropy', julbase='juld', pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0., epoch=2451545.0, tbase=0.)
 
     def update_snippets(self):
         # del self.snippets_voie1
