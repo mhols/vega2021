@@ -103,6 +103,7 @@ def secondpoly(xx, yy):
 def load_image_from_fits(fitsfile, **kwargs):
     # REMOVECROSS=kwargs['REMOVECROSS']==int(True)
     # print('fitsfile ', fitsfile)
+    a = pyfits.open(fitsfile)
     image = np.clip(a[0].data, -100, 65535)
     a.close()
     if has_cross(fitsfile):
