@@ -580,7 +580,7 @@ class Extractor_level_1:
         self._image = None
         self._pix_to_lambda_map_2 = None
         self._pix_to_lambda_map_3 = None
-        self._fitsfile_set_for_reduction = False
+        self._fitsfile_set_for_reduction = False   ## TODO check if needed....
         self.end_logging()
 
     def update_kwargs(self, **kwargs):

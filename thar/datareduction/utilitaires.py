@@ -110,6 +110,9 @@ def barycorr(fitsfile, obsname='TBL', method='barycorrpy', julbase='juld', pmra=
     tbase: Baseline subtracted from times (default 0.0)
     """
     s = fitsfile
+    
+    # TODO use methods allready implemented in extract  DRY DRY!
+
     hdulist=pyfits.open(s)
     hdr= hdulist[0].header
     
@@ -120,6 +123,8 @@ def barycorr(fitsfile, obsname='TBL', method='barycorrpy', julbase='juld', pmra=
     ra = hdr.get('RA')
     dec = hdr.get('DEC')
     
+    
+    # TODO: create a class / setting entry observatory
     # here are prvi
     if obsname=='TBL':
         obs_lat = 42.9333
