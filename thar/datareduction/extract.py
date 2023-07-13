@@ -1577,10 +1577,12 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
         
     def jdfirstm(self):
-        utilitaires.photometry2(self)
+        self.jdfirstmoment = utilitaires.photometry(self._fitsfile)
+        return self.jdfirstmoment
 
     def bervbjd(self,obsname='TBL', method='astropy', julbase='juld', pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0., epoch=2451545.0, tbase=0.):
-        utilitaires.barycorr(self, obsname='TBL', method='astropy', julbase='juld', pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0., epoch=2451545.0, tbase=0.)
+        self.berv, self.bjd = utilitaires.barycorr(self._fitsfile, obsname='TBL', method='astropy', julbase='juld', pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0., epoch=2451545.0, tbase=0.)
+        return self.berv, self.bjd
 
     def update_snippets(self):
         # del self.snippets_voie1

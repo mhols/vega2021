@@ -51,12 +51,12 @@ def photometry(fitsname):
 
     return jd_firstmoment
 
+### should not be needed.....
+"""
+def photometry2(fitsfile):
 
-def photometry2(self):
-
-    s = self._fitsfile
     #s ='/Users/boehm/Desktop/vega2021/thar/06oct21_Gam_Equ/NEO_20211006_214054_st0.fits'
-    hdulist=pyfits.open(s)
+    hdulist=pyfits.open(fitsfile)
     hdr= hdulist[0].header
     jd = hdr.get('DATE_JUL')
     exptime = hdr['EXPTIME']        #Integration time(sec)
@@ -79,7 +79,7 @@ def photometry2(self):
     btime=btime/sumcount
 
     jdfirstmoment = time[0] + btime
-    self.jdfirstmoment = jdfirstmoment
+    # self.jdfirstmoment = jdfirstmoment
 
     print("total count time (s): ", (fractime[-1]-fractime[0])*24.*3600., "total exposure time (s):", exptime)
     print("half count time (s) :", (fractime[-1]-fractime[0])*24.*3600.*0.5)
@@ -87,9 +87,10 @@ def photometry2(self):
     print("time_beg (jd): ", time[0], "jd_firstmoment (jd): ", jdfirstmoment, "time_end (jd): ",time[-1])
     print("center of exposure (jd): ", time[0]+(time[-1]-time[0])/2.)
 
+    return jdfirstmoment
+"""
 
-
-def barycorr(self, obsname='TBL', method='barycorrpy', julbase='juld', pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0., epoch=2451545.0, tbase=0.):
+def barycorr(fitsfile, obsname='TBL', method='barycorrpy', julbase='juld', pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0., epoch=2451545.0, tbase=0.):
         
     """
     obsname =   here TBL if nothing else is specified
@@ -108,7 +109,7 @@ def barycorr(self, obsname='TBL', method='barycorrpy', julbase='juld', pmra=0., 
     epoch: Epoch (default 2448348.56250, J2000)
     tbase: Baseline subtracted from times (default 0.0)
     """
-    s = self._fitsfile
+    s = fitsfile
     hdulist=pyfits.open(s)
     hdr= hdulist[0].header
     
@@ -148,7 +149,7 @@ def barycorr(self, obsname='TBL', method='barycorrpy', julbase='juld', pmra=0., 
         jd =  jd_utc + 0.5 * exptimed
         t = Time(jd, format='jd', scale='utc')
     else:
-        jd = self.jdfirstmoment
+        jd = photometry(fitsfile) # self.jdfirstmoment
         t = Time(jd, format='jd', scale='utc')
         
 
@@ -168,8 +169,8 @@ def barycorr(self, obsname='TBL', method='barycorrpy', julbase='juld', pmra=0., 
         rv = rvmeas + vcorr * (1 + rvmeas/c.value)
         berv = vcorr
         
-        self.berv = berv
-        self.bjdtdb = bjd
+        #self.berv = berv
+        #self.bjdtdb = bjd
     
         print("barycentric julian date (bjd):  ",bjd)
         print("rvmeas: ", rvmeas, "barycentric velocity correction - berv (m/s):  ", berv, "rv (m/s): ", rv)
@@ -185,8 +186,8 @@ def barycorr(self, obsname='TBL', method='barycorrpy', julbase='juld', pmra=0., 
         berv = bervres[0][0]
         bjd = bjdres[0][0]
         
-        self.berv = berv
-        self.bjdtdb = bjd
+        #self.berv = berv
+        #self.bjdtdb = bjd
         #c = np.array(c)
         rvmeas = zmeas * c.value
         vcorr = berv
@@ -195,6 +196,7 @@ def barycorr(self, obsname='TBL', method='barycorrpy', julbase='juld', pmra=0., 
         print("barycentric julian date (bjd):  ",bjd)
         print("rvmeas: ", rvmeas, "barycentric velocity correction - berv (m/s):  ", berv, "rv (m/s): ", rv)
 
+    return berv, bjd
     
 
 
