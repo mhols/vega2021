@@ -123,7 +123,10 @@ def header_info_from_fits(fitsfile, keyword):
 
 
 def gettimestamp(fitsfile):
-    return header_info_from_fits(fitsfile, 'DATE_JUL')
+    try:
+        return header_info_from_fits(fitsfile, 'DATE_JUL')
+    except:
+        return None
 
 
 def is_flatfield(fitsfile):
@@ -153,10 +156,9 @@ def is_star(fitsfile, name):
     if fitsfile.endswith('st0.fits'):
         return True
     try:
-        res = header_info_from_fits(fitsfile, 'OBJECT') == name
+        return header_info_from_fits(fitsfile, 'OBJECT') == name
     except:
-        pass
-    return res
+        return False
 
 
 def has_cross(fitsfile):
