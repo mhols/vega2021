@@ -222,7 +222,7 @@ class Snippets:
         for i,xab in enumerate (lm):
             
             x, a, b = xab  # the position of max and the limits
-            
+            s = v[a:b+1]            
                    
             bs.append( {
                 'true_order_number': o,
