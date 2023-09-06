@@ -10,7 +10,6 @@ from scipy.optimize import bisect
 from scipy.interpolate import interp1d
 from numpy.polynomial import Polynomial
 import matplotlib
-## matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import cvxopt as cx
@@ -175,14 +174,17 @@ class CCD2d:
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
     def __init__(self, extractor, data, **kwargs):
-        self.kwargs = kwargs  # saving for later use
-        self.extractor = extractor
-        self._data =  data.copy()    # data coming from snippets
-        self._mdata = None   # matching data
-        self.ORDERS = self.kwargs['ORDERS']
+        self.kwargs = kwargs        # saving for later use
+        self.extractor = extractor  # back reference to central extractor objects
+        self._data =  data.copy()   # data coming from snippets
         self._data.loc[self._data.index, 'selected'] = True # we are using only this subset
+        self._mdata = None          # matching data
+        self.ORDERS = self.kwargs['ORDERS']     # convenince field
+        self.NROWS = self.kwargs['NROWS']
+
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
         self._data.loc[self._data.index, 'total_flux'] = 1.0* total_flux
+        
         self._map_1D_x_ol_o = None
         self._map_1D_ol_x_o = None
         self._map_2D_x_ol_o = None
@@ -194,9 +196,6 @@ class CCD2d:
         self._olmin = self._ol.min()
         self._olmax = self._ol.max()
 
-        # basic outlier removal / quality filter and setting of zero base approximation
-        #self._set_global_polynomial()
-
 
         p = self.get_global_polynomial()
         self._global_polynomial =  DictOfMapsPerOrder(self, {
@@ -205,16 +204,16 @@ class CCD2d:
                     p, p.deriv(1))  
                 for o in self.ORDERS
             })
+        
+        self._set_global_polynomial()
 
         self._final_map_x_ol_o = self._global_polynomial # shall be updated later
 
-        self.sigma_clipping_polynomial_order_by_order()
-        self.sigma_clipping_2D_polynomial()
+        if kwargs.get('USE_1D_POLYNOMIAL', 'False') == 'True':
+            self.sigma_clipping_polynomial_order_by_order()
+        else:
+            self.sigma_clipping_2D_polynomial()
         
-    @property
-    def NROWS(self):
-        return self.kwargs['NROWS']
-
     def color_of_order(self, o):
         cmap = cm.get_cmap(self.kwargs['palette_order'])
         orders = self.all_order()
@@ -237,41 +236,6 @@ class CCD2d:
                 for o in self.ORDERS
             })
 
-        kwargs_copy = self.kwargs.copy()
-
-        self.kwargs['order_ol'] = 3
-        self.kwargs['order_o'] = 3
-        self.kwargs['CLIPMETHOD'] = 'threshold'
-        self.kwargs['CLIP_QUANTITY'] = 'deltax'
-        self.kwargs['CLIPTHRESHOLD'] = 3 * PIXEL
-        self.kwargs['CLIP_MAX_VRAD'] = 10000 * M / S
-        self.kwargs['FITWEIGHT'] = 'sigma'
-        self.kwargs['USE_SIGMA_MIN'] = 'True'                 # do not use a minimal sigma in fitting
-        self.kwargs['sigma_min'] = 0.001 * PIXEL                # minimial sigma to avoid overfitting
-
-        
-        w = self._fit_weight()
-        fitmachine = lambda I : self._fit_2d_polynomial(I=I, weight=w[I])
-        clipmachine = self._clippings
-
-
-
-        p, I, nclip = sigma_clipping_general_map(
-            fitmachine,
-            clipmachine,
-            I0 = self._data.index   # start from all points
-        )
-
-        self._global_polynomial = p
-
-        self.extractor.message(f"reducing from {self._ndata}  to {sum(I)}")
-
-        self._data = self._data[I].copy().reset_index(drop=True)
-
-        self.kwargs = kwargs_copy
-        
-
-
     #===================================    
     # clipping procedures
     #===================================
@@ -288,20 +252,25 @@ class CCD2d:
         'quantile': das alpha quantile wird behalten (can be set with CLIPSHRESHOLD) 
         'quantile_order_by_order': the same order by order
 
+        p: map(ol, l) -> x
+
+        returns: boolean array of data rows that fullfill accepted criteria
 
         """
         clip = self.kwargs.get('CLIPMETHOD', 'quantile')
         alpha = self.kwargs.get('CLIPTHRESHOLD', 0.7)
         maxvrad = self.kwargs.get('CLIP_MAX_VRAD', 1000 * M/S)
         clip_quantity = self.kwargs.get('CLIP_QUANTITY', 'deltavr')
+        
+        # compute clip_quantiy for the approximating mapping p
         r = self._mismatches(clip_quantity, p)
         absr = r.abs()
 
-        def clipp_max_vrad():
+        # global clipping
+        def clip_max_vrad():
             deltavr = self._mismatches('deltavr', p)
             return deltavr.abs() < maxvrad
-        
-        I = clipp_max_vrad()
+        I = clip_max_vrad()
         
         def clip_quantile():
             return np.logical_and(I, absr < np.quantile(absr, alpha))
@@ -332,7 +301,7 @@ class CCD2d:
             'quantile': clip_quantile,
             'quantile_order_by_order': clip_quantile_order_by_order,
             'noclip': clip_noclip,
-            'max_vrad': clipp_max_vrad,
+            'max_vrad': clip_max_vrad,
             'threshold': clip_threshold,
             'est_std': clip_est_std,
         }
@@ -348,21 +317,26 @@ class CCD2d:
         return: DataFrame of mismatches
         """
 
+        # polynomial approximation of x
         px = p(self._ol, self._o)
-        r = self._x - px
+        r = self._x - px # the 'pixel residuum'
 
         mismatches = {
             'deltax':   lambda: r,
-            'deltal':   lambda: r * self._dldx / self._l, 
+            'deltal':   lambda: r * self._dldx, 
             'deltavr':  lambda: r * C_LIGHT * self._dldx / self._l,
             'chi2':     lambda: r / self._sigma,
             'fitweightchi2': lambda: r / self._fit_weight()
         }
 
+        # evaluate lambda expression in local context
         return mismatches[mismatch]()
 
 
-    def _fit_weight(self):  ## TODO: change name to fit_weight_x_ol_o
+    def _fit_weight(self): 
+        """
+        Returns the weight for the fit in x.
+        """
         
         tmp =self.kwargs.get('FITWEIGHT', 'sigma') 
 
@@ -374,10 +348,13 @@ class CCD2d:
             weight = 1/self._sigma
         
         elif (tmp == 'vrad'):
-            weight = pd.Series(1.0, index=self._data.index)
-            for o in self.all_order():
-                I = self.index_order_unselected(o)
-                weight.loc[I] = C_LIGHT * self._dldx.loc[I] / self._l.loc[I]
+            weight = C_LIGHT * self._dldx / self._l
+
+        elif (tmp == 'intens_weighted_vrad'):
+            weight = C_LIGHT * self._dldx * np.sqrt(self._data['total_flux']) / self._l
+
+        elif (tmp == 'sigma_weighted_vrad'):
+            weight = C_LIGHT * self._dldx / (self._sigma * self._l)
 
         elif (tmp == "flux"):
             weight = np.sqrt(self._data['total_flux'])
@@ -395,8 +372,7 @@ class CCD2d:
             weight=w[I], I=I
         )
 
-
-        clipmachine = self._clippings        # mismatch -> valid index
+        clipmachine = self._clippings     
 
         p, I, nclip = sigma_clipping_general_map(
             fitmachine,
@@ -739,8 +715,9 @@ class CCD2d:
 
         G = np.zeros((len(o), len(nolko)))
 
-        if self.kwargs.get('USE_SIGMA_MIN', 'False') == 'True':
-            s = np.sqrt(s**2 + self.kwargs['sigma_min']**2)
+        # TODO: minimal sigma...
+        # if self.kwargs.get('USE_SIGMA_MIN', 'False') == 'True':
+        #    s = np.sqrt(s**2 + self.kwargs['sigma_min']**2)
 
         for i in range(len(o)):
             for j, (nol, no) in enumerate(nolko):
