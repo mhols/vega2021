@@ -1687,6 +1687,7 @@ def setup_reference():
 
     # make better lambda map
     myext = Extractor(kwargs['REFFITSFILE'], **kwargs)
+    myext.save_to_store()
     myext.update()
     myext.update()
     myext.update()

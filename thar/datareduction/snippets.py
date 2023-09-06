@@ -54,6 +54,7 @@ class Snippets:
 
         self.extractor.end_logging()
 
+        self.compute_est_lambda()
 
         self._snippets.loc[:,'usablesnippet'] = False
         I = self.filter_snippets()
@@ -244,7 +245,10 @@ class Snippets:
                 'selected': False,
                 'goodsnippet': False,
                 'usablesnippet': False,
-                'gaussfit': False
+                'gaussfit': False,
+                'ref_lambda': 0.0,
+                'lambda_left': 0.0,
+                'lambda_right': 0.0,
             })
         bs = pd.DataFrame(bs)
         return bs
@@ -425,9 +429,8 @@ class Snippets:
     def filter_snippets_min_length(self,o):
         alpha = self.kwargs.get("FILTER_MIN_LENGTH", 1.)
         # filter says true or false for each snippe
-        res = pd.Series(False,index=self._snippets.index)
         res = self._snippets["true_order_number"] == o
-        res = res & (self._snippets["left"] - self._snippets["right"]) > alpha
+        res = res & ((self._snippets["right"] - self._snippets["left"]) > alpha)
         return res
         
     def filter_snippets_max_amplitude(self,o):
@@ -435,18 +438,20 @@ class Snippets:
 
         res = self._snippets["true_order_number"] == o
         q = np.quantile(self._snippets.loc[res, "pixel_max_intens"], alpha)
-        res = res & self._snippets["pixel_max_intens"] > q
+        res = res & (self._snippets["pixel_max_intens"] > q)
 
         return res
     
        
     def filter_snippets(self):
-        I = True
+        II = False
         for o in self.ORDERS:
+            I = True
             I = I & self.filter_snippets_not_excluded(o)
             I = I & self.filter_snippets_max_amplitude(o)
             I = I & self.filter_snippets_min_length(o)
-        return I
+            II = I | II 
+        return II
     
     def match_snippets(self, o):
         return self._snippet_match_tor(o)
