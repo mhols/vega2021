@@ -5,13 +5,10 @@ from astropy import time, coordinates as coord, units as u
 # https://github.com/shbhuk/barycorrpy/issues/27
 # https://github.com/shbhuk/barycorrpy/wiki/11.-USNO-IERS-servers-are-down
 # https://github.com/astropy/astropy/issues/9427
-
-"""
 from astropy.utils.iers import conf as iers_conf
 iers_conf.iers_auto_url = 'https://astroconda.org/aux/astropy_mirror/iers_a_1/finals2000A.all'   # outdated see: https://github.com/mzechmeister/serval/issues/47#issuecomment-997350597
 iers_conf.iers_auto_url = 'https://datacenter.iers.org/data/9/finals2000A.all'
 iers_conf.auto_max_age = None
-"""
 
 def bjdbrv(jd_utc, ra, dec, obsname=None, lat=0., lon=0., elevation=None,
         pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0.,
@@ -42,36 +39,44 @@ def bjdbrv(jd_utc, ra, dec, obsname=None, lat=0., lon=0., elevation=None,
    Example:
    --------
    >>> from brv_we14py import bjdbrv
-   >>> print(bjdbrv(2457395.24563, 4.585590721,  44.02195596, 'tbl'))
+   >>> print bjdbrv(2457395.24563, 4.585590721,  44.02195596, 'ca')
    (2457395.247062386, -23684.54364462639)
 
    """
    # translation obsname_idl obsname_py
-   if obsname=='tbl':
-      lat = 42.9333
-      lon = 0.1333
-      elevation = 2869.4
-   
+   if obsname=='ca':
+      lat = 37.2236
+      lon = -2.5463
+      elevation = 2168.
+   if obsname=='eso':
+      #obsname = 'lasilla'
+      lat = -29.2584
+      lon = -70.7345
+      elevation = 2400.
+   if obsname=='lapalma':
+       lat = 28.754000
+       lon = -17.88905555
+       elevation = 2387.2
+
    # Barycentric Julian Date
    # adapted from http://docs.astropy.org/en/stable/time/#barycentric-and-heliocentric-light-travel-time-corrections
    targ = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg), frame='icrs')
    loc = coord.EarthLocation.from_geodetic(lon, lat, height=elevation)
+   #times = time.Time(jd_utc, format='jd', scale='utc', location=loc)
+   #ltt_bary = times.light_travel_time(targ)
    JDUTC = Time(jd_utc, format='jd', scale='utc')
-   
    if JDUTC.isscalar:
       ltt_bary = JDUTC.light_travel_time(targ, location=loc)
       # Does not work vectorised with numpy 1.14
       # *** TypeError: For this input type lists must contain either int or Ellipsis
       # https://github.com/astropy/astropy/issues/7051
       bjd = JDUTC.tdb + ltt_bary
-      print(JDUTC.jd,JDUTC.tdb,ltt_bary)
    else:
       bjd = [(jdutc.tdb + jdutc.light_travel_time(targ, location=loc)).value for jdutc in JDUTC]
 
+   brv, warning_and_error, status = barycorrpy.get_BC_vel(JDUTC, ra=ra, dec=dec, epoch=epoch, pmra=pmra,
+                   pmdec=pmdec, px=parallax, lat=lat, longi=lon, alt=elevation, **kwargs)
 
-   brv, warning_and_error, status = barycorrpy.get_BC_vel(JDUTC, ra=ra, dec=dec, epoch=epoch, pmra=pmra,pmdec=pmdec, px=parallax, lat=lat, longi=lon, alt=elevation, **kwargs)
-    
-   print(JDUTC)
    return (bjd.value, brv[0]) if JDUTC.isscalar else (bjd, brv)
 
 

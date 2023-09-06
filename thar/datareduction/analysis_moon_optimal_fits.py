@@ -16,8 +16,8 @@ starname_4 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_2023040
 
 # the following lines may be commented out when done..
 
+
 """
-mystarname = Extractor(fitsfile_starname, **kwargs_reference) # TODO starname need own setting
 mystarname.update()
 mystarname.update()
 mystarname.update()

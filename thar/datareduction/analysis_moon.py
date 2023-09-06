@@ -7,25 +7,22 @@ import matplotlib.pyplot as plt
 
 fitsfile_reference = os.path.join(kwargs_reference['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
 
-
+"""
 starname = 'moon'
 fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230406_190457_th0.fits')
 starname_1 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010642_st0.fits')
 starname_2 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010707_st0.fits')
 starname_3 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010731_st0.fits')
 starname_4 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010755_st0.fits')
-
-
-
 """
-#attention il faut changer settings_reference kwargs HIGHEXP et LOWEXP pour les FF en 15 et 4 au lieu de 60 et 15
+
 starname = 'moon'
 fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
 starname_1 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182606_st0.fits')
 starname_2 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182642_st0.fits')
 starname_3 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182715_st0.fits')
 starname_4 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182751_st0.fits')
-"""
+
 
 
 

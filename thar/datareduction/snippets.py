@@ -70,8 +70,6 @@ class Snippets:
         with open(self.kwargs['REF_ATLASLINES_UVES'], 'r') as f:
             alines = f.readlines()
 
-        
-        # ici deuxieme colonne, avec lambda dans l'air
         # extract information...
         if self.kwargs['WAVEMAP_IN_VACUUM_AIR'] == 'VACUUM':
             atlaslines =  np.array([1e8 / float(l.split()[0]) for l in alines])
@@ -87,24 +85,7 @@ class Snippets:
              'lower': pd.Series( l * atlaslines ),
              'upper': pd.Series( r * atlaslines)}
         )
-        """
-             
-        #ici premiere colonne, avec lambda dans le vide
-        with open(self.kwargs['REF_ATLASLINES'], 'r') as f:
-            alines = f.readlines()
-
-        # extract information...
-        atlaslines =  np.array([10e8/float(l.split()[0]) for l in alines])
-        # self._atlasline = atlaslines
-        l = (1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
-        r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
-
-        atlasline = pd.DataFrame(
-            {'ref_lambda': pd.Series(atlaslines),
-             'lower': pd.Series( l * atlaslines ),
-             'upper': pd.Series( r * atlaslines)}
-        )
-        """
+    
         return atlasline
 
     @lazyproperty 

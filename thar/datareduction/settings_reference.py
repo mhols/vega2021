@@ -19,7 +19,6 @@ DATADIR = os.path.abspath(os.path.join(BASEDIR, 'vega_reference'));
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
 
 REFFITSFILE = os.path.abspath(os.path.join(DATADIR, 'NEO_20220903_191404_th0.fits'))  # our refernce thorium
-RESULTDIR = os.path.abspath(os.path.join(BASEDIR, 'resultfiles'))
 
 ## ----- extractor constants
 NROWS = 4208;           comment['NROWS'] = "number of rows"
@@ -100,6 +99,7 @@ LAMBDAFILE = os.path.join(REFFILES, 'NEXTRA_base_lambda_map.txt')
 
 # snippets extraction
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
+<<<<<<< HEAD
 
 #REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 REF_ATLASLINES_REEDMAN = os.path.join(REFFILES, 'Redman_table6.dat')
@@ -108,6 +108,9 @@ REF_ATLASLINES_CLICKED = os.path.join(REFFILES, 'thar_clicked_uves.csv')
 ATLAS_FOR_SNIPPETS = 'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
 WAVEMAP_IN_VACUUM_AIR = "VACUUM" # 'VACUUM' # or AIR
 
+=======
+REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
+>>>>>>> parent of e2ed188 (before summermerge)
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
 SEUIL = 0.2 * ADU   # seuil en ADU 
@@ -124,11 +127,17 @@ CLIPMETHOD = 'threshold'
 CLIP_QUANTITY = 'deltavr'
 CLIPTHRESHOLD = 300 * M / S
 CLIP_MAX_VRAD = 400 * M / S
+<<<<<<< HEAD
 
 FITWEIGHT = 'flux'                   # weighted empirical risk
 USE_SIGMA_MIN = 'True'                # do not use a minimal sigma in fitting
 sigma_min = 0.5 * M / S               # minimial sigma to avoid overfitting
 
+=======
+FITWEIGHT = 'vrad'
+USE_SIGMA_MIN = 'True'                 # do not use a minimal sigma in fitting
+sigma_min = 0.5 * M / S                # minimial sigma to avoid overfitting
+>>>>>>> parent of e2ed188 (before summermerge)
 palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 5                           # order polynomial in ol
 order_o = 7                            # order polynomial in o
