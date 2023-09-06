@@ -459,7 +459,7 @@ class Snippets:
                 continue
 
             ind=J[J].index[0]
-            self._snippets.loc[ind,"goodsnippets"] = True
+            self._snippets.loc[ind,"goodsnippet"] = True
             self._snippets.loc[ind,'ref_lambda'] = c
             self._snippets.loc[ind,'catalog_index'] = int(i)        
 
