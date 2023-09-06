@@ -19,6 +19,7 @@ BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))  # put
 DATADIR = os.path.abspath(os.path.join(BASEDIR, 'vega_reference')); 
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
 REFFITSFILE = os.path.abspath(os.path.join(DATADIR, 'NEO_20220903_191404_th0.fits'))  # our refernce thorium
+RESULTDIR = os.path.abspath(os.path.join(BASEDIR, 'resultfiles'))
 
 ## ----- extractor constants
 NROWS = 4208;           comment['NROWS'] = "number of rows"
@@ -98,6 +99,7 @@ LAMBDAFILE = os.path.join(REFFILES, 'HOBO_NEO_20220903_191404_th1_wave1.txt')
 # snippets extraction
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
+#REF_ATLASLINES = os.path.join(REFFILES, 'thar_MM201006.dat')
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
 SEUIL = 0.2 * ADU   # seuil en ADU 
@@ -114,7 +116,7 @@ CLIPMETHOD = 'threshold'
 CLIP_QUANTITY = 'deltavr'
 CLIPTHRESHOLD = 300 * M / S
 CLIP_MAX_VRAD = 400 * M / S
-FITWEIGHT = 'vrad'
+FITWEIGHT = 'flux'
 USE_SIGMA_MIN = 'True'                 # do not use a minimal sigma in fitting
 sigma_min = 0.5 * M / S                # minimial sigma to avoid overfitting
 palette_order = 'gist_rainbow'         # palette of orders
