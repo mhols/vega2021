@@ -34,9 +34,30 @@ class Snippets:
         self.NROWS = self.extractor.NROWS
         self.ORDERS = self.extractor.ORDERS
 
+        self.prepare_snippets()
+
     @property
     def kwargs(self):
         return self.extractor.kwargs
+
+
+    def prepare_snippets(self):
+        if not self._snippets is None:
+            return self._snippets
+        self.extractor.logging('computing all potential snippets for voie '+str(self.voie))
+        
+        # generating all possible snippets
+        tmp = []
+        for i, o in enumerate(self.ORDERS):
+            tmp.append(self._potential_snippets(o))
+        self._snippets = pd.concat(tmp, ignore_index=True, axis=0)
+
+        self.extractor.end_logging()
+
+
+        self._snippets.loc[:,'usablesnippet'] = False
+        I = self.filter_snippets()
+        self._snippets.loc[I, 'usablesnippet'] = True
 
 
     # TODO implement specific atlas routines
@@ -45,11 +66,15 @@ class Snippets:
 
         # print('using atlas UVES')
         
-        with open(self.kwargs['REF_ATLASLINES'], 'r') as f:
+        with open(self.kwargs['REF_ATLASLINES_UVES'], 'r') as f:
             alines = f.readlines()
 
         # extract information...
-        atlaslines =  np.array([float(l.split()[1]) for l in alines])
+        if self.kwargs['WAVEMAP_IN_VACUUM_AIR'] == 'VACUUM':
+            atlaslines =  np.array([1e8 / float(l.split()[0]) for l in alines])
+        else:
+            atlaslines =  np.array([float(l.split()[1]) for l in alines])
+
         # self._atlasline = atlaslines
         l = (1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
         r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
@@ -70,7 +95,7 @@ class Snippets:
 
         # print('using atlas REDMAN')
 
-        f = os.path.join(self.kwargs['REFFILES'], 'Redman_table6.dat')
+        f = self.kwargs['REF_ATLASLINES_REEDMAN']
 
         d = pd.read_fwf(f, names=[i for i in range(1,14)],infer_nrows=10000)
         # extract information...
@@ -89,12 +114,33 @@ class Snippets:
         )
     
         return tmp
-    
+
+    @property
+    def atlasline_clicked(self):
+        tmp = pd.read_csv(self.kwargs['REF_ATLASLINES_CLICKED'])
+
+        uves = pd.read_csv(self.kwargs['REF_ATLASLINES_UVES'],  
+                    header=None, 
+                    sep=r"\s+", 
+                    usecols=[0,1,2,3,4,5], 
+                    engine='python')
+
+        if self.kwargs['WAVEMAP_IN_VACUUM_AIR'] == 'VACUUM':
+            tmp.loc[:,'ref_lambda'] = 1e8 / uves.loc[:, 0]
+        else:
+            tmp.loc[:,'ref_lambda'] = uves.loc[:, 1]
+        
+        I = tmp['click_selected']
+
+        return tmp.loc[I, :]
+
+
     @property
     def atlasline(self):
         atlas_dict = {
             # 'REDMAN': self.atlasline_redman,
-            'UVES': self.atlasline_uves
+            'UVES': self.atlasline_uves,
+            'CLICKED': self.atlasline_clicked
         }
         key = self.kwargs.get('ATLAS_FOR_SNIPPETS', 'UVES')
         
@@ -103,7 +149,7 @@ class Snippets:
 
 
     def lambda_range(self, o):
-        return  self.extractor.lambda_range_voie1(o)
+        return  self.extractor.lambda_range_voie(self.voie, o)
 
     def atlasext(self, o):
         """
@@ -125,6 +171,12 @@ class Snippets:
         return tmp[j]
 
 
+  
+    def find_snippet(self, lam):
+        df = self._snippets
+        I = (df['lambda_left'] <= lam) & (lam <= df['lambda_right'])
+        return df[I]
+    
     def _potential_snippets(self, o):
         """
         collect all information that describes the snippets
@@ -140,31 +192,19 @@ class Snippets:
         v = self.bare_voie(o)
 
         # hierarchical decomposition of signal into chuncs
+        # the snippets are in decreasing order with respect to value of maximum
         lm = util.local_maxima(v)
+
 
         # collect all information about the chuncs
         bs = []
+
+
         for i,xab in enumerate (lm):
-            try:
-                if i in self._potential_snippets['index_pixel_snippet']:
-                    continue
-            except:
-                pass
-
-            x, a, b = xab  # the position of max and the limits
-            if b-a<=1:
-                continue
-
-            s = v[np.arange(a,b+1)]
-            if len(s)==0:
-                continue
-
-            #try:
-            #    A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
-            #except Exception as ex:
-            #    continue
-
             
+            x, a, b = xab  # the position of max and the limits
+            
+                   
             bs.append( {
                 'true_order_number': o,
                 'index_pixel_snippet': i, 
@@ -184,6 +224,7 @@ class Snippets:
                 'bootstraped': False,
                 'selected': False,
                 'goodsnippet': False,
+                'usablesnippet': False,
                 'gaussfit': False
             })
         bs = pd.DataFrame(bs)
@@ -198,6 +239,10 @@ class Snippets:
         res = np.zeros(self.NROWS)
         res[I] = v[I]
         return util.clean_nans(res)
+    
+    @lazyproperty
+    def bare_voies(self):
+        return {o: self.bare_voie(o) for o in self.ORDERS}
     
     def _match_snippets_old(self, o):
         """
@@ -262,6 +307,11 @@ class Snippets:
         
 
     def update_snippet_parameters(self):
+        """
+        For "good" snippets that have not been treated for Gaussian fit
+        compute the relevant paramters. If bootstrap is required do it now.
+        """
+
 
         self.extractor.logging('updating snippet parameters')
 
@@ -313,39 +363,37 @@ class Snippets:
 
         
     def compute_est_lambda(self):
+        """
+        computing the estimated wavelength of the snippet bounds using the
+        existing wave map
+        """
         for o in self.ORDERS:
             p = self.extractor.pix_to_lambda_map_voie[self.voie][o]
             I = self._snippets['true_order_number'] == o 
             self._snippets.loc[I, 'est_lambda'] = \
                 p( self._snippets.loc[I, 'pixel_mean'].values )
-
-  
+            self._snippets.loc[I, 'lambda_left'] = \
+                p( self._snippets.loc[I, 'left'].values )
+            self._snippets.loc[I, 'lambda_right'] = \
+                p( self._snippets.loc[I, 'right'].values )
         
-    def prepare_snippets(self):
-        if not self._snippets is None:
-            return self._snippets
-        self.extractor.logging('computing snippets for voie '+str(self.voie))
-        
-        # generating all possible snippets
-        tmp = []
-        for i, o in enumerate(self.ORDERS):
-            util.progress(i, len(self.ORDERS))
-            tmp.append(self._potential_snippets(o))
-        tmp = pd.concat(tmp, ignore_index=True, axis=0)
 
-        self.extractor.end_logging()
+    #---------------------
+    # FILTER methods for snippets
+    #---------------------
 
-        self._snippets = tmp
-
-        return self.update_snippets()
-
-    def filter_snippets_excluded(self, o):
+    def filter_snippets_not_excluded(self, o):
+        """
+        return index of snippets that are not excluded because of
+        @Torsten: please explain
+        """
 
         exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
 
         I, = np.where(exclusion[:,0] == o)
         
         exc = exclusion[I]
+
         res = self._snippets["true_order_number"] == o
         sn = self._snippets
 
@@ -359,43 +407,29 @@ class Snippets:
         alpha = self.kwargs.get("FILTER_MIN_LENGTH", 1.)
         # filter says true or false for each snippe
         res = pd.Series(False,index=self._snippets.index)
-        II = self._snippets["true_order_number"] == o
-        sn = self._snippets[II]
-        l_crit = alpha
-        right=sn["right"]
-        left =sn["left"]
-        cent =sn["posmax"]
-        length=right-left+1
-        III = length > l_crit
-        res.loc[III[III].index] = True
+        res = self._snippets["true_order_number"] == o
+        res = res & (self._snippets["left"] - self._snippets["right"]) > alpha
         return res
         
     def filter_snippets_max_amplitude(self,o):
         alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 0.8)
-        # filter says true or false for each snippe
-        res = pd.Series(False,index=self._snippets.index)
-        II = (self._snippets["true_order_number"] == o) & self.filter_snippets_excluded(o)
-        sn = self._snippets[II]
-        A_crit = np.quantile(sn["pixel_max_intens"],alpha)
-        III = sn["pixel_max_intens"] > A_crit
-        res.loc[III[III].index] = True
+
+        res = self._snippets["true_order_number"] == o
+        q = np.quantile(self._snippets.loc[res, "pixel_max_intens"], alpha)
+        res = res & self._snippets["pixel_max_intens"] > q
+
         return res
-        
-    def filter_snippets_width(self,o):
-        alpha = self.kwargs.get("FILTER_WIDTH_QUANTILE", 1.)
-        # filter says true or false for each snippe
-        res = pd.Series(False,index=self._snippets.index)
-        II = self._snippets["true_order_number"] == o
-        sn = self._snippets[II]
-        sigma_crit = np.quantile(sn["pixel_sigma"],alpha)
-        
-        #vorsicht in m/s
-        
-        III = sn["pixel_A"] > sigma_crit
-        res.loc[III[III].index] = True
-        return res
-        
-    def _match_snippets(self, o):
+    
+       
+    def filter_snippets(self):
+        I = True
+        for o in self.ORDERS:
+            I = I & self.filter_snippets_not_excluded(o)
+            I = I & self.filter_snippets_max_amplitude(o)
+            I = I & self.filter_snippets_min_length(o)
+        return I
+    
+    def match_snippets(self, o):
         return self._snippet_match_tor(o)
 
     def _snippet_match_tor(self,o):
@@ -403,15 +437,15 @@ class Snippets:
         #cu=self.atlasline_uves
         
         cu = self.atlasext(o)
-        lamlimits=self.extractor.lambda_range_voie1(o)
+        lamlimits=self.extractor.lambda_range_voie(self.voie, o)
        
         I=(cu["ref_lambda"] > lamlimits[0]) & (cu["ref_lambda"] < lamlimits[1])
         cu=cu[I]
         
         #selection of snippets in order o, after filter with intensity
-        I = self.filter_snippets_max_amplitude(o) & self.filter_snippets_excluded(o)
+        I = self._snippets['usablesnippet'] #self.filter_snippets_max_amplitude(o) & self.filter_snippets_not_excluded(o)
 
-        selection=self._snippets.loc[I]
+        # selection=self._snippets.loc[I]
     
         vrange = self.kwargs["VRANGE"]
         
@@ -419,17 +453,19 @@ class Snippets:
             c = cu.loc[i,"ref_lambda"]
             l = c * (1 - vrange/C_LIGHT)
             r = c * (1 + vrange/C_LIGHT)
-            J = np.logical_and (l <= selection["est_lambda"], selection\
-            ["est_lambda"] <=r)
-            #print(sum(J))
-            if sum(J) != 1:
+            J = (l <= self._snippets["est_lambda"]) & (self._snippets["est_lambda"] <=r)
+            J = I & J
+            if sum( J ) != 1:  # check if only one snippet is OK
                 continue
+
             ind=J[J].index[0]
-            self._snippets.loc[ind,"goodsnippet"] = True
+            self._snippets.loc[ind,"goodsnippets"] = True
             self._snippets.loc[ind,'ref_lambda'] = c
             self._snippets.loc[ind,'catalog_index'] = int(i)        
 
-        
+    def filter_matched_snippets_max_number(self, o):
+        alpha = self.kwargs.get("FILTER_MAX_NUMBER", 20)
+
                
     def update_snippets(self):
 
@@ -439,10 +475,13 @@ class Snippets:
         self.extractor.logging('matching snippets for voie '+str(self.voie))
         
         # nobody is good (memoryless matching) 
-        self._snippets.loc[:,'goodsnippet'] = False
+        self._snippets.loc[:,'goodnsippets'] = False
+
+
         for i, o in enumerate(self.ORDERS):
-            util.progress(i, len(self.ORDERS))
-            self._match_snippets(o)
+            util.progress(i, len(self.ORDERS)-1)
+            self.match_snippets(o)
+            self.filter_matched_snippets_max_number(o)
         
         self.extractor.end_logging()
 

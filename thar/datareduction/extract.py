@@ -321,7 +321,15 @@ def followorder(image, xstart, ystart, **kwargs):
 def get_lambda(order, orders, **kwargs):
     NROWS = kwargs['NROWS']
     ORDERS = orders
-    hobolambda = np.loadtxt(kwargs['LAMBDAFILE'])
+    # hobolambda = np.loadtxt(kwargs['LAMBDAFILE'])
+    hobol = pd.read_csv(kwargs['LAMBDAFILE'])
+    if kwargs['WAVEMAP_IN_VACUUM_AIR'] == 'AIR':
+        hobolambda = hobol['AIR']
+    else:
+        hobolambda = hobol['VACUUM']
+
+    hobolambda = hobolambda.to_numpy()
+
     mult = order - min(ORDERS)
     tmp = np.zeros(NROWS)
     lamb = hobolambda[mult*NROWS:(mult+1)*NROWS]
@@ -803,7 +811,25 @@ class Extractor_level_1:
             raise Exception('no such voie')
 
     def lambda_range_voie1(self, o):
+        """
+        is used for a homothetic map
+        """
         return self.pix_to_lambda_map_voie1[o]([self.I[o][0], self.I[o][-1]])
+    
+    def lambda_range_voie2(self, o):
+        """
+        is used for a homothetic map
+        """
+        return self.pix_to_lambda_map_voie2[o]([self.I[o][0], self.I[o][-1]])
+    
+    def lambda_range_voie(self, voie, o):
+        if voie == 1:
+            return self.lambda_range_voie1(o)
+        elif voie == 2:
+            return self.lambda_range_voie2(o)
+        else:
+            return None
+
 
     def olambda_range_voie1(self, o):
         l1, l2 = self.lambda_range_voie1(o)
@@ -1561,6 +1587,7 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         snip = snippets.Snippets(voie=2, extractor=self)
         return snip
 
+    @property
     def snippets_voie(self):
         return {1: self.snippets_voie1, 2: self.snippets_voie2, 3: None}
 
@@ -1632,8 +1659,12 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         return v
 
     def voie2_lam1(self, o):
+        """
+        interpolated values of voie2 evaluated at lam1 grid
+        """
         lams = self.lambdas_per_order_voie1[o]
         return lams, self.interpolated_voie2(o)(lams)
+    
 
     def __del__(self):
         del self.snippets_voie1

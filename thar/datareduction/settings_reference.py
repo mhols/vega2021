@@ -12,12 +12,12 @@ load_dotenv()
 comment = {}  ## this comments will be included into the .fits document
 
 SETTING_ID = 'vega_reference'
-REMOVECROSS = int(True)
 
 ## ----- directory layout
 BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))  # put jour actual base path here
 DATADIR = os.path.abspath(os.path.join(BASEDIR, 'vega_reference')); 
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
+
 REFFITSFILE = os.path.abspath(os.path.join(DATADIR, 'NEO_20220903_191404_th0.fits'))  # our refernce thorium
 
 ## ----- extractor constants
@@ -93,11 +93,19 @@ CENTRALPOSITION = {
     # 59:3302}  TODO make robust for empty beams
 
 ORDERS = list(CENTRALPOSITION.keys())
-LAMBDAFILE = os.path.join(REFFILES, 'HOBO_NEO_20220903_191404_th1_wave1.txt')
+
+LAMBDAFILE = os.path.join(REFFILES, 'NEXTRA_base_lambda_map.txt')
+# LAMBDAFILE = os.path.join(REFFILES, 'HOBO_NEO_20220903_191404_th1_wave1.txt')
 
 # snippets extraction
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
-REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
+#REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
+REF_ATLASLINES_REEDMAN = os.path.join(REFFILES, 'Redman_table6.dat')
+REF_ATLASLINES_UVES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
+REF_ATLASLINES_CLICKED = os.path.join(REFFILES, 'thar_clicked_uves.csv')
+ATLAS_FOR_SNIPPETS = 'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
+WAVEMAP_IN_VACUUM_AIR = "VACUUM" # 'VACUUM' # or AIR
+
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
 SEUIL = 0.2 * ADU   # seuil en ADU 
@@ -114,9 +122,9 @@ CLIPMETHOD = 'threshold'
 CLIP_QUANTITY = 'deltavr'
 CLIPTHRESHOLD = 300 * M / S
 CLIP_MAX_VRAD = 400 * M / S
-FITWEIGHT = 'vrad'
-USE_SIGMA_MIN = 'True'                 # do not use a minimal sigma in fitting
-sigma_min = 0.5 * M / S                # minimial sigma to avoid overfitting
+FITWEIGHT = 'flux'                   # weighted empirical risk
+USE_SIGMA_MIN = 'True'                # do not use a minimal sigma in fitting
+sigma_min = 0.5 * M / S               # minimial sigma to avoid overfitting
 palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 5                           # order polynomial in ol
 order_o = 7                            # order polynomial in o
