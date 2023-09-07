@@ -35,9 +35,6 @@ starname_3 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_18
 starname_4 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182751_st0.fits')
 
 
-
-
-
 # the following lines may be commented out when done..
 
 mystarname = Extractor(fitsfile_starname, **kwargs_reference) # TODO starname need own setting

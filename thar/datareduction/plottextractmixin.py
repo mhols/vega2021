@@ -100,7 +100,7 @@ class PlotExtractMixin:
         m = np.max(v)
         dashes = np.linspace(0, 0.5 * m, 50)
         for o in oo:
-            s = self.snippets_voie()[voie].sn
+            s = self.snippets_voie[voie].sn
             I = s['true_order_number'] == o
             d = dashes if o%2 == 0 else dashes[1:]
             for a, b in zip(d[:-1:2], d[1::2]):
@@ -110,13 +110,13 @@ class PlotExtractMixin:
         #sn = self.snippets_voie()[voie]._snippets
 
         for o in (ooo for ooo in oo if ooo%2==0):
-            s = self.snippets_voie()[voie].atlasext(o)
+            s = self.snippets_voie[voie].atlasext(o)
             l =s['ref_lambda']
             if len(l)>0:
                 plt.plot(l, len(l)*[0], 'o', color=self.color_2(voie, o))
 
         for o in (ooo for ooo in oo if ooo%2==1):
-            s = self.snippets_voie()[voie].atlasext(o)
+            s = self.snippets_voie[voie].atlasext(o)
             l =s['ref_lambda']
             if len(l)>0:
                 plt.plot(l, len(l)*[0], '.', color=self.color_2(voie, o))

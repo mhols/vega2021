@@ -1,52 +1,56 @@
 from extract import *
-from settings_reference import kwargs as kwargs_reference
+from settings_reference import kwargs as kwargs_moon
 import pickle
 import util
 from units import *
 import matplotlib.pyplot as plt
+import sys
 
-fitsfile_reference = os.path.join(kwargs_reference['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
+fitsfile_reference = os.path.join(kwargs_moon['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
 
 starname = 'moon'
-fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230406_190457_th0.fits')
-starname_1 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010642_st0.fits')
-starname_2 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010707_st0.fits')
-starname_3 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010731_st0.fits')
-starname_4 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010755_st0.fits')
+fitsfile_tharname = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230406_190457_th0.fits')
+starname_1 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010642_st0.fits')
+starname_2 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010707_st0.fits')
+starname_3 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010731_st0.fits')
+starname_4 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010755_st0.fits')
 
 # the following lines may be commented out when done..
 
-"""
-mystarname = Extractor(fitsfile_starname, **kwargs_reference) # TODO starname need own setting
-mystarname.update()
-mystarname.update()
-mystarname.update()
+kwargs_moon['SETTING_ID'] = 'MOON'
+
+
+
+mystarname = Extractor(fitsfile_tharname, **kwargs_moon) # TODO starname need own setting
+#mystarname.update()
+#mystarname.update()
+#mystarname.update()
 mystarname.save_to_store()
-"""
+sys.exit(0)
 
 # mystarname is now ready to reduce any star
-mystarname_1 = get_ext(fitsfile_starname)
+mystarname_1 = get_ext(fitsfile_tharname)
 mystarname_1.update_kwargs(VOIE_METHOD ='OPTIMAL_EXTRACT')
 
 # reduce the first starname sprectrum
 mystarname_1.set_fitsfile(starname_1)
 
 # mystarname is now ready to reduce any star
-mystarname_2 = get_ext(fitsfile_starname)
+mystarname_2 = get_ext(fitsfile_tharname)
 mystarname_2.update_kwargs(VOIE_METHOD ='OPTIMAL_EXTRACT')
 
 # reduce the first starname sprectrum
 mystarname_2.set_fitsfile(starname_2)
 
 # mystarname is now ready to reduce any star
-mystarname_3 = get_ext(fitsfile_starname)
+mystarname_3 = get_ext(fitsfile_tharname)
 mystarname_3.update_kwargs(VOIE_METHOD ='OPTIMAL_EXTRACT')
 
 # reduce the first starname sprectrum
 mystarname_3.set_fitsfile(starname_3)
 
 # mystarname is now ready to reduce any star
-mystarname_4 = get_ext(fitsfile_starname)
+mystarname_4 = get_ext(fitsfile_tharname)
 mystarname_4.update_kwargs(VOIE_METHOD ='OPTIMAL_EXTRACT')
 
 # reduce the first starname sprectrum
@@ -227,7 +231,7 @@ for o in mystarname_1.ORDERS[::-1]:
     
     lam_1_voie1,intens_1_voie1,I = mystarname_1.get_lambda_intens1(o)
 
-    NROWS = kwargs_reference['NROWS']
+    NROWS = kwargs_moon['NROWS']
     
     noise = np.sqrt(inte)/p(l)
     noise=noise*mask
