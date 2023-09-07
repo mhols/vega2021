@@ -427,14 +427,14 @@ class Snippets:
         
         
     def filter_snippets_min_length(self,o):
-        alpha = self.kwargs.get("FILTER_MIN_LENGTH", 1.)
+        alpha = self.kwargs.get("FILTER_MIN_LENGTH", 3)
         # filter says true or false for each snippe
         res = self._snippets["true_order_number"] == o
         res = res & ((self._snippets["right"] - self._snippets["left"]) > alpha)
         return res
         
     def filter_snippets_max_amplitude(self,o):
-        alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 0.8)
+        alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 0.1)
 
         res = self._snippets["true_order_number"] == o
         q = np.quantile(self._snippets.loc[res, "pixel_max_intens"], alpha)
@@ -467,7 +467,7 @@ class Snippets:
         cu=cu[I]
         
         #selection of snippets in order o, after filter with intensity
-        I = self._snippets['usablesnippet'] #self.filter_snippets_max_amplitude(o) & self.filter_snippets_not_excluded(o)
+        I = self._snippets['usablesnippet'] & (self._snippets['true_order_number'] == o) #self.filter_snippets_max_amplitude(o) & self.filter_snippets_not_excluded(o)
 
         # selection=self._snippets.loc[I]
     

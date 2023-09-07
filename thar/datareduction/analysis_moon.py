@@ -1,5 +1,5 @@
 from extract import *
-from settings_reference import kwargs as kwargs_reference
+from settings_reference import kwargs as kwargs_reference   # warum das so importieren ?
 import pickle
 import util
 from units import *
@@ -20,12 +20,20 @@ starname_4 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_2023040
 """
 #attention il faut changer settings_reference kwargs HIGHEXP et LOWEXP pour les FF en 15 et 4 au lieu de 60 et 15
 starname = 'moon'
+"""
+kwargs_reference['STARNAME'] = 'moon'
+kwargs_reference['SETTING_ID'] = 'MOON'
+kwargs_reference['HIGHEXP'] = 15
+kwargs_reference['LOWEXP'] = 4
+
+
+
 fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
 starname_1 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182606_st0.fits')
 starname_2 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182642_st0.fits')
 starname_3 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182715_st0.fits')
 starname_4 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182751_st0.fits')
-"""
+
 
 
 
