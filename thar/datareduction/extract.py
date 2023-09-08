@@ -794,6 +794,10 @@ class Extractor_level_1:
         return tmp[voie](o)
 
     def get_lambda_list_voie1(self):
+        """
+        :params: -
+        :returns: ndaray of length NROWS x NORDERS containing the lambda values
+        """
         return np.array([self.lambdas_per_order_voie1[o] for o in self.ORDERS]).ravel()
 
     def get_lambda_list_voie2(self):
@@ -1510,28 +1514,25 @@ class Extractor_level_2(Extractor_level_1):
         """
 
         self.logging('using a homothetic mapping to get lambda map in level2')
-        REFORDER = 33  # the order used to estimate the homothetie
+        REFORDER = self.kwargs.get('REFORDER', 33)  # the order used to estimate the homothetie
 
-        # TODO use good range self.I
         rv1 = self.reference_extract.voie[voie][REFORDER]
-        rv1 = np.where(np.isnan(rv1), 0, rv1)
+        Ir =  self.reference_extract.I[REFORDER]
+        rv1 = rv1[Ir]
 
         # setting myself on first fitsfile (TODO STORE)
         mv1 = self.voie[voie][REFORDER]
-        mv1 = np.where(np.isnan(mv1), 0, mv1)
+        Im = self.I[REFORDER]
+        mv1 = mv1[Im]
 
-        n = np.arange(self.NROWS)
-        d = np.argmax(np.correlate(rv1, mv1, 'full')) - self.NROWS + 1
-
-        # TODO: check gridsearch fro homathetie
-        b, a = util.homothetie(n, rv1, n, mv1, d-1, d+1, 0.99999, 1.00001)
+        d = np.argmax(np.correlate(rv1, mv1, 'full')) + Ir[0] - Im[-1] 
 
         tmp = {}
 
         n = np.arange(self.NROWS)
 
         for o in self.ORDERS:
-            tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie[voie][o](n+b),
+            tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie[voie][o](n+d),
                               fill_value='extrapolate')
 
         self.end_logging()
@@ -1539,14 +1540,10 @@ class Extractor_level_2(Extractor_level_1):
 
     @lazyproperty
     def pix_to_lambda_map_voie1(self):
-        self.logging('pix_to_lambda_map_voie1 on level2')
-        self.end_logging()
         return self._pix_to_lambda_map_level2(1)
 
     @lazyproperty
     def pix_to_lambda_map_voie2(self):
-        self.logging('pix_to_lambda_map_voie2 on level2')
-        self.end_logging()
         return self._pix_to_lambda_map_level2(2)
 
     @lazyproperty
@@ -1573,9 +1570,7 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         self.message(f'Saved to store, you may retrieve it with \n\
                        get_ext({self.fitsfile}')
         """
-
    
-    
 
     @lazyproperty
     def snippets_voie1(self):
