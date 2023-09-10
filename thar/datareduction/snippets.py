@@ -23,6 +23,41 @@ from scipy.optimize import curve_fit
 import extract
 from units import *
 
+class Catalog:
+    """
+    :param extractor: extractor object bound to a ThArg fitsfile. defaults to None
+    :type extractor: Extractor objects.
+    :param **kwargs: list of options. Typically provided by some setting module. defaults to None
+    """
+    def __init__(self, extractor, **kwargs):
+        self.extractor = extractor
+        self.kwargs = kwargs
+        self._atlasline = None
+
+    def atlasext(self, lambda_range):
+        """
+        the extracted lines of atlas
+        """
+        minlambda, maxlambda = lambda_range
+
+        indexx = (minlambda < self.atlasline['ref_lambda']) & (self.atlasline['ref_lambda'] < maxlambda)
+        tmp = self.atlasline[indexx]
+
+        exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
+
+        I, = np.where(exclusion[:,0] == o)
+        exc = exclusion[I]
+
+        j = pd.Series(True, index=tmp.index)
+        for e in exc:
+            j = j & ( (tmp['ref_lambda'] < e[1]) | (tmp['ref_lambda'] > e[2]) )
+        return tmp[j]
+
+    @property
+    def atlasline(self, airvac = 'VACUUM'):
+        return self._atlasline
+
+
 class Snippets:
 
     def __init__(self, voie, extractor):
