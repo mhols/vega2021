@@ -1,5 +1,5 @@
 from extract import *
-from settings_reference import kwargs as kwargs_reference
+from settings_reference import kwargs as kwargs_reference   # warum das so importieren ?
 import pickle
 import util
 from units import *
@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 fitsfile_reference = os.path.join(kwargs_reference['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
 
-"""
+
 starname = 'moon'
 fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230406_190457_th0.fits')
 starname_1 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010642_st0.fits')
@@ -17,14 +17,19 @@ starname_4 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_2023040
 """
 
 starname = 'moon'
+"""
+kwargs_reference['STARNAME'] = 'moon'
+kwargs_reference['SETTING_ID'] = 'MOON'
+kwargs_reference['HIGHEXP'] = 15
+kwargs_reference['LOWEXP'] = 4
+
+
+
 fitsfile_starname = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_173811_th0.fits')
 starname_1 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182606_st0.fits')
 starname_2 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182642_st0.fits')
 starname_3 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182715_st0.fits')
 starname_4 = os.path.join(kwargs_reference['BASEDIR'], 'lune_raw/NEO_20200202_182751_st0.fits')
-
-
-
 
 
 # the following lines may be commented out when done..

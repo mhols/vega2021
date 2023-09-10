@@ -23,6 +23,41 @@ from scipy.optimize import curve_fit
 import extract
 from units import *
 
+class Catalog:
+    """
+    :param extractor: extractor object bound to a ThArg fitsfile. defaults to None
+    :type extractor: Extractor objects.
+    :param **kwargs: list of options. Typically provided by some setting module. defaults to None
+    """
+    def __init__(self, extractor, **kwargs):
+        self.extractor = extractor
+        self.kwargs = kwargs
+        self._atlasline = None
+
+    def atlasext(self, lambda_range):
+        """
+        the extracted lines of atlas
+        """
+        minlambda, maxlambda = lambda_range
+
+        indexx = (minlambda < self.atlasline['ref_lambda']) & (self.atlasline['ref_lambda'] < maxlambda)
+        tmp = self.atlasline[indexx]
+
+        exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
+
+        I, = np.where(exclusion[:,0] == o)
+        exc = exclusion[I]
+
+        j = pd.Series(True, index=tmp.index)
+        for e in exc:
+            j = j & ( (tmp['ref_lambda'] < e[1]) | (tmp['ref_lambda'] > e[2]) )
+        return tmp[j]
+
+    @property
+    def atlasline(self, airvac = 'VACUUM'):
+        return self._atlasline
+
+
 class Snippets:
 
     def __init__(self, voie, extractor):
@@ -408,14 +443,14 @@ class Snippets:
         
         
     def filter_snippets_min_length(self,o):
-        alpha = self.kwargs.get("FILTER_MIN_LENGTH", 1.)
+        alpha = self.kwargs.get("FILTER_MIN_LENGTH", 3)
         # filter says true or false for each snippe
         res = self._snippets["true_order_number"] == o
         res = res & ((self._snippets["right"] - self._snippets["left"]) > alpha)
         return res
         
     def filter_snippets_max_amplitude(self,o):
-        alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 0.8)
+        alpha = self.kwargs.get("FILTER_AMPLITUDE_QUANTILE", 0.1)
 
         res = self._snippets["true_order_number"] == o
         q = np.quantile(self._snippets.loc[res, "pixel_max_intens"], alpha)
@@ -448,7 +483,7 @@ class Snippets:
         cu=cu[I]
         
         #selection of snippets in order o, after filter with intensity
-        I = self._snippets['usablesnippet'] #self.filter_snippets_max_amplitude(o) & self.filter_snippets_not_excluded(o)
+        I = self._snippets['usablesnippet'] & (self._snippets['true_order_number'] == o) #self.filter_snippets_max_amplitude(o) & self.filter_snippets_not_excluded(o)
 
         # selection=self._snippets.loc[I]
     

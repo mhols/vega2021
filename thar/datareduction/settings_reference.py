@@ -105,7 +105,7 @@ REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES_REEDMAN = os.path.join(REFFILES, 'Redman_table6.dat')
 REF_ATLASLINES_UVES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 REF_ATLASLINES_CLICKED = os.path.join(REFFILES, 'thar_clicked_uves.csv')
-ATLAS_FOR_SNIPPETS = 'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
+ATLAS_FOR_SNIPPETS = "UVES" #'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
 WAVEMAP_IN_VACUUM_AIR = "VACUUM" # 'VACUUM' # or AIR
 
 =======
