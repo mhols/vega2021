@@ -1104,6 +1104,72 @@ class Extractor_level_1:
         """
         return {o: (self.I[o][0], self.I[o][-1]) for o, p in self.ORDERS.items()}
 
+    
+    # Excludded regions (Argon lines)
+
+    def _Iex(self, o, voie):
+        """
+        helper method
+        dictionary of exclueded pixel regions based on actual wavemap
+        """
+        res = np.full(self.NROWS, False)
+        exclusion = np.loadtxt(self.kwargs['EXCLUSION'])
+
+        I, = np.where(exclusion[:,0] == o)
+        exc = exclusion[I]
+        lams = self.lambdas_per_order_voie[voie][o]
+        for e in exc:
+            res = res | ( (lams >= e[1]) & (lams <= e[2]))
+        return res
+    
+    @lazyproperty
+    def Iex_voie1(self):
+        """
+        exclueded pixel regions 
+        :returns dictionary of boolean array
+        """
+        return {o : self._Iex(o, 1) for o in self.ORDERS}
+    
+    @lazyproperty
+    def Iex_voie2(self):
+        """
+        exclueded pixel regions 
+        :returns dictionary of boolean array
+        """
+        return {o : self._Iex(o, 2) for o in self.ORDERS}
+    
+
+    def Iex_voie(self, voie):
+        if voie==1:
+            return self.Iex_voie1
+        elif voie==2:
+            return self.Iex_voie2
+        else:
+            raise Exception("not yet implemented for voie3")
+
+    @lazyproperty        
+    def Inex_voie1(self):
+        """
+        not excluded
+        """
+        return {o: np.logical_not(self._Iex(o,1)) for o in self.ORDERS}
+                
+    @lazyproperty
+    def Inex_voie2(self):
+        """
+        not excluded
+        """
+        return {o: np.logical_not(self._Iex(o,2)) for o in self.ORDERS}
+                
+    def Inex_voie(self, voie):
+        if voie==1:
+            return self.Inex_voie1
+        elif voie==2:
+            return self.Inex_voie2
+        else:
+            raise Exception("not yet implemented for voie3")
+
+
     @property
     def n(self):
         return np.arange(self.NROWS)
