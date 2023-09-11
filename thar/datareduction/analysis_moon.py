@@ -14,11 +14,8 @@ starname_1 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_2023040
 starname_2 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010707_st0.fits')
 starname_3 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010731_st0.fits')
 starname_4 = os.path.join(kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230407_010755_st0.fits')
-
-
-
 """
-#attention il faut changer settings_reference kwargs HIGHEXP et LOWEXP pour les FF en 15 et 4 au lieu de 60 et 15
+
 starname = 'moon'
 """
 kwargs_reference['STARNAME'] = 'moon'

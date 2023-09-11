@@ -17,14 +17,15 @@ starname_4 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010
 
 # the following lines may be commented out when done..
 
+
 kwargs_moon['SETTING_ID'] = 'MOON'
 
 
 
 mystarname = Extractor(fitsfile_tharname, **kwargs_moon) # TODO starname need own setting
-#mystarname.update()
-#mystarname.update()
-#mystarname.update()
+mystarname.update()
+mystarname.update()
+mystarname.update()
 mystarname.save_to_store()
 sys.exit(0)
 
