@@ -169,21 +169,48 @@ class DictOfMapsPerOrder(UserDict):
                 tmp.loc[I] = np.nan
         return tmp
 
+class CCDMixin:
+
+    def __init__(self, **kwargs):
+        self.ccd_voie1 = CCD2d(self, 1, **kwargs)
+        self.ccd_voie2 = CCD2d(self, 2, **kwargs)
+
+        self.ccd_voie = {
+            1: self.ccd_voie1, 
+            2: self.ccd_voie2, 
+            3: None
+        }
+    
+    def update_ccd(self):
+        for voie in [1,2]:
+            self.ccd_voie[voie].update()
+
+        
+
+
+
 class CCD2d:
     """
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
-    def __init__(self, extractor, data, **kwargs):
-        self.kwargs = kwargs        # saving for later use
-        self.extractor = extractor  # back reference to central extractor objects
-        self._data =  data.copy()   # data coming from snippets
-        self._data.loc[self._data.index, 'selected'] = True # we are using only this subset
-        self._mdata = None          # matching data
-        self.ORDERS = self.kwargs['ORDERS']     # convenince field
-        self.NROWS = self.kwargs['NROWS']
+    def __init__(self, extractor, voie, **kwargs):
+        self.extractor = extractor 
+        print(self.extractor)
+        self.voie = voie
+        self.kwargs = self.extractor.kwargs
+        self.ORDERS = self.extractor.ORDERS
 
-        total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
-        self._data.loc[self._data.index, 'total_flux'] = 1.0* total_flux
+        self._data = self.extractor.snippets_voie[voie]
+        self._olrange = self.extractor.olambda_range_voie[voie]
+
+
+        self._olmin = np.min([l[0] for o, l in self._olrange.items()])
+        self._olmax = np.max([l[1] for o, l in self._olrange.items()])
+
+        self._mdata = None          # matching data
+
+        #total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
+        #self._data.loc[self._data.index, 'total_flux'] = 1.0* total_flux
         
         self._map_1D_x_ol_o = None
         self._map_1D_ol_x_o = None
@@ -191,13 +218,21 @@ class CCD2d:
         self._map_2D_ol_x_o = None
         self._final_map_l_x_o = None
 
-       
-        # all fits are done in this range for ol
-        self._olmin = self._ol.min()
-        self._olmax = self._ol.max()
+        self._data.loc[:, 'selected'] = False
+        self._data.loc[self._data['goodsnippet'], 'selected'] = True # we are using only this subset
+        
+    def update(self):
 
-
+        # reset all good snippets to selected. 
+        # later sigma clipping will remove outliers
+        self._data.loc[:, 'selected'] = False
+        self._data.loc[self._data['goodsnippet'], 'selected'] = True # we are using only this subset
+        
+        # all fits are done in this range 
         p = self.get_global_polynomial()
+
+        print(p)
+
         self._global_polynomial =  DictOfMapsPerOrder(self, {
                 o: MonotoneFunction( 
                     self._olmin, self._olmax,
@@ -205,21 +240,15 @@ class CCD2d:
                 for o in self.ORDERS
             })
         
-        self._set_global_polynomial()
+        # self._set_global_polynomial()
 
         self._final_map_x_ol_o = self._global_polynomial # shall be updated later
 
-        if kwargs.get('USE_1D_POLYNOMIAL', 'False') == 'True':
+        if self.kwargs.get('USE_1D_POLYNOMIAL', 'False') == 'True':
             self.sigma_clipping_polynomial_order_by_order()
         else:
             self.sigma_clipping_2D_polynomial()
-        
-    def color_of_order(self, o):
-        cmap = cm.get_cmap(self.kwargs['palette_order'])
-        orders = self.all_order()
-        colors = cmap(np.linspace(0,1, max(orders) - min(orders) +1))
-        return colors[o-min(orders)]
-
+  
 
     def _set_global_polynomial(self):
         """
@@ -269,8 +298,11 @@ class CCD2d:
         # global clipping
         def clip_max_vrad():
             deltavr = self._mismatches('deltavr', p)
-            return deltavr.abs() < maxvrad
-        I = clip_max_vrad()
+            return (deltavr.abs() < maxvrad) & self._goodsnippet
+        
+        I = clip_max_vrad() & self._goodsnippet
+
+        print(I)
         
         def clip_quantile():
             return np.logical_and(I, absr < np.quantile(absr, alpha))
@@ -364,6 +396,11 @@ class CCD2d:
 
         return weight      
 
+    @property
+    def _goodsnippet(self):
+        print(sum(self._data['goodsnippet']))
+        return self._data['goodsnippet']
+    
     def sigma_clipping_polynomial_order_by_order(self):
 
         w = self._fit_weight()
@@ -398,6 +435,8 @@ class CCD2d:
         return p
 
     def sigma_clipping_2D_polynomial(self):
+        Ig = self._goodsnippet
+
         w = self._fit_weight()
 
         fitmachine = lambda I: self._fit_2d_polynomial(
@@ -409,8 +448,10 @@ class CCD2d:
         p, I, nclip = sigma_clipping_general_map(
             fitmachine,
             clipmachine,
-            I0 = self._data.index
+            I0 = self._data['selected']
         )
+
+        print(I)
 
 
         self._data.loc[:, 'selected'] = False
@@ -452,17 +493,21 @@ class CCD2d:
     @property
     def noverlap(self):
         return len(self.mo)
+
+    
+
     @property
     def _x(self):
-       return self._data['pixel_mean']
+       return self._data.loc[self._goodsnippet, 'pixel_mean']
+
 
     @property
     def _l(self):
-        return self._data['ref_lambda'] 
+        return self._data.loc[self._goodsnippet, 'ref_lambda'] 
 
     @property
     def _o(self):
-        return self._data['true_order_number']
+        return self._data.loc[self._goodsnippet, 'true_order_number']
 
     @property
     def _ol(self):
@@ -470,7 +515,7 @@ class CCD2d:
 
     @property
     def _sigma(self):
-        return self._data['pixel_std']    
+        return self._data.loc[self._goodsnippet, 'pixel_std']    
 
     @property
     def dll(self):
@@ -585,7 +630,7 @@ class CCD2d:
         """
         boolean arry true on order o
         """
-        return self._data['true_order_number']==o
+        return (self._data['true_order_number']==o) & self._goodsnippet
 
     def all_order(self):
         return self.ORDERS
@@ -595,18 +640,21 @@ class CCD2d:
     #    orders = self.kwargs.get('orders', orders)
     #    return orders
 
-    def get_global_polynomial(self, full=False):
+    def get_global_polynomial(self, full=True):
         """
         fits a global polynomial on all data
         :full: if True take all data else only the selected data (default False) 
         the weight is based on sigma as obtained from the bootstrap
         """
+        print(self.kwargs)
+
         n = self.kwargs['order_ol']
-        ol = self.ol if not full else self._o * self._l
+        ol = self.ol if not full else (self._o * self._l)[self._goodsnippet]
         domain = [self._olmin, self._olmax]
         p = None
         #w = 1./self.sigma if not full else 1./self._sigma
-        x = self.x if not full else self._x
+        x = self.x if not full else self._x[self._goodsnippet]
+        print(x, ol)
         try:
             p = np.polynomial.chebyshev.Chebyshev.fit(ol, x,
                                                     domain=domain,
@@ -655,11 +703,11 @@ class CCD2d:
                     deg=min(deg, max(0, sum(Io)-1)),
                     w = weight[Io]
                 )
-                res[o] = MonotoneFunction( *self.extractor.olambda_range_voie1(o), p, p.deriv(1))
+                res[o] = MonotoneFunction( *self._olrange[o], p, p.deriv(1))
             except Exception as ex:
                 print(traceback.format_exc())
                 print('could not fit polynomial in order ', o, ex)
-                res[o] = MonotoneFunction( *self.extractor.olambda_range_voie1(o), pglobal, pglobal.deriv(1))
+                res[o] = MonotoneFunction( *self._olrange[o], pglobal, pglobal.deriv(1))
         
         return DictOfMapsPerOrder(self, res)
        
@@ -739,7 +787,7 @@ class CCD2d:
         # restore
         res = { o: p + self._global_polynomial[o].f for o, p in res.items()}
         
-        res = {o: MonotoneFunction(*self.extractor.olambda_range_voie1(o), p, p.deriv(1)) for o, p in res.items()}
+        res = {o: MonotoneFunction(*self._olrange[o], p, p.deriv(1)) for o, p in res.items()}
 
         return DictOfMapsPerOrder(self, res)
 

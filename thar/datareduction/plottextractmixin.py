@@ -7,6 +7,13 @@ class PlotExtractMixin:
     def __init__(self):
         pass
 
+    def color_of_order(self, o):
+        cmap = cm.get_cmap(self.kwargs['palette_order'])
+        orders = self.all_order()
+        colors = cmap(np.linspace(0,1, max(orders) - min(orders) +1))
+        return colors[o-min(orders)]
+
+
     #---------PLOT methods----------------#
     def color_1(self, voie, o):
         cmap = cm.get_cmap(self.kwargs.get('palette_order', 'rgb'))

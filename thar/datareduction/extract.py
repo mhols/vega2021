@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
 import regal
-import snippets
-import spectrograph
+from snippets import SnippetsMixin
+from spectrograph import CCDMixin
 from plottextractmixin import PlotExtractMixin
 import astropy.io.fits as pyfits
 import os
@@ -838,6 +838,14 @@ class Extractor_level_1:
     def olambda_range_voie1(self, o):
         l1, l2 = self.lambda_range_voie1(o)
         return o * l1, o * l2
+    
+    @property
+    def olambda_range_voie(self):
+        return {
+            1: {o: o * self.lambda_range_voie1(o) for o in self.ORDERS},
+            2: {o: o * self.lambda_range_voie2(o) for o in self.ORDERS},
+            3: None
+        }
 
     def _compute_voie1et2(self):
         choice = self.kwargs['VOIE_METHOD']
@@ -1341,17 +1349,18 @@ class Extractor_level_1:
         F = np.ones((SMOOTHING_FILTER_SIZE, SMOOTHING_FILTER_SIZE))
         F /= np.sum(F.ravel())
         F = convolve(F, F)
-        ima = median_filter(image, size=MEDIAN_FILTER_SIZE, mode='reflect')
-        ima = minimum_filter(ima, size=MIN_FILTER_SIZE, mode='reflect')
-        res = convolve( ima, F, mode='reflect')
-        """
+
+        # uncomment the next three lines for better background...
+        #ima = median_filter(image, size=MEDIAN_FILTER_SIZE, mode='reflect')
+        #ima = minimum_filter(ima, size=MIN_FILTER_SIZE, mode='reflect')
+        #res = convolve( ima, F, mode='reflect')
+        
         FF = np.ones(SMOOTHING_FILTER_SIZE)
         FF = np.convolve(FF,FF)
         FF /= np.sum(FF)
-        for i, r in enumerate(ima):
-        #    # d = minimum_filter1d(r, size=MIN_FILTER_SIZE)
-            res[i, :] = np.convolve(FF, r, 'same')
-        """
+        for i, r in enumerate(image):
+            d = minimum_filter1d(r, size=MIN_FILTER_SIZE)
+            res[i, :] = np.convolve(FF, d, 'same')
         return res
 
     @property
@@ -1612,6 +1621,7 @@ class Extractor_level_2(Extractor_level_1):
     def pix_to_lambda_map_voie2(self):
         return self._pix_to_lambda_map_level2(2)
 
+
     @lazyproperty
     def pix_to_lambda_map_voie3(self):
         return self._pix_to_lambda_map_level2(3)
@@ -1620,15 +1630,18 @@ class Extractor_level_2(Extractor_level_1):
 #####
 #  Final level
 #####
-class Extractor(PlotExtractMixin, Extractor_level_2):
+class Extractor(PlotExtractMixin, SnippetsMixin, CCDMixin, Extractor_level_2):
     """
     A class for the data reduction pipeline
     """
 
     def __init__(self, fitsfile, **kwargs):
+
         Extractor_level_2.__init__(self, fitsfile, **kwargs)
-        self.snippets_voie1.prepare_snippets()
-        self.snippets_voie2.prepare_snippets()
+        SnippetsMixin.__init__(self)
+        CCDMixin.__init__(self)
+
+        # self.save_to_store()
         """
         for i in range(3):
             self.update()
@@ -1638,33 +1651,19 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         """
    
 
-    @lazyproperty
-    def snippets_voie1(self):
-        snip = snippets.Snippets(voie=1, extractor=self)
-        return snip
+    #@lazyproperty
+    #def ccd_voie1(self):
+    #    self.kwargs["ORDERS"] = self.ORDERS
+    #    return spectrograph.CCD2d(self, self.sn, **self.kwargs)
 
-    @lazyproperty
-    def snippets_voie2(self):
-        snip = snippets.Snippets(voie=2, extractor=self)
-        return snip
+    #@lazyproperty
+    #def ccd_voie2(self):
+    #    self.kwargs["ORDERS"] = self.ORDERS
+    #    return spectrograph.CCD2d(self, self.sn,  **self.kwargs)
 
-    @property
-    def snippets_voie(self):
-        return {1: self.snippets_voie1, 2: self.snippets_voie2, 3: None}
-
-    @lazyproperty
-    def ccd_voie1(self):
-        self.kwargs["ORDERS"] = self.ORDERS
-        return spectrograph.CCD2d(self, self.snippets_voie1.sn, **self.kwargs)
-
-    @lazyproperty
-    def ccd_voie2(self):
-        self.kwargs["ORDERS"] = self.ORDERS
-        return spectrograph.CCD2d(self, self.snippets_voie2.sn,  **self.kwargs)
-
-    @property
-    def ccd_voie(self):
-        return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
+    #@property
+    #def ccd_voie(self):
+    #    return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
         
     def jdfirstm(self):
         self.jdfirstmoment = utilitaires.photometry(self._fitsfile)
@@ -1674,31 +1673,16 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         self.berv, self.bjd = utilitaires.barycorr(self._fitsfile, obsname='TBL', method='astropy', julbase='juld', pmra=0., pmdec=0., parallax=0., rv=0., zmeas=0., epoch=2451545.0, tbase=0.)
         return self.berv, self.bjd
 
-    def update_snippets(self):
-        # del self.snippets_voie1
-        # del self.snippets_voie2
-
-        self.snippets_voie1.update_snippets()
-        self.snippets_voie2.update_snippets()
-
-        self.snippets_voie1.sn
-        self.snippets_voie2.sn
-
-    def update_ccds(self):
-        del self.ccd_voie1
-        del self.ccd_voie2
-
-        self.ccd_voie1
-        self.ccd_voie2
-
     def update_lambdamap(self):
 
+        del self.pix_to_lambda_map_voie1
+        del self.pix_to_lambda_map_voie2
         self.pix_to_lambda_map_voie1 = self.ccd_voie1._final_map_l_x_o
         self.pix_to_lambda_map_voie2 = self.ccd_voie2._final_map_l_x_o
 
     def update(self):
         self.update_snippets()
-        self.update_ccds()
+        self.update_ccd()
         self.update_lambdamap()
 
     def clear_ccds(self):
@@ -1728,8 +1712,6 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
     
 
     def __del__(self):
-        del self.snippets_voie1
-        del self.snippets_voie2
         del self.reference_extract
 
 
@@ -1749,10 +1731,10 @@ def setup_reference():
     # make better lambda map
     myext = Extractor(kwargs['REFFITSFILE'], **kwargs)
     myext.save_to_store()
-    myext.update()
-    myext.update()
-    myext.update()
-    myext.save_to_store()
+    #myext.update()
+    #myext.update()
+    #myext.update()
+    #myext.save_to_store()
 
 
 if __name__ == '__main__':
