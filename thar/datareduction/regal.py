@@ -9,7 +9,6 @@ class Store:
     def __init__(self):
         if not DATABASEDIR.exists():
             os.mkdir(DATABASEDIR)
-        print('new store created')
 
     @property
     def keys(self):

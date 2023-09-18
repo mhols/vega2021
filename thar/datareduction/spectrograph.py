@@ -195,7 +195,6 @@ class CCD2d:
     """
     def __init__(self, extractor, voie, **kwargs):
         self.extractor = extractor 
-        print(self.extractor)
         self.voie = voie
         self.kwargs = self.extractor.kwargs
         self.ORDERS = self.extractor.ORDERS
@@ -231,7 +230,6 @@ class CCD2d:
         # all fits are done in this range 
         p = self.get_global_polynomial()
 
-        print(p)
 
         self._global_polynomial =  DictOfMapsPerOrder(self, {
                 o: MonotoneFunction( 
@@ -302,7 +300,6 @@ class CCD2d:
         
         I = clip_max_vrad() & self._goodsnippet
 
-        print(I)
         
         def clip_quantile():
             return np.logical_and(I, absr < np.quantile(absr, alpha))
@@ -398,7 +395,6 @@ class CCD2d:
 
     @property
     def _goodsnippet(self):
-        print(sum(self._data['goodsnippet']))
         return self._data['goodsnippet']
     
     def sigma_clipping_polynomial_order_by_order(self):
@@ -451,7 +447,6 @@ class CCD2d:
             I0 = self._data['selected']
         )
 
-        print(I)
 
 
         self._data.loc[:, 'selected'] = False
@@ -646,7 +641,6 @@ class CCD2d:
         :full: if True take all data else only the selected data (default False) 
         the weight is based on sigma as obtained from the bootstrap
         """
-        print(self.kwargs)
 
         n = self.kwargs['order_ol']
         ol = self.ol if not full else (self._o * self._l)[self._goodsnippet]
@@ -654,7 +648,6 @@ class CCD2d:
         p = None
         #w = 1./self.sigma if not full else 1./self._sigma
         x = self.x if not full else self._x[self._goodsnippet]
-        print(x, ol)
         try:
             p = np.polynomial.chebyshev.Chebyshev.fit(ol, x,
                                                     domain=domain,

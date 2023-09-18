@@ -519,17 +519,12 @@ class BeamOrder:
 #    y = followorder(image, CENTRALPOSITION[order], CENTRALROW)
 #    return BeamOrder(order, np.arange(NROWS), y, extractor=extractor, **kwargs)
 
-
+#-----------------------
 # factory methods for Extractor objects
+#-----------------------
 store = regal.Store()    # we only have one global store
 
-
-def get_ext(f_thar, level="level_1", **kwargs):
-    classmap = {
-        'level_1': Extractor_level_1,
-        'level_2': Extractor_level_2,
-        'level_3': Extractor
-    }
+def get_ext(f_thar, **kwargs):
     try:
         # retrieval without kwargs is reload of existing
         myext = store.get(f_thar)
@@ -539,12 +534,28 @@ def get_ext(f_thar, level="level_1", **kwargs):
         print('could not retrieve. ', f_thar, 'Reason: ',
               ex, 'generating a new one\n----\n')
     try:
-        myext = classmap[level](f_thar, **kwargs)
+        myext = Extractor(f_thar, **kwargs)
+        myext.update()
+        myext.update()
+        myext.update()
+
         store.store(f_thar, myext)
         return myext
     except Exception as ex:
         raise Exception('could not create Extract. Reason: ', ex)
 
+def reduce_star(starfiz, **kwargs):
+
+    # assert is_star(starfiz), "not a star file"
+    DATADIR = os.path.dirname(starfiz)
+    thars = list(getallthoriumfits(DATADIR))
+    times = [gettimestamp(thar) for thar in thars]
+    t = gettimestamp(starfiz)
+    i = np.argmin(t - np.array(times))
+    mystar = get_ext(thars[i], **kwargs)
+    mystar.set_fitsfile(starfiz)
+    return mystar
+        
 
 class Extractor_level_1:
     """
@@ -1342,6 +1353,7 @@ class Extractor_level_1:
         return np.sqrt(self.non_normalized_intens_3)
 
     def _estimate_background(self, image):
+        self.logging('estimating background')
         MIN_FILTER_SIZE = 50
         SMOOTHING_FILTER_SIZE = 50
         MEDIAN_FILTER_SIZE = 10
@@ -1351,16 +1363,18 @@ class Extractor_level_1:
         F = convolve(F, F)
 
         # uncomment the next three lines for better background...
-        #ima = median_filter(image, size=MEDIAN_FILTER_SIZE, mode='reflect')
-        #ima = minimum_filter(ima, size=MIN_FILTER_SIZE, mode='reflect')
-        #res = convolve( ima, F, mode='reflect')
+        ima = median_filter(image, size=MEDIAN_FILTER_SIZE, mode='reflect')
+        ima = minimum_filter(ima, size=MIN_FILTER_SIZE, mode='reflect')
+        res = convolve( ima, F, mode='reflect')
         
-        FF = np.ones(SMOOTHING_FILTER_SIZE)
-        FF = np.convolve(FF,FF)
-        FF /= np.sum(FF)
-        for i, r in enumerate(image):
-            d = minimum_filter1d(r, size=MIN_FILTER_SIZE)
-            res[i, :] = np.convolve(FF, d, 'same')
+        #FF = np.ones(SMOOTHING_FILTER_SIZE)
+        #FF = np.convolve(FF,FF)
+        #FF /= np.sum(FF)
+        #for i, r in enumerate(image):
+        #    d = minimum_filter1d(r, size=MIN_FILTER_SIZE)
+        #    res[i, :] = np.convolve(FF, d, 'same')
+
+        self.end_logging()
         return res
 
     @property
@@ -1545,16 +1559,23 @@ class Extractor_level_2(Extractor_level_1):
         super(Extractor_level_2, self).__init__(fitsfile, **kwargs)
         self.logging('Creation of Level 2 Extract')
         self.end_logging()
+        self.reference_extract = self.get_reference_extract()
 
-    @lazyproperty
-    def reference_extract(self):
+    # ------------------------
+    # STORE manipulation
+    # ---------------------------
+    def save_to_store(self):
+        store.store(self._fitsfile, self)
+
+    def get_reference_extract(self):
         try:
             extract = get_ext(self.kwargs['REFFITSFILE'])
             return extract
         except:
             self.logging(
-                'Could not retrieve reference extractor. Please create one')
+               'Could not retrieve reference extractor. Please create one')
             self.end_logging()
+            return Extractor_level_1(self.kwargs['REFFITSFILE'], **self.kwargs)
 
     @lazyproperty
     def ORDERS(self):
@@ -1635,6 +1656,15 @@ class Extractor(PlotExtractMixin, SnippetsMixin, CCDMixin, Extractor_level_2):
     A class for the data reduction pipeline
     """
 
+    #def __new__(cls, fitsfile, **kwargs):
+    #    try:
+    #        myext = store.get(fitsfile)
+    #        print('retrieving Extract from ', fitsfile)
+    #        return myext
+    #    except:
+    #        return super(Extractor, cls).__new__(cls)
+    #        # tmp.__init__(fitsfile, **kwargs)
+
     def __init__(self, fitsfile, **kwargs):
 
         Extractor_level_2.__init__(self, fitsfile, **kwargs)
@@ -1650,6 +1680,11 @@ class Extractor(PlotExtractMixin, SnippetsMixin, CCDMixin, Extractor_level_2):
                        get_ext({self.fitsfile}')
         """
    
+    # ------------------------
+    # STORE manipulation
+    # ---------------------------
+    def save_to_store(self):
+        store.store(self._fitsfile, self)
 
     #@lazyproperty
     #def ccd_voie1(self):
@@ -1725,7 +1760,7 @@ TODO: interorder-background contains strange negative values and perturbates the
 def setup_reference():
     from settings_reference import kwargs
     myext = Extractor_level_1(kwargs['REFFITSFILE'], **kwargs)
-    # myext.voie # TODO make in constructor
+    myext.voie # TODO make in constructor
     myext.save_to_store()
 
     # make better lambda map

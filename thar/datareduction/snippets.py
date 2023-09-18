@@ -227,7 +227,6 @@ class SnippetsMixin:
     def atlas(self):
         return self._atlas[self.kwargs['ATLAS_FOR_SNIPPETS']]
 
-
   
     def find_snippet(self, lam):
         """
@@ -261,7 +260,8 @@ class SnippetsMixin:
             try:
                 A, mu, sigma, offset = util.estimate_location(s, **self.kwargs)
             except Exception as ex:
-                continue
+                self.snippets_voie[voie].loc[idx, 'goodsnippet'] = False
+
             self.snippets_voie[voie].loc[idx, 'pixel_A'] = A,
             self.snippets_voie[voie].loc[idx, 'pixel_mu'] = mu,
             self.snippets_voie[voie].loc[idx, 'pixel_sigma'] = sigma,
@@ -380,9 +380,6 @@ class SnippetsMixin:
             InI = self.snippets_voie[voie].index[I]
 
             J = self.atlas.atlasext(voie, o)
-            # possible snippets
-            #M1 = (lcl <= ls[I]) & (ls[I] <= lcr)
-            #M2 = (lsl[I] <= lc)
 
             II, JJ = util.match_intervals_centers (
                 ls[I],
@@ -397,36 +394,7 @@ class SnippetsMixin:
             self.snippets_voie[voie].loc[InI[II], 'ref_lambda'] = lc[J][JJ]
 
               
-    def update_snippets_voie(self, voie):
-
-        # estimate lamda for snippet
-        # self.compute_est_lambda()
-
-        self.logging('matching snippets for voie '+str(self.voie))
-        
-        # nobody is good (memoryless matching) 
-        self.snippets_voie[voie].loc[:,'goodnsippets'] = False
-
-
-        for i, o in enumerate(self.ORDERS):
-            util.progress(i, len(self.ORDERS)-1)
-            self._match_snippets_voie[voie](o)
-
-            self.filter_matched_snippets_max_number(o)
-        
-        self.end_logging()
-
-        # compute the Gaussfit and bootstrap for the used snippets
-        self._update_snippet_parameters()
-
-        # recompute the estimated lambda based on the present wavemap
-        # estimate lamda for snippet
-        self.compute_est_lambda()
-
-
-        return self.snippets_voie[voie]
-
-
+    # TODO
     @lazyproperty
     def overlapping_snippets(self):
         tmp = []
