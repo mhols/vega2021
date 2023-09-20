@@ -104,7 +104,7 @@ REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 REF_ATLASLINES_REEDMAN = os.path.join(REFFILES, 'Redman_table6.dat')
 REF_ATLASLINES_UVES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 REF_ATLASLINES_CLICKED = os.path.join(REFFILES, 'thar_clicked_uves.csv')
-ATLAS_FOR_SNIPPETS = "UVES" #'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
+ATLAS_FOR_SNIPPETS = "CLICKED" #'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
 WAVEMAP_IN_VACUUM_AIR = "VACUUM" # 'VACUUM' # or AIR
 
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
@@ -127,7 +127,6 @@ CLIP_MAX_VRAD = 400 * M / S
 FITWEIGHT = 'flux'                   # weighted empirical risk
 USE_SIGMA_MIN = 'True'                # do not use a minimal sigma in fitting
 sigma_min = 0.5 * M / S               # minimial sigma to avoid overfitting
-
 palette_order = 'gist_rainbow'         # palette of orders
 order_ol = 5                           # order polynomial in ol
 order_o = 7                            # order polynomial in o
