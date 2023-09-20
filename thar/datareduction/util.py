@@ -461,8 +461,11 @@ class MonotoneFunction:
 def match_unique(M):
 
     # M[i, j] means i matches j (not necessarily symmetric)
-    # returns boolean array I, J such that I[i] is truth value of 
-    #  "i has a unique match, j, and j is matched by exactly one i" 
+    # returns array of indices I, J such that 
+    #  element i has a unique match, j, and 
+    #  element j is matched by exactly one elemnt, i
+    # i.e. the "cross" through [i,j] is False except for its center [i,j]
+ 
 
     I = np.count_nonzero(M, axis=1) == 1
     J = np.count_nonzero(M, axis=0) == 1
@@ -485,8 +488,6 @@ def match_intervals_centers(x, a, b, xx, aa, bb):
 
     return I, J
     
-
-
 
 def matching(v, w, dvw, dwv=None):
     """
