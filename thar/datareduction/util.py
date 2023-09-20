@@ -458,10 +458,40 @@ class MonotoneFunction:
 #--------------
 # Matching sequeces
 #------------
+def match_unique(M):
+
+    # M[i, j] means i matches j (not necessarily symmetric)
+    # returns boolean array I, J such that I[i] is truth value of 
+    #  "i has a unique match, j, and j is matched by exactly one i" 
+
+    I = np.count_nonzero(M, axis=1) == 1
+    J = np.count_nonzero(M, axis=0) == 1
+
+    MM = M & I[:,None] & J[None, :]
+
+
+    return np.where(MM)
+
+def match_intervals_centers(x, a, b, xx, aa, bb):
+    """
+    symmetric match returns list of indicies i, j for which 
+    x[i] \in [aa[j], bb[j] ] and xx[j] \in [ a[i], b[i]] 
+    """
+
+    M = (aa[None,:] <= x[:,None]) & (x[:,None] <= bb[None,:])
+    N = (a[:,None] <= xx[None, :]) & (xx[None,:] <= b[:, None])
+
+    I, J = match_unique(M & N)
+
+    return I, J
+    
+
+
+
 def matching(v, w, dvw, dwv=None):
     """
     v: iteratble
-    w: iterable of same length
+    w: iterable 
     dvw: match function v -> w
     dwc: match function w -> v
     """
