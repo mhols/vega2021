@@ -173,17 +173,20 @@ class CCD2d:
     """
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
-    def __init__(self, extractor, data, **kwargs):
-        self.kwargs = kwargs        # saving for later use
+    def __init__(self, extractor, data):
+        self.kwargs = extractor.kwargs        # saving for later use
         self.extractor = extractor  # back reference to central extractor objects
-        self._data =  data.copy()   # data coming from snippets
-        self._data.loc[self._data.index, 'selected'] = True # we are using only this subset
+        self._data =  data
+
+        # we add a new column to the snippet dataframe from extractor
+        self._data['selected'] = self._data['goodsnippet']
+       
         self._mdata = None          # matching data
         self.ORDERS = self.kwargs['ORDERS']     # convenince field
         self.NROWS = self.kwargs['NROWS']
 
         total_flux = np.array([sum(flux-np.min(flux)) for flux in self._data['bare_voie']])
-        self._data.loc[self._data.index, 'total_flux'] = 1.0* total_flux
+        self._data.loc[:, 'total_flux'] = 1.0* total_flux
         
         self._map_1D_x_ol_o = None
         self._map_1D_ol_x_o = None
@@ -209,7 +212,9 @@ class CCD2d:
 
         self._final_map_x_ol_o = self._global_polynomial # shall be updated later
 
-        if kwargs.get('USE_1D_POLYNOMIAL', 'False') == 'True':
+    def update(self):
+
+        if self.kwargs.get('USE_1D_POLYNOMIAL', 'False') == 'True':
             self.sigma_clipping_polynomial_order_by_order()
         else:
             self.sigma_clipping_2D_polynomial()
@@ -220,7 +225,10 @@ class CCD2d:
         colors = cmap(np.linspace(0,1, max(orders) - min(orders) +1))
         return colors[o-min(orders)]
 
-
+    @property
+    def _goodsnippet(self):
+        return self._data['goodsnippet']
+ 
     def _set_global_polynomial(self):
         """
         set a global polynomial order by order 
@@ -305,8 +313,6 @@ class CCD2d:
             'threshold': clip_threshold,
             'est_std': clip_est_std,
         }
-
-        # evaluate the requested clipping function
         return clippings[clip]()
 
     # mismaches
@@ -401,7 +407,7 @@ class CCD2d:
         w = self._fit_weight()
 
         fitmachine = lambda I: self._fit_2d_polynomial(
-            weight=w[I], I=I
+            weight=w, I=I
         )
 
         clipmachine = self._clippings
@@ -409,7 +415,7 @@ class CCD2d:
         p, I, nclip = sigma_clipping_general_map(
             fitmachine,
             clipmachine,
-            I0 = self._data.index
+            I0 = self._goodsnippet
         )
 
 
@@ -452,6 +458,7 @@ class CCD2d:
     @property
     def noverlap(self):
         return len(self.mo)
+    
     @property
     def _x(self):
        return self._data['pixel_mean']
@@ -674,9 +681,13 @@ class CCD2d:
         # computes a polynomial proxy
         """
         if I is None:
-            I = self._data.index
+            I = self._goodsnippet
+        
         if weight is None:
-            weight = 1./ self._sigma[I]
+            weight = 1./ self._sigma
+
+        # fitting the subset selected by I
+        weight = weight[I]
 
         ENLARGEMENT_FACTOR = 1
 

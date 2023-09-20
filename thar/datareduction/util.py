@@ -278,20 +278,19 @@ def monotoneous_chunks(v):
 
 def sigma_clipping_general_map(fitmachine, clipmachine, I0):
     """
-    fitmachine (x, y, I) -> fitted 
-    clipmachine(fitted) -> indices retained
+    fitmachine (x, y, I) -> fitt error 
+    clipmachine(fitted) ->  boolean array like of "retained / good fit"
     """
     NMAX = 200
 
     p = fitmachine(I0)
-    I = clipmachine(p)
-    # I = np.logical_and(I0, I)
+    I = I0 & clipmachine(p)
 
     nclip = 1
     for i in range(NMAX):
         p = fitmachine(I)
         #II = np.logical_and( I, clipmachine(p) )
-        II = clipmachine(p)
+        II = I0 & clipmachine(p)
         if np.all(I == II):
             break
     

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
 import regal
-import snippets
+from snippets import Snippets
 import spectrograph
 from plottextractmixin import PlotExtractMixin
 import astropy.io.fits as pyfits
@@ -588,6 +588,7 @@ class Extractor_level_1:
         self._voie2 = None
         self._bare_image = None
         self._image = None
+        self._pix_to_lambda_map_1 = None
         self._pix_to_lambda_map_2 = None
         self._pix_to_lambda_map_3 = None
         self._fitsfile_set_for_reduction = False   ## TODO check if needed....
@@ -1333,7 +1334,25 @@ class Extractor_level_1:
     def noise_3(self):
         return np.sqrt(self.non_normalized_intens_3)
 
-    def _estimate_background(self, image):
+    def _estimate_background_1D(self, image):
+        self.logging('estimating background row by row')
+        MIN_FILTER_SIZE = 50
+        SMOOTHING_FILTER_SIZE = 50
+        MEDIAN_FILTER_SIZE = 10
+        res = np.zeros(image.shape)
+       
+        FF = np.ones(SMOOTHING_FILTER_SIZE)
+        FF = np.convolve(FF,FF)
+        FF /= np.sum(FF)
+        for i, r in enumerate(image):
+            d = minimum_filter1d(r, size=MIN_FILTER_SIZE)
+            res[i, :] = np.convolve(FF, d, 'same')
+
+        self.end_logging()
+        return res
+
+    def _estimate_background_2D(self, image):
+        self.logging('estimating background 2D')
         MIN_FILTER_SIZE = 50
         SMOOTHING_FILTER_SIZE = 50
         MEDIAN_FILTER_SIZE = 10
@@ -1341,18 +1360,26 @@ class Extractor_level_1:
         F = np.ones((SMOOTHING_FILTER_SIZE, SMOOTHING_FILTER_SIZE))
         F /= np.sum(F.ravel())
         F = convolve(F, F)
+
+        # uncomment the next three lines for better background...
         ima = median_filter(image, size=MEDIAN_FILTER_SIZE, mode='reflect')
         ima = minimum_filter(ima, size=MIN_FILTER_SIZE, mode='reflect')
         res = convolve( ima, F, mode='reflect')
-        """
-        FF = np.ones(SMOOTHING_FILTER_SIZE)
-        FF = np.convolve(FF,FF)
-        FF /= np.sum(FF)
-        for i, r in enumerate(ima):
-        #    # d = minimum_filter1d(r, size=MIN_FILTER_SIZE)
-            res[i, :] = np.convolve(FF, r, 'same')
-        """
+        
+        self.end_logging()
         return res
+
+    def _estimate_background(self, image):
+        if self.kwargs.get('ESTIMATE_BACKGROUND', 'BACKGROUND_1D') == 'BACKGROUND_2D':
+            return self._estimate_background_2D(image)
+        elif self.kwargs.get('ESTIMATE_BACKGROUND', 'BACKGROUND_1D') == 'BACKGROUND_1D':
+            return self._estimate_background_1D(image)
+        else:
+            return 0
+    
+    @property
+    def background(self):
+        return self._estimate_background(self.bare_image-self.masterbias)
 
     @property
     def background(self):
@@ -1535,6 +1562,10 @@ class Extractor_level_2(Extractor_level_1):
 
         super(Extractor_level_2, self).__init__(fitsfile, **kwargs)
         self.logging('Creation of Level 2 Extract')
+
+        self._pix_to_lambda_map_1 = self._pix_to_lambda_map_level2(1)
+        self._pix_to_lambda_map_2 = self._pix_to_lambda_map_level2(2)
+        
         self.end_logging()
 
     @lazyproperty
@@ -1551,11 +1582,12 @@ class Extractor_level_2(Extractor_level_1):
     def ORDERS(self):
         return self.reference_extract.ORDERS
 
-    @lazyproperty
+    @property
     def CENTRALPOSITION(self):
         """
         extraction of orders and their positions
         """
+        self.logging('localizing beams')
         tmpext = self.reference_extract
         reflow = tmpext.masterflat_low[tmpext.CENTRALROW, :]
         mylow = self.masterflat_low[self.CENTRALROW, :]
@@ -1570,6 +1602,7 @@ class Extractor_level_2(Extractor_level_1):
         b, a = util.homothetie(nr, reflow, nm, mylow, d-5, d+5, 0.9, 1.1)
         res = {o: int(np.round((i-b)/a))
                for o, i in tmpext.CENTRALPOSITION.items()}
+        self.end_logging()
         return res
 
     def _pix_to_lambda_map_level2(self, voie):
@@ -1598,21 +1631,21 @@ class Extractor_level_2(Extractor_level_1):
         n = np.arange(self.NROWS)
 
         for o in self.ORDERS:
-            tmp[o] = interp1d(n, self.reference_extract.pix_to_lambda_map_voie[voie][o](n+d),
+            tmp[o] = interp1d(n, self.reference_extract._pix_to_lambda_map_level1[o](n+d),
                               fill_value='extrapolate')
 
         self.end_logging()
         return tmp
 
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie1(self):
         return self._pix_to_lambda_map_level2(1)
 
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie2(self):
         return self._pix_to_lambda_map_level2(2)
 
-    @lazyproperty
+    @property
     def pix_to_lambda_map_voie3(self):
         return self._pix_to_lambda_map_level2(3)
 
@@ -1627,26 +1660,13 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
 
     def __init__(self, fitsfile, **kwargs):
         Extractor_level_2.__init__(self, fitsfile, **kwargs)
-        self.snippets_voie1.prepare_snippets()
-        self.snippets_voie2.prepare_snippets()
-        """
-        for i in range(3):
-            self.update()
-        self.save_to_store()
-        self.message(f'Saved to store, you may retrieve it with \n\
-                       get_ext({self.fitsfile}')
-        """
+
+        self._snippets_manager_voie1 = Snippets(1, self)
+        self._snippets_manager_voie2 = Snippets(2, self)
+
+        self._ccd_voie1 = spectrograph.CCD2d(self, self.snippets_voie1)
+        self._ccd_voie2 = spectrograph.CCD2d(self, self.snippets_voie2)
    
-
-    @lazyproperty
-    def snippets_voie1(self):
-        snip = snippets.Snippets(voie=1, extractor=self)
-        return snip
-
-    @lazyproperty
-    def snippets_voie2(self):
-        snip = snippets.Snippets(voie=2, extractor=self)
-        return snip
 
     @property
     def snippets_voie(self):
@@ -1685,11 +1705,9 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         self.snippets_voie2.sn
 
     def update_ccds(self):
-        del self.ccd_voie1
-        del self.ccd_voie2
 
-        self.ccd_voie1
-        self.ccd_voie2
+        self.ccd_voie1.update()
+        self.ccd_voie2.update()
 
     def update_lambdamap(self):
 
@@ -1702,10 +1720,9 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         self.update_lambdamap()
 
     def clear_ccds(self):
-        del self.ccd_voie1
-        del self.ccd_voie2
         del self.pix_to_lambda_map_voie1
         del self.pix_to_lambda_map_voie2
+
         self.logging('lambda map back to level 2')
         self.end_logging()
 

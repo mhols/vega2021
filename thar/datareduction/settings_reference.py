@@ -100,6 +100,8 @@ LAMBDAFILE = os.path.join(REFFILES, 'NEXTRA_base_lambda_map.txt')
 # snippets extraction
 REF_SPECTRUM = os.path.join(REFFILES, 'thar_spec_MM201006.dat')
 
+ESTIMATE_BACKGROUND = "BACKGROUND_1D"
+
 #REF_ATLASLINES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 REF_ATLASLINES_REEDMAN = os.path.join(REFFILES, 'Redman_table6.dat')
 REF_ATLASLINES_UVES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
@@ -112,6 +114,7 @@ EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 SEUIL = 0.2 * ADU   # seuil en ADU 
 SEUILR = 800.
 VRANGE = 6.0 * KM/S      # vrange in km/s
+SNIPPETS_PIXEL_DELTA = 3 * PIXEL    # pixel interval around pixel mean for matching catalog
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
