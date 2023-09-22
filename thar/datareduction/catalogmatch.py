@@ -6,7 +6,7 @@ from units import *
 import matplotlib.pyplot as plt
 import sys
 
-deltav = 1. #km/s
+deltav = 6. #km/s
 clum = 3e5 #km/s
 
 lis=np.loadtxt('../reffiles/sun_mask.5750.45.p00.correct')
@@ -32,8 +32,16 @@ sunint=sun[:,1]
 
 
 plt.plot(sunlam*10.,sunint)
-plt.vlines(util.air_to_vac(lines)*lines,0,0.5,"r")
 plt.vlines(util.air_to_vac(cata)*cata,0,1,"y")
+plt.vlines(util.air_to_vac(lines)*lines,0,0.5,"r")
 plt.vlines(util.air_to_vac(lines[I])*lines[I],0,0.25,"b")
 plt.show()
+
+
+f=open("selectedlines_match_solarkurucz.pkl","wb")
+lamselect=lines[I].tolist()
+donnees={}
+donnees['sellines'] = lamselect
+pickle.dump(donnees,f)
+f.close()
 
