@@ -6,7 +6,7 @@ import sys
 from units import *
 from numpy.polynomial import Polynomial
 from scipy.interpolate import interp1d, UnivariateSpline, LSQUnivariateSpline
-
+import matplotlib.pyplot as plt
 
 def gauss(x, A, mu, sigma, y_offset):
     return y_offset + (A/  (np.sqrt(2*np.pi)*sigma)) * np.exp(-(x-mu)**2/(2*sigma**2))
@@ -190,11 +190,12 @@ def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
 
     if np.all(np.isnan(v)):
         return lambda x: np.nan
+    
+    # we usue only the upper central 90% of the values
     I = np.logical_not(np.isnan(v))
     II = np.logical_and(I, v<np.quantile(v[I],0.95))
     I = np.logical_and(II, v>np.quantile(v[I],0.05))
 
-    #l = l[I]
     v = v[I]
     l = l[I] 
 
@@ -225,7 +226,7 @@ def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
         J = np.logical_and(l>=tt, l<ttt)
         d.append( np.quantile(res[J], qqq))
     pp = UnivariateSpline(t[2:-2], d, s=0)
-    return p 
+    return pp
 
 def pseudo_inverse(x):
     """
@@ -281,13 +282,14 @@ def sigma_clipping_general_map(fitmachine, clipmachine, I0):
     fitmachine (x, y, I) -> fitt error 
     clipmachine(fitted) ->  boolean array like of "retained / good fit"
     """
-    NMAX = 200
+    NMAX = 100 #200
 
     p = fitmachine(I0)
     I = I0 & clipmachine(p)
 
     nclip = 1
     for i in range(NMAX):
+        print(sum(I), sum(I0))
         p = fitmachine(I)
         #II = np.logical_and( I, clipmachine(p) )
         II = I0 & clipmachine(p)
@@ -301,22 +303,116 @@ def sigma_clipping_general_map(fitmachine, clipmachine, I0):
 
 
 
-def homothetie_wasserstein(x,y,xx,yy, rb0, rb1, ra0, ra1):
+def homothetie_wasserstein(x, y, xx, yy, rb0, rb1, ra0, ra1):
     """
     best homothetie based on Wasserstein distance
 
     """
+    # start parameters
     params0 = np.array([(rb0+rb1)/2, (ra0 + ra1)/2])
+
+    # limits
     bounds = (np.array([rb0, ra0]), np.array([rb1, ra1])) 
+
+    N = 250
+    aa = np.linspace(ra0, ra1, N)
+    bb = np.linspace(rb0, rb1, N)
+
+    tmp = np.zeros((N,N))
+    b, a = np.meshgrid(bb, aa, indexing='ij')
+    for i in range(N):
+        for j in range(N):
+            bbb = b[i,j]
+            aaa = a[i,j]
+            tmp[i,j] = wd(aaa*x + bbb, xx, y, yy)
+
+    i, j = np.unravel_index(np.argmin(tmp), tmp.shape)
     res = sop.least_squares(
-        lambda ba: wd(x, ba[1]*xx+ba[0], y, yy ),
+        lambda ba: wd(x, ba[1]*xx+ba[0], np.abs(y), np.abs(yy) ),
         x0=params0, 
         bounds=bounds 
     )
-    return res.x
+
+
+    print(bb[i], aa[j])
+    print(res.x)
+
+    return bb[i], aa[j]
+
+    #return res.x
    
 def clean_nans(x, default=0):
     return np.where(np.isnan(x), default, x)
+
+def translation_same_grid(x0, y, xx0, yy, rb0=None, rb1=None, **kwargs):
+    """
+    correlation based estimation of 
+    translation of y to yy 
+    """
+    # correlation response of y shifted over yy
+    # indices of c are shifts of y (numpy specific implementation)
+    c = np.correlate(yy, y, mode='full')
+    
+    # timepoints of correlation starts
+    # c[i] is quality of fit of y shifted by i - xc0
+    xc0 = xx0 - x0 - y.shape[0]+1
+    
+    # using a priori bound for translation
+    a = max(0, int(rb0 - xc0)) if not rb0 is None else 0
+    b = min(c.shape[0], int(rb1+1 - xc0)) if not rb1 is None else c.shape[0]
+
+    if a >= b:
+        raise Exception("empty intersection")
+
+    i = np.argmax(c[a:b]) + a
+
+    d = xc0 + i 
+
+    if not kwargs.get('full', False):
+        return d
+    
+    p = Polynomial.fit(range(a,b), c[a:b], deg = 2)
+    return p.deriv().roots()[0] +  xc0
+
+def translation(x, y, xx, yy, rb0=None, rb1=None):
+    """
+    correlation based estimation of 
+    translation 
+    """
+    # putting on a common grid
+    
+    OS = 5 # oversampling
+
+    yx = interp1d(x,y,fill_value='extrapolate')
+    yyxx = interp1d(xx, yy, fill_value='extrapolate')
+
+    minx = np.min(x)
+    maxx = np.max(x)
+    minxx = np.min(xx)
+    maxxx = np.max(xx)
+
+    #sampling periods
+    t = (maxx - minx) / len(x)
+    tt = (maxxx - minxx) / len(xx)
+
+    # common sampling period
+    tc = min(t, tt) / OS         # OS is for oversampling....
+    
+    # new sampling points
+    xs = np.arange(minx, maxx+tc, tc)
+    xxs = np.arange(minxx, maxxx+tc, tc)
+
+    # grid distance 
+    gd = (minxx - minx) - int( np.floor((minxx-minx) / tc ) ) * tc 
+
+
+    ys = yx(xs)
+    yys = yyxx(xxs)
+
+    return translation_same_grid(minx, ys, minxx, yys, rb0, rb1)    
+
+
+ 
 
 def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     """

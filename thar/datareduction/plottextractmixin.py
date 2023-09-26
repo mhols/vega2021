@@ -94,32 +94,38 @@ class PlotExtractMixin:
 
     def plot_catalog(self, voie, oo):
         if type(oo) is int:
-            oo = list(oo)
+            oo = [oo]
+        # determine amplitude for plotting
         I = self.I[33]
         v = util.clean_nans(self.voie1[33][I])
         m = np.max(v)
-        dashes = np.linspace(0, 0.5 * m, 50)
+
+        # plotting used snippets
+        dashes = np.linspace(0, 0.2 * m, 50)
         for o in oo:
-            s = self.snippets_voie[voie].sn
+            s = self.snippets_voie[voie]
             I = s['true_order_number'] == o
+            I = I & s['selected']
             d = dashes if o%2 == 0 else dashes[1:]
+            
             for a, b in zip(d[:-1:2], d[1::2]):
                 plt.vlines(
                     s[I]['ref_lambda'], a, b,
                         color=self.color_2(voie, o))
-        #sn = self.snippets_voie()[voie]._snippets
 
         for o in (ooo for ooo in oo if ooo%2==0):
-            s = self.snippets_voie[voie].atlasext(o)
-            l =s['ref_lambda']
+            I = self.snippets_manager_voie[voie].atlas.atlasext(o)
+            l = self.snippets_manager_voie[voie].atlas.lambda_ref(self.kwargs['WAVEMAP_IN_VACUUM_AIR'])
+            l = l[I]
             if len(l)>0:
-                plt.plot(l, len(l)*[0], 'o', color=self.color_2(voie, o))
+                plt.plot(l, len(l)*[0], 'o', markersize=4, color=self.color_2(voie, o))
 
         for o in (ooo for ooo in oo if ooo%2==1):
-            s = self.snippets_voie[voie].atlasext(o)
-            l =s['ref_lambda']
+            I = self.snippets_manager_voie[voie].atlas.atlasext(o)
+            l = self.snippets_manager_voie[voie].atlas.lambda_ref(self.kwargs['WAVEMAP_IN_VACUUM_AIR'])
+            l = l[I]
             if len(l)>0:
-                plt.plot(l, len(l)*[0], '.', color=self.color_2(voie, o))
+                plt.plot(l, len(l)*[0], 'o', markersize=3, color=self.color_2(voie, o))
 
     def plot_catalog_redman(self, oo):
         if type(oo) is int:

@@ -97,7 +97,7 @@ class DictOfMapsPerOrder(UserDict):
     def index(self):
         return self.ccd._data.index
 
-    @lazyproperty
+    @property
     def deriv(self):
         return DictOfMapsPerOrder(
             self.ccd,
@@ -173,13 +173,14 @@ class CCD2d:
     """
     class for wavemap computation (i.e. 2D polynomial and friends)
     """
-    def __init__(self, extractor, data):
+    def __init__(self, extractor, voie=1):
         self.kwargs = extractor.kwargs        # saving for later use
         self.extractor = extractor  # back reference to central extractor objects
-        self._data =  data
+        self._data =  extractor.snippets_voie[voie]
+        self.voie = voie
 
         # we add a new column to the snippet dataframe from extractor
-        self._data['selected'] = self._data['goodsnippet']
+        self._data.loc[:, 'selected'] = self._data.loc[:, 'goodsnippet']
        
         self._mdata = None          # matching data
         self.ORDERS = self.kwargs['ORDERS']     # convenince field
@@ -196,8 +197,8 @@ class CCD2d:
 
        
         # all fits are done in this range for ol
-        self._olmin = self._ol.min()
-        self._olmax = self._ol.max()
+        self._olmin = self.__ol.min()
+        self._olmax = self.__ol.max()
 
 
         p = self.get_global_polynomial()
@@ -214,6 +215,7 @@ class CCD2d:
 
     def update(self):
 
+        self._data.loc[:, 'selected'] = self._goodsnippet
         if self.kwargs.get('USE_1D_POLYNOMIAL', 'False') == 'True':
             self.sigma_clipping_polynomial_order_by_order()
         else:
@@ -277,7 +279,8 @@ class CCD2d:
         # global clipping
         def clip_max_vrad():
             deltavr = self._mismatches('deltavr', p)
-            return deltavr.abs() < maxvrad
+            return (deltavr.abs() < maxvrad) & self._goodsnippet
+        
         I = clip_max_vrad()
         
         def clip_quantile():
@@ -324,14 +327,15 @@ class CCD2d:
         """
 
         # polynomial approximation of x
-        px = p(self._ol, self._o)
-        r = self._x - px # the 'pixel residuum'
+
+        px = p(self.__ol, self.__o)
+        r = self.__x - px # the 'pixel residuum'
 
         mismatches = {
             'deltax':   lambda: r,
-            'deltal':   lambda: r * self._dldx, 
-            'deltavr':  lambda: r * C_LIGHT * self._dldx / self._l,
-            'chi2':     lambda: r / self._sigma,
+            'deltal':   lambda: r * self.__dldx, 
+            'deltavr':  lambda: r * C_LIGHT * self.__dldx / self.__l,
+            'chi2':     lambda: r / self.__sigma,
             'fitweightchi2': lambda: r / self._fit_weight()
         }
 
@@ -351,16 +355,16 @@ class CCD2d:
             weight = pd.Series(1.0, index=self._data.index) 
         
         elif (tmp == 'sigma'):
-            weight = 1/self._sigma
+            weight = 1/self.__sigma
         
         elif (tmp == 'vrad'):
-            weight = C_LIGHT * self._dldx / self._l
+            weight = C_LIGHT * self.__dldx / self.__l
 
         elif (tmp == 'intens_weighted_vrad'):
-            weight = C_LIGHT * self._dldx * np.sqrt(self._data['total_flux']) / self._l
+            weight = C_LIGHT * self.__dldx * np.sqrt(self._data['total_flux']) / self.__l
 
         elif (tmp == 'sigma_weighted_vrad'):
-            weight = C_LIGHT * self._dldx / (self._sigma * self._l)
+            weight = C_LIGHT * self.__dldx / (self.__sigma * self.__l)
 
         elif (tmp == "flux"):
             weight = np.sqrt(self._data['total_flux'])
@@ -404,6 +408,7 @@ class CCD2d:
         return p
 
     def sigma_clipping_2D_polynomial(self):
+        self.extractor.logging(f'sigma clipping 2D for voie {self.voie}')
         w = self._fit_weight()
 
         fitmachine = lambda I: self._fit_2d_polynomial(
@@ -415,7 +420,7 @@ class CCD2d:
         p, I, nclip = sigma_clipping_general_map(
             fitmachine,
             clipmachine,
-            I0 = self._goodsnippet
+            I0 = self._goodsnippet & self._data['selected']
         )
 
 
@@ -423,7 +428,9 @@ class CCD2d:
         self._data.loc[I, 'selected'] = True
 
         print('stable clipping after ', nclip, 'operations')
-         
+
+        self.extractor.end_logging()
+
         self._map_2D_x_ol_o = p
         self._map_2D_ol_x_o = p.inverse_map()
         self._final_map_x_ol_o = p
@@ -461,15 +468,15 @@ class CCD2d:
     
     @property
     def _x(self):
-       return self._data['pixel_mean']
+       return self._data.loc[self._goodsnippet, 'pixel_mean']
 
     @property
     def _l(self):
-        return self._data['ref_lambda'] 
+        return self._data.loc[self._goodsnippet, 'ref_lambda'] 
 
     @property
     def _o(self):
-        return self._data['true_order_number']
+        return self._data.loc[self._goodsnippet, 'true_order_number']
 
     @property
     def _ol(self):
@@ -477,7 +484,27 @@ class CCD2d:
 
     @property
     def _sigma(self):
-        return self._data['pixel_std']    
+        return self._data[self._goodsnippet, 'pixel_std']    
+
+    @property
+    def __x(self):
+       return self._data.loc[:, 'pixel_mean']
+
+    @property
+    def __l(self):
+        return self._data.loc[:, 'ref_lambda'] 
+
+    @property
+    def __o(self):
+        return self._data.loc[:, 'true_order_number']
+
+    @property
+    def __ol(self):
+        return self.__o * self.__l
+
+    @property
+    def __sigma(self):
+        return self._data[:, 'pixel_std']    
 
     @property
     def dll(self):
@@ -488,6 +515,11 @@ class CCD2d:
     def _dll(self):
         lmaps = self._final_map_l_x_o
         return 1 - lmaps(self._x, self._o)/self._l
+    
+    @property
+    def __dll(self):
+        lmaps = self._final_map_l_x_o
+        return 1 - lmaps(self.__x, self.__o)/self.__l
     
     @property
     def dxdl(self):
@@ -502,9 +534,17 @@ class CCD2d:
         return self._o * self._global_polynomial.deriv(self._ol, self._o)
     
     @property
+    def __dxdl(self):
+        return self.__o * self._global_polynomial.deriv(self.__ol, self.__o)
+    
+    @property
     def _dldx(self):
         return 1. / self._dxdl 
    
+    @property
+    def __dldx(self):
+        return 1. / self.__dxdl 
+
     @property
     def _mx(self):
        return self._mdata['pixel_mean_o']
@@ -684,7 +724,7 @@ class CCD2d:
             I = self._goodsnippet
         
         if weight is None:
-            weight = 1./ self._sigma
+            weight = 1./ self.__sigma
 
         # fitting the subset selected by I
         weight = weight[I]
@@ -694,11 +734,11 @@ class CCD2d:
         Nol = self.kwargs['order_ol']+1
         No  = self.kwargs['order_o'] +1
 
-        o = self._o[I].to_numpy()
-        l = self._l[I].to_numpy()
-        x = self._x[I].to_numpy()
+        o = self.__o[I].to_numpy()
+        l = self.__l[I].to_numpy()
+        x = self.__x[I].to_numpy()
         s = weight.to_numpy()
-        xg = self._global_polynomial(self._ol[I], self._o[I]).to_numpy()
+        xg = self._global_polynomial(self.__ol[I], self.__o[I]).to_numpy()
 
         #mo = self.mo.to_numpy()
         #moo = self.moo.to_numpy()
@@ -706,7 +746,7 @@ class CCD2d:
         #mxx = self.mxx.to_numpy()        
 
         olrange = [self._olmin, self._olmax]
-        orange = [self._o.min(), self._o.max()]
+        orange = [self.__o.min(), self.__o.max()]
 
         #mxrange = [-200, self.kwargs['NROWS']+200]
 

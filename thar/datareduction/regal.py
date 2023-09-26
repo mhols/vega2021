@@ -11,15 +11,19 @@ class Store:
             os.mkdir(DATABASEDIR)
         print('new store created')
 
+
+    def rm(self, key):
+        pathlib.Path(self.key_to_path(key)).unlink()
+
     @property
     def keys(self):
         res = []
         for f in os.listdir(DATABASEDIR):
             res.append(self.path_to_key(f))
         return res
-    
+
     def path_to_key(self, p):
-        return (str(p.replace('"','/')[:-14]))        
+        return (str(p.replace('"','/')[:-14]))
 
     def key_to_path(self, key):
         fname = str(key).replace('/','"') + "_export.pickle"
@@ -33,7 +37,7 @@ class Store:
                 return o
         except Exception as ex:
             raise Exception('could not open pickel ', ex)
-       
+
     def store(self, key, ob):
         filepath = self.key_to_path(key)
         try:

@@ -524,11 +524,11 @@ class BeamOrder:
 store = regal.Store()    # we only have one global store
 
 
-def get_ext(f_thar, level="level_1", **kwargs):
+def get_ext(f_thar, level=3, **kwargs):
     classmap = {
-        'level_1': Extractor_level_1,
-        'level_2': Extractor_level_2,
-        'level_3': Extractor
+        1: Extractor_level_1,
+        2: Extractor_level_2,
+        3: Extractor
     }
     try:
         # retrieval without kwargs is reload of existing
@@ -538,13 +538,31 @@ def get_ext(f_thar, level="level_1", **kwargs):
     except Exception as ex:
         print('could not retrieve. ', f_thar, 'Reason: ',
               ex, 'generating a new one\n----\n')
-    try:
         myext = classmap[level](f_thar, **kwargs)
-        store.store(f_thar, myext)
         return myext
-    except Exception as ex:
-        raise Exception('could not create Extract. Reason: ', ex)
 
+def reduce_star(starfiz, **kwargs):
+
+    starfiz = os.path.abspath(starfiz)
+    try:
+        mystar = get_ext(starfiz)
+        return mystar
+    except:
+        print('could not retrieve star from store, reducing again')
+    # assert is_star(starfiz), "not a star file"
+    DATADIR = os.path.dirname(starfiz)
+    thars = list(getallthoriumfits(DATADIR))
+    times = [gettimestamp(thar) for thar in thars]
+    t = gettimestamp(starfiz)
+    i = np.argmin(t - np.array(times))
+    try:
+        mystar = get_ext(thars[i], **kwargs)
+    except:
+        print('could not create thorium extract. Did you provide the kwargs ?')
+        sys.exit(0)
+    mystar.set_fitsfile(starfiz)
+    mystar.save_to_store()
+    return mystar
 
 class Extractor_level_1:
     """
@@ -565,8 +583,6 @@ class Extractor_level_1:
 
         """
 
-        assert is_thorium(fitsfile),\
-            'you need to specify a thorium file to generate an extractor'
         self.kwargs = kwargs
 
         self._tharfits = fitsfile
@@ -585,13 +601,11 @@ class Extractor_level_1:
         self._Blaze = None
         self._voie1 = None
         self._voie2 = None
-        self._voie2 = None
+        self._voie3 = None
         self._bare_image = None
         self._image = None
-        self._pix_to_lambda_map_1 = None
-        self._pix_to_lambda_map_2 = None
-        self._pix_to_lambda_map_3 = None
-        self._fitsfile_set_for_reduction = False   ## TODO check if needed....
+
+        # self._fitsfile_set_for_reduction = False   ## TODO check if needed....
         self.end_logging()
 
     def update_kwargs(self, **kwargs):
@@ -707,10 +721,19 @@ class Extractor_level_1:
         The preliminary lambda map
         based on a datafile containing the lambdas
         """
-        return {o: interp1d(np.arange(self.NROWS),
-                            get_lambda(o, self.ORDERS, **self.kwargs),
+        return {o: interp1d(np.arange(self.kwargs['NROWS']),
+                            get_lambda(o, self.kwargs['ORDERS'], **self.kwargs),
                             fill_value='extrapolate')
-                for o in self.ORDERS}
+                for o in self.kwargs['ORDERS']}
+
+    def pix_to_lambda_map_voie1(self):
+        return self._pix_to_lambda_map_level1
+
+    def pix_to_lambda_map_voie2(self):
+        return self._pix_to_lambda_map_level1
+
+    def pix_to_lambda_map_voie3(self):
+        return None
 
     @property
     def DATADIR(self):
@@ -725,43 +748,27 @@ class Extractor_level_1:
         return datadir
 
     @property
-    def pix_to_lambda_map_voie1(self):
-        """
-        is dictionary of mappings fractionary pixel -> wavelength
-        """
-        return self._pix_to_lambda_map_level1
-
-    @property
-    def pix_to_lambda_map_voie2(self):
-        # self.message('pix_to_lambda_map_voie1 on level 2')
-        return self._pix_to_lambda_map_level1
-
-    @property
-    def pix_to_lambda_map_voie3(self):
-        return self._pix_to_lambda_map_level1
-
-    @property
     def pix_to_lambda_map_voie(self):
         return {
-            1: self.pix_to_lambda_map_voie1,
-            2: self.pix_to_lambda_map_voie2,
+            1: self.pix_to_lambda_map_voie1(),
+            2: self.pix_to_lambda_map_voie2(),
             3: None
         }
 
     @property
     def lambdas_per_order_voie1(self):
         n = np.arange(self.NROWS)
-        return {o: self.pix_to_lambda_map_voie1[o](n) for o in self.ORDERS}
+        return {o: self.pix_to_lambda_map_voie1()[o](n) for o in self.ORDERS}
 
     @property
     def lambdas_per_order_voie2(self):
         n = np.arange(self.NROWS)
-        return {o: self.pix_to_lambda_map_voie2[o](n) for o in self.ORDERS}
+        return {o: self.pix_to_lambda_map_voie2()[o](n) for o in self.ORDERS}
 
     @property
     def lambdas_per_order_voie3(self):
         n = np.arange(self.NROWS)
-        return {o: self.pix_to_lambda_map_voie3[o](n) for o in self.ORDERS}
+        return {o: self.pix_to_lambda_map_voie3()[o](n) for o in self.ORDERS}
 
     @property
     def lambdas_per_order_voie(self):
@@ -819,14 +826,15 @@ class Extractor_level_1:
         """
         is used for a homothetic map
         """
-        return self.pix_to_lambda_map_voie1[o]([self.I[o][0], self.I[o][-1]])
-    
+        return self.pix_to_lambda_map_voie[1][o]([self.I[o][0], self.I[o][-1]])
+
     def lambda_range_voie2(self, o):
         """
         is used for a homothetic map
         """
-        return self.pix_to_lambda_map_voie2[o]([self.I[o][0], self.I[o][-1]])
-    
+        return self.pix_to_lambda_map_voie[2][o]([self.I[o][0], self.I[o][-1]])
+
+    #TODO: make return dictionary
     def lambda_range_voie(self, voie, o):
         if voie == 1:
             return self.lambda_range_voie1(o)
@@ -834,7 +842,6 @@ class Extractor_level_1:
             return self.lambda_range_voie2(o)
         else:
             return None
-
 
     def olambda_range_voie1(self, o):
         l1, l2 = self.lambda_range_voie1(o)
@@ -940,7 +947,7 @@ class Extractor_level_1:
             M = np.ones(F.shape)  # selection mask of pixels without cosmics..
 
             # print('\n')
-            for i in range(10):      # maximal number of iterations 
+            for i in range(10):      # maximal number of iterations
                 # print (o, i, np.count_nonzero(M))
 
                 # number of extracted spectral values
@@ -960,12 +967,12 @@ class Extractor_level_1:
                 sig2_sf = chi2red * sig2   # rescaled noise level from data
 
 
-                post_sig2 = np.where( w>0, 
+                post_sig2 = np.where( w>0,
                     sig2_sf * \
                     (1 - w * F**2 / (np.sum(w * F**2, axis=1))[:, None]),
                     np.nan
                 )
-                
+
 
                 # one sided test ? or better two sided outlier removal ?
                 MM = np.where(np.abs(v-vv) <= COSMIC_SIGMA_CLIP * np.sqrt(post_sig2), 1, 0)
@@ -1105,7 +1112,7 @@ class Extractor_level_1:
         """
         return {o: (self.I[o][0], self.I[o][-1]) for o, p in self.ORDERS.items()}
 
-    
+
     # Excludded regions (Argon lines)
 
     def _Iex(self, o, voie):
@@ -1122,23 +1129,23 @@ class Extractor_level_1:
         for e in exc:
             res = res | ( (lams >= e[1]) & (lams <= e[2]))
         return res
-    
+
     @lazyproperty
     def Iex_voie1(self):
         """
-        exclueded pixel regions 
+        exclueded pixel regions
         :returns dictionary of boolean array
         """
         return {o : self._Iex(o, 1) for o in self.ORDERS}
-    
+
     @lazyproperty
     def Iex_voie2(self):
         """
-        exclueded pixel regions 
+        exclueded pixel regions
         :returns dictionary of boolean array
         """
         return {o : self._Iex(o, 2) for o in self.ORDERS}
-    
+
 
     def Iex_voie(self, voie):
         if voie==1:
@@ -1148,28 +1155,26 @@ class Extractor_level_1:
         else:
             raise Exception("not yet implemented for voie3")
 
-    @lazyproperty        
+    @property
     def Inex_voie1(self):
         """
         not excluded
         """
         return {o: np.logical_not(self._Iex(o,1)) for o in self.ORDERS}
-                
-    @lazyproperty
+
+    @property
     def Inex_voie2(self):
         """
         not excluded
         """
         return {o: np.logical_not(self._Iex(o,2)) for o in self.ORDERS}
-                
-    def Inex_voie(self, voie):
-        if voie==1:
-            return self.Inex_voie1
-        elif voie==2:
-            return self.Inex_voie2
-        else:
-            raise Exception("not yet implemented for voie3")
 
+    @property
+    def Inex_voie(self):
+        return{
+            1: self.Inex_voie1,
+            2: self.Inex_voie2
+        }
 
     @property
     def n(self):
@@ -1340,7 +1345,7 @@ class Extractor_level_1:
         SMOOTHING_FILTER_SIZE = 50
         MEDIAN_FILTER_SIZE = 10
         res = np.zeros(image.shape)
-       
+
         FF = np.ones(SMOOTHING_FILTER_SIZE)
         FF = np.convolve(FF,FF)
         FF /= np.sum(FF)
@@ -1365,7 +1370,7 @@ class Extractor_level_1:
         ima = median_filter(image, size=MEDIAN_FILTER_SIZE, mode='reflect')
         ima = minimum_filter(ima, size=MIN_FILTER_SIZE, mode='reflect')
         res = convolve( ima, F, mode='reflect')
-        
+
         self.end_logging()
         return res
 
@@ -1376,7 +1381,7 @@ class Extractor_level_1:
             return self._estimate_background_1D(image)
         else:
             return 0
-    
+
     @property
     def background(self):
         return self._estimate_background(self.bare_image-self.masterbias)
@@ -1559,37 +1564,37 @@ class Extractor_level_2(Extractor_level_1):
     """
 
     def __init__(self, fitsfile, **kwargs):
-
         super(Extractor_level_2, self).__init__(fitsfile, **kwargs)
-        self.logging('Creation of Level 2 Extract')
+        self.logging('Creation of Level 2 part of Level 2 Extract')
 
-        self._pix_to_lambda_map_1 = self._pix_to_lambda_map_level2(1)
-        self._pix_to_lambda_map_2 = self._pix_to_lambda_map_level2(2)
-        
-        self.end_logging()
-
-    @lazyproperty
-    def reference_extract(self):
         try:
-            extract = get_ext(self.kwargs['REFFITSFILE'])
-            return extract
+            self.reference_extract = get_ext(self.kwargs['REFFITSFILE'])
         except:
-            self.logging(
-                'Could not retrieve reference extractor. Please create one')
-            self.end_logging()
+            raise Exception('Could not retrieve reference extractor. \n\
+                            Please create one by running extract.setup_reference()')
+
+
+        self.end_logging()
 
     @lazyproperty
     def ORDERS(self):
         return self.reference_extract.ORDERS
 
-    @property
+    @lazyproperty
     def CENTRALPOSITION(self):
         """
         extraction of orders and their positions
         """
         self.logging('localizing beams')
-        tmpext = self.reference_extract
-        reflow = tmpext.masterflat_low[tmpext.CENTRALROW, :]
+        N = 200
+        M = 500
+        D = 50
+        E = 25
+        K = 5
+
+        refext = self.reference_extract
+
+        reflow = refext.masterflat_low[refext.CENTRALROW, :]
         mylow = self.masterflat_low[self.CENTRALROW, :]
 
         Nr = reflow.shape[0]
@@ -1598,10 +1603,18 @@ class Extractor_level_2(Extractor_level_1):
         nr = np.arange(Nr)
         nm = np.arange(Nm)
 
-        d = np.argmax(np.correlate(reflow, mylow, 'full'))-len(reflow)+1
-        b, a = util.homothetie(nr, reflow, nm, mylow, d-5, d+5, 0.9, 1.1)
-        res = {o: int(np.round((i-b)/a))
-               for o, i in tmpext.CENTRALPOSITION.items()}
+        # first guess
+        d = util.translation_same_grid(N, reflow[N:-M], N, mylow[N:-M], -D, D)
+
+        d = int(np.round(d))
+
+        res  = {}
+        for o, v in refext.CENTRALPOSITION.items():
+            s = reflow[v-E:v+E]
+            ss = mylow[v+d-E:v+d+E]
+            dd = util.translation_same_grid(0, s - s.mean(), 0, ss - ss.mean(), -K, K)
+            res[o] = int(v + d + dd)
+
         self.end_logging()
         return res
 
@@ -1612,42 +1625,89 @@ class Extractor_level_2(Extractor_level_1):
         or you try to obtain by homothetic mapping from some reference
         """
 
-        self.logging('using a homothetic mapping to get lambda map in level2')
+        self.logging(f'using a homothetic mapping to get lambda map in level2 for voie {voie}')
         REFORDER = self.kwargs.get('REFORDER', 33)  # the order used to estimate the homothetie
 
-        rv1 = self.reference_extract.voie[voie][REFORDER]
-        Ir =  self.reference_extract.I[REFORDER]
-        rv1 = rv1[Ir]
+        S = 100
+        D = 70
+        E = 200
+        N = 10 # number of maxima
 
-        # setting myself on first fitsfile (TODO STORE)
-        mv1 = self.voie[voie][REFORDER]
-        Im = self.I[REFORDER]
-        mv1 = mv1[Im]
-
-        d = np.argmax(np.correlate(rv1, mv1, 'full')) + Ir[0] - Im[-1] 
-
-        tmp = {}
-
-        n = np.arange(self.NROWS)
-
+        res = {}
         for o in self.ORDERS:
-            tmp[o] = interp1d(n, self.reference_extract._pix_to_lambda_map_level1[o](n+d),
-                              fill_value='extrapolate')
+            rv = self.reference_extract.voie[voie][o]
+            Ir = self.reference_extract.I[o]
 
+            mv = self.voie[voie][o]
+            Im = self.I[o]
+            lm = util.local_maxima(mv)
+
+            Ine = self.reference_extract.Inex_voie1[o]
+
+            n = self.n
+
+            # OK regio \i - j\ > S
+            dd = np.abs( n[:, None] - n[None, :] ) > E
+            # not any ( Ie[j] & |i-j| <= 5) = all (Ine[i] | \i-j\ > S
+            Ine = np.all( Ine[None,:] | dd, axis=1)
+
+            a = max(Ir[0], Im[0] + S)
+            b = min(Ir[-1], Im[-1] - S)
+
+            if (a >= b):
+                raise Exception('no inverval')
+
+            I = ( lm[:,0] >= a ) & ( lm[:,0] < b ) &  [ Ine[x] for x, a, b in lm ]
+            N = min(N, lm.shape[0])
+
+            if (N <= 5):
+                raise Exception('not enough local maxima')
+
+            xx = []
+            dd = []
+
+            # global estimate
+            d0 = util.translation_same_grid(Ir[0], rv[Ir], Im[0], mv[Im], -D, D)
+
+            for x, aa, bb in lm[I,:][:N]:
+                sr = rv[x-S:x+S].copy()
+                sm = mv[x-S:x+S].copy()
+
+                sr = sr - sr.mean()
+                sm = sm - sm.mean()
+
+                d = util.translation_same_grid(x-S, sr, x-S, sm, d0-5, d0+5)
+
+                xx.append(x)
+                dd.append(d)
+
+            xx = np.array(xx)
+            dd = np.array(dd)
+
+            p = np.polynomial.Polynomial.fit(xx+dd, xx, deg=1)
+
+            res[o] = interp1d (
+                    n,
+                    self.reference_extract.pix_to_lambda_map_voie[voie][o](p(n)),
+                    fill_value='extrapolate'
+            )
         self.end_logging()
-        return tmp
 
-    @property
-    def pix_to_lambda_map_voie1(self):
+        return res
+
+    @lazyproperty
+    def _pix_to_lambda_map_level2_voie1(self):
         return self._pix_to_lambda_map_level2(1)
 
-    @property
-    def pix_to_lambda_map_voie2(self):
+    @lazyproperty
+    def _pix_to_lambda_map_level2_voie2(self):
         return self._pix_to_lambda_map_level2(2)
 
-    @property
-    def pix_to_lambda_map_voie3(self):
-        return self._pix_to_lambda_map_level2(3)
+    def pix_to_lambda_map_voie1(self):
+        return self._pix_to_lambda_map_level2_voie1
+
+    def pix_to_lambda_map_voie2(self):
+        return self._pix_to_lambda_map_level2_voie2
 
 
 #####
@@ -1661,31 +1721,43 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
     def __init__(self, fitsfile, **kwargs):
         Extractor_level_2.__init__(self, fitsfile, **kwargs)
 
+        self._pix_to_lambda_map_level3_voie1 = self._pix_to_lambda_map_level2_voie1
+        self._pix_to_lambda_map_level3_voie2 = self._pix_to_lambda_map_level2_voie2
+
         self._snippets_manager_voie1 = Snippets(1, self)
         self._snippets_manager_voie2 = Snippets(2, self)
 
-        self._ccd_voie1 = spectrograph.CCD2d(self, self.snippets_voie1)
-        self._ccd_voie2 = spectrograph.CCD2d(self, self.snippets_voie2)
-   
+        self.update_snippets()
+
+        self._ccd_voie1 = spectrograph.CCD2d(self, voie=1)
+        self._ccd_voie2 = spectrograph.CCD2d(self, voie=2)
+
+
+        for i in range(3):
+            self.update()
+
+    @property
+    def snippets_manager_voie(self):
+        return {
+            1: self._snippets_manager_voie1,
+            2: self._snippets_manager_voie2
+        }
+
+
+    def pix_to_lambda_map_voie1(self):
+        return self._pix_to_lambda_map_level3_voie1
+
+    def pix_to_lambda_map_voie2(self):
+        return self._pix_to_lambda_map_level3_voie2
 
     @property
     def snippets_voie(self):
         return {1: self.snippets_voie1, 2: self.snippets_voie2, 3: None}
 
-    @lazyproperty
-    def ccd_voie1(self):
-        self.kwargs["ORDERS"] = self.ORDERS
-        return spectrograph.CCD2d(self, self.snippets_voie1.sn, **self.kwargs)
-
-    @lazyproperty
-    def ccd_voie2(self):
-        self.kwargs["ORDERS"] = self.ORDERS
-        return spectrograph.CCD2d(self, self.snippets_voie2.sn,  **self.kwargs)
-
     @property
     def ccd_voie(self):
-        return {1: self.ccd_voie1, 2: self.ccd_voie2, 3: None}
-        
+        return {1: self._ccd_voie1, 2: self._ccd_voie2, 3: None}
+
     def jdfirstm(self):
         self.jdfirstmoment = utilitaires.photometry(self._fitsfile)
         return self.jdfirstmoment
@@ -1698,33 +1770,23 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         # del self.snippets_voie1
         # del self.snippets_voie2
 
-        self.snippets_voie1.update_snippets()
-        self.snippets_voie2.update_snippets()
-
-        self.snippets_voie1.sn
-        self.snippets_voie2.sn
+        self._snippets_manager_voie1.update_snippets()
+        self._snippets_manager_voie2.update_snippets()
 
     def update_ccds(self):
 
-        self.ccd_voie1.update()
-        self.ccd_voie2.update()
+        self._ccd_voie1.update()
+        self._ccd_voie2.update()
 
     def update_lambdamap(self):
 
-        self.pix_to_lambda_map_voie1 = self.ccd_voie1._final_map_l_x_o
-        self.pix_to_lambda_map_voie2 = self.ccd_voie2._final_map_l_x_o
+        self._pix_to_lambda_map_level3_voie1 = self._ccd_voie1._final_map_l_x_o
+        self._pix_to_lambda_map_level3_voie2 = self._ccd_voie2._final_map_l_x_o
 
     def update(self):
-        self.update_snippets()
         self.update_ccds()
         self.update_lambdamap()
-
-    def clear_ccds(self):
-        del self.pix_to_lambda_map_voie1
-        del self.pix_to_lambda_map_voie2
-
-        self.logging('lambda map back to level 2')
-        self.end_logging()
+        self.update_snippets()
 
     def interpolated_voie1(self, o):
         lams, intens, I = self.get_lambda_intens1(o)
@@ -1742,12 +1804,12 @@ class Extractor(PlotExtractMixin, Extractor_level_2):
         """
         lams = self.lambdas_per_order_voie1[o]
         return lams, self.interpolated_voie2(o)(lams)
-    
 
-    def __del__(self):
-        del self.snippets_voie1
-        del self.snippets_voie2
-        del self.reference_extract
+
+    #def __del__(self):
+    #    del self.snippets_voie1
+    #    del self.snippets_voie2
+    #    del self.reference_extract
 
 
 """
@@ -1761,15 +1823,16 @@ def setup_reference():
     from settings_reference import kwargs
     myext = Extractor_level_1(kwargs['REFFITSFILE'], **kwargs)
     # myext.voie # TODO make in constructor
+    myext.voie
     myext.save_to_store()
 
     # make better lambda map
-    myext = Extractor(kwargs['REFFITSFILE'], **kwargs)
-    myext.save_to_store()
-    myext.update()
-    myext.update()
-    myext.update()
-    myext.save_to_store()
+    #myext = Extractor(kwargs['REFFITSFILE'], **kwargs)
+    #myext.save_to_store()
+    #myext.update()
+    #myext.update()
+    #myext.update()
+    #myext.save_to_store()
 
 
 if __name__ == '__main__':

@@ -30,9 +30,10 @@ class Atlas:
     :param file_of_lines: path to file containing list of wavelength. defaults to None
     :param **kwargs: list of options. Typically provided by some setting module. defaults to None
     """
-    def __init__(self, extract, file_of_lines=None, **kwargs):
+    def __init__(self, snippets, file_of_lines=None, **kwargs):
         self.kwargs = kwargs
-        self.extract = extract
+        self.snippets = snippets
+        self.extractor = snippets.extractor
         if not file_of_lines is None:
             self._lambda_vacuum = np.loadtxt(file_of_lines)
         self._lambda_air = None
@@ -56,11 +57,11 @@ class Atlas:
         r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
         return r * self.lambda_ref(VACUUM_AIR)
     
-    def atlasext(self, voie, o):
+    def atlasext(self, o):
         """
         the extracted lines of atlas
         """
-        minlambda, maxlambda = self.extract.lambda_range_voie(voie, o)
+        minlambda, maxlambda = self.extractor.lambda_range_voie(self.snippets.voie, o)
         VACUUM_AIR = self.kwargs['WAVEMAP_IN_VACUUM_AIR']
 
         I = (minlambda < self.lambda_ref(VACUUM_AIR)) & (self.lambda_ref(VACUUM_AIR) < maxlambda)
@@ -73,15 +74,20 @@ class Atlas:
         exc = exclusion[J]
 
         #pd.Series(True, index=tmp.index)
+
+        # TODO put excluded vacuum in file....
         for e in exc:
-            I = I & ( (l < e[1]) | (l > e[2]) )
+            if VACUUM_AIR == 'AIR':
+                I = I & ( (l < e[1]) | (l > e[2]) )
+            else:
+                I = I & ( (l < e[1]*util.air_to_vac(e[1])) | (l > e[2]*util.air_to_vac(e[2])) )
         return I
 
 
 class Atlas_UVES(Atlas):
 
-    def __init__(self, extractor, **kwargs):
-        super(Atlas_UVES, self).__init__(extractor, **kwargs)
+    def __init__(self, snippets, **kwargs):
+        super(Atlas_UVES, self).__init__(snippets, **kwargs)
         uves = pd.read_csv(kwargs['REF_ATLASLINES_UVES'],  
                  header=None, 
                      sep=r"\s+", 
@@ -97,8 +103,8 @@ class Atlas_Redman(Atlas):
     pass
 
 class Atlas_Clicked(Atlas):
-    def __init__(self, extractor, **kwargs):
-        super(Atlas_Clicked, self).__init__(extractor, **kwargs)
+    def __init__(self, snippets, **kwargs):
+        super(Atlas_Clicked, self).__init__(snippets, **kwargs)
         clicked= pd.read_csv(
             kwargs['REF_ATLASLINES_CLICKED'],  
                 header=0, 
@@ -127,7 +133,6 @@ class Snippets:
         extractor.logging(f"initializing snippets for voie {voie}")
         
         self.voie = voie
-        self._atlasline = None
         self.extractor = extractor
 
         self.NROWS = self.extractor.NROWS
@@ -143,6 +148,8 @@ class Snippets:
 
         # filter, match, and compute gaussfits eventually bootstrap for matching snippets
         self.update_snippets()
+        self.snippets.loc[:,  'selected'] = self.snippets.loc[:, 'goodsnippet']
+
 
         extractor.end_logging()
 
@@ -196,13 +203,13 @@ class Snippets:
                 'posmax': x,
                 'a': a,
                 'b': b,
-                'left': x-2,    # match interval [left, right] 
-                'right': x+2,
+                'left': float(x)-self.kwargs['SNIPPETS_PIXEL_DELTA'],    # match interval [left, right] 
+                'right': float(x)+self.kwargs['SNIPPETS_PIXEL_DELTA'],
                 'pixel_A': 0.0, #A,
-                'pixel_mu': x-a, #mu,
+                'pixel_mu': float(x-a), #mu,
                 'pixel_sigma': 1.0, #sigma,
                 'pixel_offset': 0.0, #offset,
-                'pixel_mean': x, #a + mu,   # TODO change name to pixel_lage
+                'pixel_mean': float(x), 
                 'pixel_std' : 1./ np.sqrt(np.sum(np.abs(s))),  
                 'pixel_sum_intens': np.sum(s),  # TODO A???
                 'pixel_max_intens': v[x]-np.min(v),
@@ -233,8 +240,8 @@ class Snippets:
     def _atlas(self):
         atlas_dict = {
             # 'REDMAN': self.atlasline_redman,
-            'UVES': Atlas_UVES(self.extractor, **self.kwargs),
-            'CLICKED': Atlas_Clicked(self.extractor, **self.kwargs)
+            'UVES': Atlas_UVES(self, **self.kwargs),
+            'CLICKED': Atlas_Clicked(self, **self.kwargs)
         }
         return atlas_dict
 
@@ -292,7 +299,7 @@ class Snippets:
             self.snippets.loc[idx, 'pixel_sigma'] = sigma,
             self.snippets.loc[idx, 'pixel_offset'] = offset,
             self.snippets.loc[idx, 'gaussfit'] = True
-            self.snippets.loc[idx, 'pixel_mean'] = self.snippets.loc[idx, 'left'] + mu
+            self.snippets.loc[idx, 'pixel_mean'] = self.snippets.loc[idx, 'a'] + mu
             mean = self.snippets.loc[idx, 'pixel_mean']
             self.snippets.loc[idx, 'left'] =  mean - self.kwargs['SNIPPETS_PIXEL_DELTA']
             self.snippets.loc[idx, 'right'] =  mean + self.kwargs['SNIPPETS_PIXEL_DELTA']
@@ -330,13 +337,13 @@ class Snippets:
         # getattr(self, "snippets_voie"+str(voie))
         for o in self.ORDERS:
             p = self.extractor.pix_to_lambda_map_voie[self.voie][o]
-            I = sn['true_order_number'] == o 
-            sn.loc[I, 'est_lambda'] = \
-                p( sn.loc[I, 'pixel_mean'].values )
-            sn.loc[I, 'lambda_left'] = \
-                p( sn.loc[I, 'left'].values )
-            sn.loc[I, 'lambda_right'] = \
-                p( sn.loc[I, 'right'].values )
+            I = sn['true_order_number'] == o
+            if (sum(I)) == 0:
+                print('no snippets in order', o)
+                continue
+            sn.loc[I, 'est_lambda'] = p( sn.loc[I, 'pixel_mean'].values )
+            sn.loc[I, 'lambda_left'] = p( sn.loc[I, 'left'].values )
+            sn.loc[I, 'lambda_right'] = p( sn.loc[I, 'right'].values )
      
     #---------------------
     # FILTER methods for snippets
@@ -357,15 +364,19 @@ class Snippets:
 
         for ex in exc:
            res = res  &  ( (sn['est_lambda'] < ex[1]) | (sn['est_lambda'] > ex[2]) )
-
+        
+        if res.sum() == 0:
+            raise Exception(f'no snippets found in method _not_excluded in order {o}')
         return res
         
         
     def _filter_snippets_min_length(self, o):
-        alpha = self.kwargs.get("FILTER_MIN_LENGTH", 3)
+        alpha = self.kwargs.get("FILTER_MIN_LENGTH", 4)
         # filter says true or false for each snippe
         res = self.snippets["true_order_number"] == o
-        res = res & ((self.snippets["right"] - self.snippets["left"]) > alpha)
+        res = res & ((self.snippets["b"] - self.snippets["a"]) > alpha)
+        if res.sum() == 0:
+            raise Exception(f'no snippets found in method min_length in order {o}')
         return res
         
     def _filter_snippets_max_amplitude(self, o):
@@ -374,7 +385,9 @@ class Snippets:
         res = self.snippets["true_order_number"] == o
         q = np.quantile(self.snippets.loc[res, "pixel_max_intens"], alpha)
         res = res & (self.snippets["pixel_max_intens"] > q)
-
+        if res.sum() == 0:
+            raise Exception(f'no snippets found in method _max_amplitude in order {o}')
+ 
         return res
     
        
@@ -392,9 +405,9 @@ class Snippets:
     def _match_snippets(self):
         VACUUM_AIR = self.kwargs['WAVEMAP_IN_VACUUM_AIR']
         self.snippets.loc[:, 'goodsnippet'] = False
-        ls = self.snippets['est_lambda'].to_numpy(copy=True)
-        lsl = self.snippets['lambda_left'].to_numpy(copy=True)
-        lsr = self.snippets['lambda_right'].to_numpy(copy=True)
+        ls = self.snippets['est_lambda'].to_numpy()
+        lsl = self.snippets['lambda_left'].to_numpy()
+        lsr = self.snippets['lambda_right'].to_numpy()
 
         lc = self.atlas.lambda_ref(VACUUM_AIR)
         lcl = self.atlas.lmin(VACUUM_AIR)
@@ -405,7 +418,9 @@ class Snippets:
             I = I & self.snippets['usablesnippet']
             InI = self.snippets.index[I]
 
-            J = self.atlas.atlasext(self.voie, o)
+            
+            J = self.atlas.atlasext(o)
+            JnJ, = np.where(J)
 
             II, JJ = util.match_intervals_centers (
                 ls[I],
@@ -417,6 +432,6 @@ class Snippets:
             )
 
             self.snippets.loc[InI[II], 'goodsnippet'] = True
-            self.snippets.loc[InI[II], 'ref_lambda'] = lc[J][JJ]
+            self.snippets.loc[InI[II], 'ref_lambda'] = lc[JnJ[JJ]]
 
        

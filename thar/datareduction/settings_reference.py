@@ -18,7 +18,7 @@ BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))  # put
 DATADIR = os.path.abspath(os.path.join(BASEDIR, 'vega_reference')); 
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
 
-REFFITSFILE = os.path.abspath(os.path.join(DATADIR, 'NEO_20220903_191404_th0.fits'))  # our refernce thorium
+REFFITSFILE = os.path.abspath(os.path.join(REFFILES, 'refthar/NEO_20220903_191404_th0.fits'))  # our refernce thorium
 
 ## ----- extractor constants
 NROWS = 4208;           comment['NROWS'] = "number of rows"
@@ -107,14 +107,15 @@ REF_ATLASLINES_REEDMAN = os.path.join(REFFILES, 'Redman_table6.dat')
 REF_ATLASLINES_UVES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 REF_ATLASLINES_CLICKED = os.path.join(REFFILES, 'thar_clicked_uves.csv')
 ATLAS_FOR_SNIPPETS = "CLICKED" #'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
-WAVEMAP_IN_VACUUM_AIR = "VACUUM" # 'VACUUM' # or AIR
+WAVEMAP_IN_VACUUM_AIR = "AIR" #"VACUUM" # 'VACUUM' # or AIR
 
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 
 SEUIL = 0.2 * ADU   # seuil en ADU 
 SEUILR = 800.
 VRANGE = 6.0 * KM/S      # vrange in km/s
-SNIPPETS_PIXEL_DELTA = 3 * PIXEL    # pixel interval around pixel mean for matching catalog
+
+SNIPPETS_PIXEL_DELTA = 2 * PIXEL    # pixel interval around pixel mean for matching catalog
 VOIE_METHOD = 'SUM_DIVIDE_CENTRALROW'   # defines flux_123 in .fits
 
 ## ------ spectrograph paramter
@@ -139,5 +140,5 @@ kwargs = { k: v for k, v in globals().items() if '_'!=k[0] and
 }
 
 ## the following parameters are included into the fits files header
-PREFIX = 'HOBO_'
+PREFIX = 'NEXTRA_'
 HEADER_ITEMS = [k for k in comment.keys() if k[:2]!='__']
