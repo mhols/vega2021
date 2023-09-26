@@ -30,7 +30,7 @@ def loss_1(params, *args):
     n = np.arange(intens.shape[0])
     i = func(n, *params)
     return np.abs(i-intens)*np.sqrt(np.abs(i))
-    
+
 def loss_2(params, *args):
     intens, func = args
     n = np.arange(intens.shape[0])
@@ -64,7 +64,7 @@ def estimate_igauss(lams, intens):
 
 
     res = sop.least_squares(
-        loss_4, 
+        loss_4,
         params0,
         args = (lams, intens, igauss)
 
@@ -73,7 +73,7 @@ def estimate_igauss(lams, intens):
     A, mu, sigma, y_offset = res.x
 
     return A, mlams + mu, sigma, y_offset
-     
+
 
 function_map = {
     'gauss': gauss,
@@ -123,11 +123,11 @@ def estimate_location(intens,  absorption=False, **kwargs):
     fun = function_map[kwargs['loss_function']]
     g = function_map[kwargs['profile']]
     res = sop.least_squares(
-        fun, 
-        params0, 
-        bounds=bounds, 
+        fun,
+        params0,
+        bounds=bounds,
         args=(intens, g))
-    
+
     A, mu, sigma, y_offset = res.x
 
     return  A, mu, sigma, y_offset + shift
@@ -140,30 +140,30 @@ def bootstrap_estimate_location(intens, **kwargs):
         isn = np.any(np.isnan(intens))
     except Exception as ex:
         print(intens)
-    
+
     if isn:
         raise Exception('intens not finite...')
 
 
     g = function_map[kwargs['profile']]
     size = kwargs['n_bootstrap']
-        
+
     fun = function_map[kwargs['loss_function']]
     intens = intens - min(0, np.min(intens))
-    
+
     if size <= 2:
-        
+
         return estimate_location(intens, **kwargs)
 
 
     res = []
     for i in range(size):
         try:
-            params = estimate_location(np.random.poisson(intens), **kwargs) 
+            params = estimate_location(np.random.poisson(intens), **kwargs)
         except:
             continue
         res.append(params)
-    
+
     res = np.array(res)
 
     return np.mean(res[:,1]), np.std(res[:,1]), res
@@ -174,7 +174,7 @@ def air_to_vac(lam):
 	s = 10**4/(lam/ANGSTROM)
 	refindex = 1 + 0.0000834254 + 0.02406147 / (130 - s**2) + 0.00015998 / (38.9 - s**2)
 	return refindex
-	
+
 def vac_to_air(lam):
 	#lambda_air (see https://www.astro.uu.se/valdwiki/Air-to-vacuum%20conversion)
 	#lambda_vac =  lmabda_air/refindex
@@ -182,22 +182,22 @@ def vac_to_air(lam):
 	refindex = 1 + 0.00008336624212083 + 0.02408926869968 / (130.1065924522 - s**2)\
 	+ 0.0001599740894897 / (38.92568793293 - s**2)
 	return refindex
- 
+
 def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
     N_MAXITER = 100
-    
+
     #s = UnivariateSpline(t, t, s=0)
 
     if np.all(np.isnan(v)):
         return lambda x: np.nan
-    
+
     # we usue only the upper central 90% of the values
     I = np.logical_not(np.isnan(v))
     II = np.logical_and(I, v<np.quantile(v[I],0.95))
     I = np.logical_and(II, v>np.quantile(v[I],0.05))
 
     v = v[I]
-    l = l[I] 
+    l = l[I]
 
     #l = np.arange(len(v))
     t = np.linspace(l[0], l[-1], nnodes+2, endpoint=True)
@@ -214,7 +214,7 @@ def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
         II = np.logical_and(I1, I2)
 
         s = np.std( p(l[I]) -v[I])
-        II = np.abs( p(l) - v) < 3*s 
+        II = np.abs( p(l) - v) < 3*s
         if np.alltrue(II==I):
             break
         I = II
@@ -230,24 +230,24 @@ def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
 
 def pseudo_inverse(x):
     """
-    computes the pseudo based on the largest 
+    computes the pseudo based on the largest
     interbal on which x is monotoneous
     """
     if len(x) <= 1:
         raise Exception('pseudo_inverse: too few elements')
-    
-    mc, inc, dec = monotoneous_chunks(x) 
-    
+
+    mc, inc, dec = monotoneous_chunks(x)
+
 
 def local_maxima(v):
     v = np.array(v)
     vv = np.zeros(len(v)+2)
     vv[1:-1] = v
     d = np.diff(vv)
-    lma = np.where(np.logical_and(d[:-1] > 0, d[1:] < 0))[0] 
-    lmi = np.where(np.logical_and(d[:-1] < 0, d[1:] > 0))[0] 
+    lma = np.where(np.logical_and(d[:-1] > 0, d[1:] < 0))[0]
+    lmi = np.where(np.logical_and(d[:-1] < 0, d[1:] > 0))[0]
 
-    
+
     tmp = []
     for im in lma:
         try:
@@ -260,7 +260,7 @@ def local_maxima(v):
             b = len(v)-1
 
         tmp.append([im, a, b])
-    
+
     tmp = sorted(tmp, key=lambda r: -v[r[0]])
     return np.array(tmp)
 
@@ -279,7 +279,7 @@ def monotoneous_chunks(v):
 
 def sigma_clipping_general_map(fitmachine, clipmachine, I0):
     """
-    fitmachine (x, y, I) -> fitt error 
+    fitmachine (x, y, I) -> fitt error
     clipmachine(fitted) ->  boolean array like of "retained / good fit"
     """
     NMAX = 100 #200
@@ -295,10 +295,10 @@ def sigma_clipping_general_map(fitmachine, clipmachine, I0):
         II = I0 & clipmachine(p)
         if np.all(I == II):
             break
-    
+
         I = II
         nclip += 1
-    
+
     return p, I, nclip
 
 
@@ -312,7 +312,7 @@ def homothetie_wasserstein(x, y, xx, yy, rb0, rb1, ra0, ra1):
     params0 = np.array([(rb0+rb1)/2, (ra0 + ra1)/2])
 
     # limits
-    bounds = (np.array([rb0, ra0]), np.array([rb1, ra1])) 
+    bounds = (np.array([rb0, ra0]), np.array([rb1, ra1]))
 
     N = 250
     aa = np.linspace(ra0, ra1, N)
@@ -329,8 +329,8 @@ def homothetie_wasserstein(x, y, xx, yy, rb0, rb1, ra0, ra1):
     i, j = np.unravel_index(np.argmin(tmp), tmp.shape)
     res = sop.least_squares(
         lambda ba: wd(x, ba[1]*xx+ba[0], np.abs(y), np.abs(yy) ),
-        x0=params0, 
-        bounds=bounds 
+        x0=params0,
+        bounds=bounds
     )
 
 
@@ -340,23 +340,23 @@ def homothetie_wasserstein(x, y, xx, yy, rb0, rb1, ra0, ra1):
     return bb[i], aa[j]
 
     #return res.x
-   
+
 def clean_nans(x, default=0):
     return np.where(np.isnan(x), default, x)
 
 def translation_same_grid(x0, y, xx0, yy, rb0=None, rb1=None, **kwargs):
     """
-    correlation based estimation of 
-    translation of y to yy 
+    correlation based estimation of
+    translation of y to yy
     """
     # correlation response of y shifted over yy
     # indices of c are shifts of y (numpy specific implementation)
     c = np.correlate(yy, y, mode='full')
-    
+
     # timepoints of correlation starts
     # c[i] is quality of fit of y shifted by i - xc0
     xc0 = xx0 - x0 - y.shape[0]+1
-    
+
     # using a priori bound for translation
     a = max(0, int(rb0 - xc0)) if not rb0 is None else 0
     b = min(c.shape[0], int(rb1+1 - xc0)) if not rb1 is None else c.shape[0]
@@ -366,21 +366,21 @@ def translation_same_grid(x0, y, xx0, yy, rb0=None, rb1=None, **kwargs):
 
     i = np.argmax(c[a:b]) + a
 
-    d = xc0 + i 
+    d = xc0 + i
 
     if not kwargs.get('full', False):
         return d
-    
+
     p = Polynomial.fit(range(a,b), c[a:b], deg = 2)
     return p.deriv().roots()[0] +  xc0
 
 def translation(x, y, xx, yy, rb0=None, rb1=None):
     """
-    correlation based estimation of 
-    translation 
+    correlation based estimation of
+    translation
     """
     # putting on a common grid
-    
+
     OS = 5 # oversampling
 
     yx = interp1d(x,y,fill_value='extrapolate')
@@ -397,28 +397,28 @@ def translation(x, y, xx, yy, rb0=None, rb1=None):
 
     # common sampling period
     tc = min(t, tt) / OS         # OS is for oversampling....
-    
+
     # new sampling points
     xs = np.arange(minx, maxx+tc, tc)
     xxs = np.arange(minxx, maxxx+tc, tc)
 
-    # grid distance 
-    gd = (minxx - minx) - int( np.floor((minxx-minx) / tc ) ) * tc 
+    # grid distance
+    gd = (minxx - minx) - int( np.floor((minxx-minx) / tc ) ) * tc
 
 
     ys = yx(xs)
     yys = yyxx(xxs)
 
-    return translation_same_grid(minx, ys, minxx, yys, rb0, rb1)    
+    return translation_same_grid(minx, ys, minxx, yys, rb0, rb1)
 
 
- 
+
 
 def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     """
     returns mapping f: x -> xx so that
     y(f^{-1}xx) = yy(xx)  <==> yy(f(x)) = y(x)
-    
+
     f is searched for in the space of affine mappings
     """
     N =  10*(len(x) + len(xx))
@@ -431,17 +431,17 @@ def homothetie(x,y, xx, yy, rb0, rb1, ra0, ra1):
     xxx = np.linspace(minx, maxx, N)
     def L(ba):
         b, a = ba
-        return yx(xxx) - yyxx( (xxx-b)/a) 
+        return yx(xxx) - yyxx( (xxx-b)/a)
 
     params0 = np.array([(rb0+rb1)/2, (ra0 + ra1)/2])
-    bounds = (np.array([rb0, ra0]), np.array([rb1, ra1])) 
+    bounds = (np.array([rb0, ra0]), np.array([rb1, ra1]))
     res = sop.least_squares(
-        L, 
-        x0=params0, 
-        bounds=bounds 
+        L,
+        x0=params0,
+        bounds=bounds
     )
     return res.x
-   
+
 
 class MonotoneFunction:
     """
@@ -463,13 +463,13 @@ class MonotoneFunction:
 
     @property
     def is_growing(self):
-        return self.df(0.5 * (self.a + self.b)) > 0    
+        return self.df(0.5 * (self.a + self.b)) > 0
 
     @property
     def domain(self):
         return (self.a, self.b) if self._direct else (self.ra, self.rb)
 
-    @property 
+    @property
     def range(self):
         return (self.ra, self.rb) if self._direct else (self.a, self.b)
 
@@ -478,7 +478,7 @@ class MonotoneFunction:
         if not self._direct:
             raise Exception('for inverse function on yet implementet')
         return self._df
-    
+
 
     def _der_at_lower_upper(self):
         """
@@ -493,7 +493,7 @@ class MonotoneFunction:
         mi, ma = np.min(y), np.max(y)
         d1, d2 = self._der_at_lower_upper()
 
-        
+
         xmi = self.a + (mi - r1)/d1 if mi < r1 else self.a
         xma = self.b + (ma - r2)/d2 if ma > r2 else self.b
 
@@ -506,9 +506,9 @@ class MonotoneFunction:
         # some Newton iterations....
         for i in range(10):
             xx = xx - (self._call(xx) - y) / self._df(xx)
-        
+
         return xx
-       
+
     def _df(self, x):
         a, b = self.a, self.b
         dfa = self.df(a)
@@ -523,7 +523,7 @@ class MonotoneFunction:
 
         return res
 
-        
+
     def _call(self, x):
         a, b = self.a, self.b
         dfa = self.df(a)
@@ -546,21 +546,21 @@ class MonotoneFunction:
 
     def deriv(self):
         return self._df
-        
+
     def __call__(self, x):
         return self._call(x) if self._direct else self._inverse(x)
-   
+
 #--------------
 # Matching sequeces
 #------------
 def match_unique(M):
 
     # M[i, j] means i matches j (not necessarily symmetric)
-    # returns array of indices I, J such that 
-    #  element i has a unique match, j, and 
+    # returns array of indices I, J such that
+    #  element i has a unique match, j, and
     #  element j is matched by exactly one elemnt, i
     # i.e. the "cross" through [i,j] is False except for its center [i,j]
- 
+
 
     I = np.count_nonzero(M, axis=1) == 1
     J = np.count_nonzero(M, axis=0) == 1
@@ -572,8 +572,8 @@ def match_unique(M):
 
 def match_intervals_centers(x, a, b, xx, aa, bb):
     """
-    symmetric match returns list of indicies i, j for which 
-    x[i] \in [aa[j], bb[j] ] and xx[j] \in [ a[i], b[i]] 
+    symmetric match returns list of indicies i, j for which
+    x[i] \in [aa[j], bb[j] ] and xx[j] \in [ a[i], b[i]]
     """
 
     M = (aa[None,:] <= x[:,None]) & (x[:,None] <= bb[None,:])
@@ -582,12 +582,12 @@ def match_intervals_centers(x, a, b, xx, aa, bb):
     I, J = match_unique(M & N)
 
     return I, J
-    
+
 
 def matching(v, w, dvw, dwv=None):
     """
     v: iteratble
-    w: iterable 
+    w: iterable
     dvw: match function v -> w
     dwc: match function w -> v
     """
@@ -621,21 +621,21 @@ def extract_snippets(l, v, lmin, lmax):
 # The MIT License (MIT)
 # Copyright (c) 2016 Vladimir Ignatev
 #
-# Permission is hereby granted, free of charge, to any person obtaining 
-# a copy of this software and associated documentation files (the "Software"), 
-# to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-# and/or sell copies of the Software, and to permit persons to whom the Software 
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the Software
 # is furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included 
+#
+# The above copyright notice and this permission notice shall be included
 # in all copies or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
-# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
 # PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
 # FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
-# OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
+# OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
@@ -654,7 +654,7 @@ def progress(count, total, status=''):
 
 if __name__ == '__main__':
 
-    import matplotlib.pyplot as plt    
+    import matplotlib.pyplot as plt
     p = np.polynomial.Polynomial([-1,-0.5, -0.3])
 
     pp = MonotoneFunction(0,4, p, p.deriv(1))
