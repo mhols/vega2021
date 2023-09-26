@@ -538,8 +538,9 @@ def get_ext(f_thar, level=3, **kwargs):
     except Exception as ex:
         print('could not retrieve. ', f_thar, 'Reason: ',
               ex, 'generating a new one\n----\n')
-        myext = classmap[level](f_thar, **kwargs)
-        return myext
+    myext = classmap[level](f_thar, **kwargs)
+    myext.save_to_store()
+    return myext
 
 def reduce_star(starfiz, **kwargs):
 
@@ -554,13 +555,14 @@ def reduce_star(starfiz, **kwargs):
     thars = list(getallthoriumfits(DATADIR))
     times = [gettimestamp(thar) for thar in thars]
     t = gettimestamp(starfiz)
-    i = np.argmin(t - np.array(times))
+    i = np.argmin(np.abs(t - np.array(times)))
     try:
         mystar = get_ext(thars[i], **kwargs)
     except:
         print('could not create thorium extract. Did you provide the kwargs ?')
         sys.exit(0)
     mystar.set_fitsfile(starfiz)
+    mystar.voie
     mystar.save_to_store()
     return mystar
 
@@ -623,7 +625,7 @@ class Extractor_level_1:
         """
         pref = self._logindent * ' '
         print('\n' + pref + 'Extractor, SETTING_ID: ' + self.SETTINGS_ID + ',\n' + pref + 'ThArg: ',
-              self._tharfits + '\n' + pref + message + '.....')
+              self._fitsfile + '\n' + pref + message + '.....')
         self._logindent += 2
 
     def end_logging(self):
