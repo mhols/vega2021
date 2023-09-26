@@ -20,21 +20,12 @@ starname_4 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010
 
 kwargs_moon['SETTING_ID'] = 'MOON'
 
+myhds = []
 for starname in [starname_1, starname_2, starname_3, starname_4]:
     star = reduce_star(starname, **kwargs_moon)
     star.voie
     star.save_to_store()
-
-sys.exit(0)
-
-
-
-mystarname_1 = get_ext(starname_1)
-mystarname_2 = get_ext(starname_2)
-mystarname_3 = get_ext(starname_3)
-mystarname_4 = get_ext(starname_4)
-
-myhds = [mystarname_1, mystarname_2, mystarname_3, mystarname_4]
+    myhds.append(star)
 
 lam_voie1={}
 lam_voie2={}
