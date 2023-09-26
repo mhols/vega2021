@@ -27,6 +27,15 @@ for starname in [starname_1, starname_2, starname_3, starname_4]:
     star.save_to_store()
     myhds.append(star)
 
+# to be removed
+mystariname_1 = myhds[0]
+mystariname_2 = myhds[1]
+mystariname_3 = myhds[1]
+mystariname_4 = myhds[1]
+
+
+
+
 lam_voie1={}
 lam_voie2={}
 intens_voie1={}
