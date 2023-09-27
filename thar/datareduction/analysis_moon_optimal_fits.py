@@ -28,10 +28,10 @@ for starname in [starname_1, starname_2, starname_3, starname_4]:
     myhds.append(star)
 
 # to be removed
-mystariname_1 = myhds[0]
-mystariname_2 = myhds[1]
-mystariname_3 = myhds[1]
-mystariname_4 = myhds[1]
+mystarname_1 = myhds[0]
+mystarname_2 = myhds[1]
+mystarname_3 = myhds[1]
+mystarname_4 = myhds[1]
 
 
 

@@ -1,5 +1,15 @@
 """
-global parameters for the datareduction pipeline
+Global parameters for the datareduction pipeline
+Normally you should not change these values in this file directly
+Rather create a new setting_xxxx.py module in which you import
+
+from nextra.setting_reference.py import kwargs as kwargs_xxxx
+
+You then edit the keys of this dictionary for you specific project, e.g.
+
+kwargs_xxxx['SETTING_ID'] = 'Moon'
+
+Alternatively you may copy this module as a template and adapt it
 """
 import os
 import numpy as np
@@ -11,10 +21,19 @@ load_dotenv()
 
 comment = {}  ## this comments will be included into the .fits document
 
+#: 
 SETTING_ID = 'vega_reference'
-
+"""
+The setting ID for logging
+"""
 ## ----- directory layout
+
 BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))  # put jour actual base path here
+"""
+Path to the nextra folder
+"""
+
+#: basis directory
 DATADIR = os.path.abspath(os.path.join(BASEDIR, 'vega_reference')); 
 REFFILES = os.path.abspath(os.path.join(BASEDIR, 'reffiles')); comment['REFFILES'] = "Referenzfiles"
 
@@ -107,7 +126,7 @@ REF_ATLASLINES_REEDMAN = os.path.join(REFFILES, 'Redman_table6.dat')
 REF_ATLASLINES_UVES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 REF_ATLASLINES_CLICKED = os.path.join(REFFILES, 'thar_clicked_uves.csv')
 ATLAS_FOR_SNIPPETS = "CLICKED" #'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
-WAVEMAP_IN_VACUUM_AIR = "AIR" #"VACUUM" # 'VACUUM' # or AIR
+WAVEMAP_IN_VACUUM_AIR = "VACUUM" # 'VACUUM' # or AIR
 
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
 

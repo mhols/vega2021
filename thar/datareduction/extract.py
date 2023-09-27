@@ -396,8 +396,8 @@ class BeamOrder:
 
         self._y = self(self._x)
 
-    def logging(self, message):
-        print('BeamOrder: '+message)
+    #def logging(self, message):
+    #    print('BeamOrder: '+message)
 
     @property
     def x(self):
@@ -568,23 +568,21 @@ def reduce_star(starfiz, **kwargs):
 
 class Extractor_level_1:
     """
-    A class for the data reduction pipeline
-
+    The basic exctractor class. It provides the geometry of the
+    ccd in form of beams along the orders
+    The lambda map (i.e. pixel_lambda_map) is provided by a datafile
     """
 
     def __init__(self, fitsfile, **kwargs):
         """
-        if fitsfile specified class takes it
-        the following keyword arguments are recognized
-        imagedata: np.array of image data
-        flatfield: np.array of flatfield image
-        background: np.array of background image
-        dir: path to folder containing all fits files
-
-        fitsfile must be a Thorium!!
-
+        Parameters
+        ----------
+        fitsfile :  path
+            path to fitsfile containing a thorium image
+        **kwargs : dictionary
+            configuration parameters (see ...)
         """
-
+ 
         self.kwargs = kwargs
 
         self._tharfits = fitsfile
@@ -622,9 +620,25 @@ class Extractor_level_1:
     def logging(self, message):
         """
         write a log string with info
+        Does some stuff
+
+        Parameters
+        ----------
+        foo : int, float, str, or tf.Tensor
+        The foo to bar, which has a really really, reeeeeeeeeeeeeeeeally
+        unnecessarily long multiline description.
+        bar : str
+        Bar to use on foo
+        baz : float
+        Baz to frobnicate
+
+        Returns
+        -------
+        float
+        The frobnicated baz
         """
         pref = self._logindent * ' '
-        print('\n' + pref + 'Extractor, SETTING_ID: ' + self.SETTINGS_ID + ',\n' + pref + 'ThArg: ',
+        print('\n' + pref + 'Extractor, SETTING_ID: ' + self.SETTINGS_ID + ',\n' + pref + 'fitsfile: ',
               self._fitsfile + '\n' + pref + message + '.....')
         self._logindent += 2
 
@@ -1257,7 +1271,7 @@ class Extractor_level_1:
         """
         OFFSETRED: towards the RED side of the prism dispersion, "left" on the image
         OFFSEBLUE: towards the BLUE side of the prism dispersion, "right on the image
-                    Careful= OFFSETBLUE can be 2*OFFSETBLUE in case of a 3rd beam!
+        Careful= OFFSETBLUE can be 2*OFFSETBLUE in case of a 3rd beam!
         """
         return self.beams[order].blaze(self.masterflat)
 

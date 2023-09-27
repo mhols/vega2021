@@ -231,7 +231,7 @@ def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
 def pseudo_inverse(x):
     """
     computes the pseudo based on the largest
-    interbal on which x is monotoneous
+    interval on which x is monotoneous
     """
     if len(x) <= 1:
         raise Exception('pseudo_inverse: too few elements')
