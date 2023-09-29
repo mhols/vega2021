@@ -1,12 +1,12 @@
-import util
-import utilitaires
+import nextra.util as util
+import nextra.utilitaires as utilitaires
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
-import regal
-from snippets import Snippets
-import spectrograph
-from plottextractmixin import PlotExtractMixin
+import nextra.regal as regal
+from nextra.snippets import Snippets
+import nextra.spectrograph as spectrograph
+from nextra.plottextractmixin import PlotExtractMixin
 import astropy.io.fits as pyfits
 import os
 import sys
@@ -189,7 +189,7 @@ def getallbiasfits(dirname):
 
 def getallthoriumfits(dirname):
     for f in listallfits(dirname):
-        if is_thorium(f) and str(f).endswith('_th0.fits'):
+        if is_thorium(f): # and str(f).endswith('_th0.fits'):
             yield f
 
 
@@ -558,8 +558,8 @@ def reduce_star(starfiz, **kwargs):
     i = np.argmin(np.abs(t - np.array(times)))
     try:
         mystar = get_ext(thars[i], **kwargs)
-    except:
-        print('could not create thorium extract. Did you provide the kwargs ?')
+    except Exception as ex:
+        print(f"could not create thorium extract. Reason: {ex}  ?")
         sys.exit(0)
     mystar.set_fitsfile(starfiz)
     mystar.voie
@@ -582,7 +582,7 @@ class Extractor_level_1:
         **kwargs : dictionary
             configuration parameters (see ...)
         """
- 
+
         self.kwargs = kwargs
 
         self._tharfits = fitsfile
@@ -698,7 +698,7 @@ class Extractor_level_1:
 
     @property
     def PREFIX(self):
-        return self.kwargs.get('PREFIX', 'HOBO_')  # TODO recompute
+        return self.kwargs.get('PREFIX', 'NEXTRA_')  # TODO recompute
 
     @property
     def bare_image(self):
@@ -796,7 +796,7 @@ class Extractor_level_1:
     def lam_to_o(self, lam):
         """the orders of lambda """
         return [o for o in self.ORDERS if
-                self.pix_to_lambda_map_voie1[o](0) <= lam and lam <= self.pix_to_lambda_map_1[o](self.NROWS-1)]
+                self.pix_to_lambda_map_voie[1][o](0) <= lam and lam <= self.pix_to_lambda_map_voie[1][o](self.NROWS-1)]
 
     def get_lambda_intens1(self, o):
         I = self.beams[o].I
@@ -1586,22 +1586,27 @@ class Extractor_level_2(Extractor_level_1):
         try:
             self.reference_extract = get_ext(self.kwargs['REFFITSFILE'])
         except:
-            raise Exception('Could not retrieve reference extractor. \n\
-                            Please create one by running extract.setup_reference()')
-
+            self.reference_extract = None  # this implies that we use the level_1 methods
+            raise Exception('for the moment this should not happen')
+            sys.exit(0)
 
         self.end_logging()
-
-    @lazyproperty
-    def ORDERS(self):
-        return self.reference_extract.ORDERS
 
     @lazyproperty
     def CENTRALPOSITION(self):
         """
         extraction of orders and their positions
         """
-        self.logging('localizing beams')
+        if self.kwargs.get('USE_PICKED_CENTRAL_POSITIONS', False):
+            self.logging('using picked positions...')
+            try:
+                return self.kwargs['CENTRALPOSITION']
+            except:
+                raise Exception("""\
+you set USE_PICKED_CENTRAL_POSITION to True
+but did not provide the location""")
+            self.end_logging()
+        self.logging('estimating central positions by matching')
         N = 200
         M = 500
         D = 50
@@ -1650,7 +1655,11 @@ class Extractor_level_2(Extractor_level_1):
         N = 10 # number of maxima
 
         res = {}
+        problems = []
         for o in self.ORDERS:
+            if not o in self.reference_extract.ORDERS:
+                problems.append(o)
+                #continue
             rv = self.reference_extract.voie[voie][o]
             Ir = self.reference_extract.I[o]
 
@@ -1671,14 +1680,16 @@ class Extractor_level_2(Extractor_level_1):
             b = min(Ir[-1], Im[-1] - S)
 
             if (a >= b):
-                raise Exception('no inverval')
-
+                self.message(f"Could not match order {o} since there is no overlap with reference")
+                problems.append(o)
+                #continue
             I = ( lm[:,0] >= a ) & ( lm[:,0] < b ) &  [ Ine[x] for x, a, b in lm ]
             N = min(N, lm.shape[0])
 
-            if (N <= 5):
-                raise Exception('not enough local maxima')
-
+            if (N <= 3):
+                self.message(f"Could not match order {o} since not enough peaks to match")
+                problems.append(o)
+                # continue
             xx = []
             dd = []
 
@@ -1707,6 +1718,12 @@ class Extractor_level_2(Extractor_level_1):
                     self.reference_extract.pix_to_lambda_map_voie[voie][o](p(n)),
                     fill_value='extrapolate'
             )
+
+        # replace with stupid map in case of problems
+        #for o in problems:
+        #    res[o] = res[33] # TODO: important!
+
+
         self.end_logging()
 
         return res
@@ -1836,7 +1853,8 @@ TODO: interorder-background contains strange negative values and perturbates the
 
 
 def setup_reference():
-    from settings_reference import kwargs
+    import nextra.settings_reference as settings_reference
+    kwargs = settings_reference.get_kwargs()
     myext = Extractor_level_1(kwargs['REFFITSFILE'], **kwargs)
     # myext.voie # TODO make in constructor
     myext.voie
@@ -1852,20 +1870,5 @@ def setup_reference():
 
 
 if __name__ == '__main__':
-    from settings_reference import kwargs as kwargs_reference
-    from settingspegasus import kwargs as kwargs_pegasus
-    from settingsmoon import kwargs as kwargs_moon
-    from settings_vega import kwargs as kwargs_vega
-    from units import *
-    fitsfile_reference = os.path.join(
-        kwargs_reference['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
-    fitsfile_pegasus = os.path.join(
-        kwargs_reference['BASEDIR'], '51Peg_raw/2020_0917/NEO_20200917_173122_th0.fits')
-    fitsfile_vega = os.path.join(
-        kwargs_reference['BASEDIR'], 'vega_raw/NEO_20220903_191404_th0.fits')
-    fitsfile_moon = os.path.join(
-        kwargs_reference['BASEDIR'], '06apr23_Moon/NEO_20230406_190457_th0.fits')
-
-    # myext = Extractor(fitsfile_moon, **kwargs_moon)
-
     # myext = get_ext(fitsfile_moon)
+    pass

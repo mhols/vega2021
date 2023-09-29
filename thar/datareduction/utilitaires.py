@@ -1,8 +1,8 @@
-from extract import *
-from settings_reference import kwargs as kwargs_reference
+from nextra.extract import *
+from nextra.settings_reference import get_kwargs
 import pickle
-import util
-from units import *
+import nextra.util as util
+from nextra.units import *
 import matplotlib.pyplot as plt
 import astropy.io.fits as pyfits
 import numpy as np
@@ -16,6 +16,8 @@ import barycorrpy
 #
 #fitsname = '/Users/boehm/Desktop/vega2021/thar/06apr23_ADLeo/NEO_20230406_215211_st0.fits'
     
+kwargs_reference = get_kwargs()
+
 def photometry(fitsname):
     s = fitsname
     #s ='/Users/boehm/Desktop/vega2021/thar/06oct21_Gam_Equ/NEO_20211006_214054_st0.fits'

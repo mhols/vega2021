@@ -18,10 +18,11 @@ import sys
 import os
 import json
 import scipy
-import util
+import nextra.util as util
+from nextra.units import C_LIGHT
 from scipy.optimize import curve_fit
-import extract
-from units import *
+import nextra.extract as extract
+from nextra.units import *
 
 class Atlas:
     """
@@ -50,11 +51,11 @@ class Atlas:
         """
         default implementation for catalog uncertainty range
         """
-        l = (1.-self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
+        l = (1.-self.kwargs['VRANGE']/ C_LIGHT )
         return l * self.lambda_ref(VACUUM_AIR)
 
     def lmax(self, VACUUM_AIR='VACUUM'):
-        r = (1.+self.kwargs['VRANGE']/self.kwargs['C_LIGHT'])
+        r = (1.+self.kwargs['VRANGE']/ C_LIGHT )
         return r * self.lambda_ref(VACUUM_AIR)
     
     def atlasext(self, o):

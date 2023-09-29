@@ -1,24 +1,33 @@
 import pickle
 import pathlib
 import os
+from nextra import *
 
 DATABASEDIR = pathlib.Path(__file__).parents[0] / '__STORE__'
 
 class Store:
 
-    def __init__(self):
-        if not DATABASEDIR.exists():
-            os.mkdir(DATABASEDIR)
-        print('new store created')
+    def __init__(self, storepath=DATABASEDIR):
+        
+        self.path = pathlib.Path(storepath)
+        if not self.path.exists():
+            os.mkdir(self.path)
+            print(f'new store created at {self.path}')
 
+    def get_path(self):
+        return self.path
 
     def rm(self, key):
-        pathlib.Path(self.key_to_path(key)).unlink()
+        if key in self.keys:
+            self.key_to_path(key).unlink()
+            print(f"removed {self.key_to_path(key)} from store")
+        else:
+            print(f"Could not remove: {key} not found in store")
 
     @property
     def keys(self):
         res = []
-        for f in os.listdir(DATABASEDIR):
+        for f in os.listdir(self.path):
             res.append(self.path_to_key(f))
         return res
 
@@ -27,7 +36,7 @@ class Store:
 
     def key_to_path(self, key):
         fname = str(key).replace('/','"') + "_export.pickle"
-        return DATABASEDIR / fname
+        return self.path / fname
 
     def get(self, key):
 
@@ -36,7 +45,7 @@ class Store:
                 o = pickle.load(f)
                 return o
         except Exception as ex:
-            raise Exception('could not open pickel ', ex)
+            raise Exception(f'could not open pickel for key {key}, reason: {ex}')
 
     def store(self, key, ob):
         filepath = self.key_to_path(key)
@@ -44,4 +53,4 @@ class Store:
             with open(filepath, 'wb') as f:
                 pickle.dump(ob, f)
         except Exception as ex:
-            raise Exception('could not dump ', ex)
+            raise Exception(f'could not dump {key}, reason {ex}')

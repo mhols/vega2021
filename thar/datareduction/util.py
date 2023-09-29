@@ -3,7 +3,7 @@ import scipy.optimize as sop
 from scipy.stats import wasserstein_distance as wd
 import numpy as np
 import sys
-from units import *
+from nextra.units import *
 from numpy.polynomial import Polynomial
 from scipy.interpolate import interp1d, UnivariateSpline, LSQUnivariateSpline
 import matplotlib.pyplot as plt
@@ -658,7 +658,7 @@ if __name__ == '__main__':
     p = np.polynomial.Polynomial([-1,-0.5, -0.3])
 
     pp = MonotoneFunction(0,4, p, p.deriv(1))
-    pi = pp.get_inverse()
+    pi = pp.inverse()
 
     x = np.linspace(-1, 5, 1000)
     y = pp(x)

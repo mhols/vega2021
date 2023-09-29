@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib import cm
-import util
+import nextra.util as util
 import numpy as np
 
 class PlotExtractMixin:

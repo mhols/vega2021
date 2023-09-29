@@ -1,5 +1,5 @@
 import json
-from util import *
+from nextra.util import *
 import sys
 from collections import UserDict
 import os
@@ -20,7 +20,7 @@ from astropy.utils.decorators import lazyproperty
 import traceback
 
 ##  local units
-from units import *
+from nextra.units import *
 ##  -------------
 
 
