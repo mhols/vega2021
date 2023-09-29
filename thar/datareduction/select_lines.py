@@ -12,7 +12,7 @@ picklename = 'catselectpick.pickle'
 
 lockfile = '.lock_cklick'
 
-tharfile =  '/home/hols/vega2021/thar/vega_reference/NEO_20220903_191404_th0.fits'
+tharfile =  '/Users/boehm/Desktop/vega2021/thar/06apr23_Moon/NEO_20230406_190457_th0.fits'
 
 print(tharfile)
 
@@ -20,7 +20,7 @@ print(tharfile)
 
 class ClickSelector:
 
-    def __init__(self, o=44, voie=1):
+    def __init__(self, o=35, voie=1):
 
         self.fig = plt.figure('selector')
         self.ax = self.fig.add_subplot(111)
@@ -34,7 +34,7 @@ class ClickSelector:
             self.myext.save_to_store()
 
         if not os.path.exists(lockfile):
-            self.cr = self.myext.snippets_voie1.atlasline_uves
+            self.cr = self.myext._snippets_manager_voie1._atlas['UVES']
             self.cr['click_selected'] = False
             # self.cr['true_order_number'] = 0
         else:

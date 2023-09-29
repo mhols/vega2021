@@ -106,7 +106,8 @@ ESTIMATE_BACKGROUND = "BACKGROUND_1D"
 REF_ATLASLINES_REEDMAN = os.path.join(REFFILES, 'Redman_table6.dat')
 REF_ATLASLINES_UVES = os.path.join(REFFILES, 'thar_UVES_MM090311.dat')
 REF_ATLASLINES_CLICKED = os.path.join(REFFILES, 'thar_clicked_uves.csv')
-ATLAS_FOR_SNIPPETS = "CLICKED" #'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
+REF_ATLASLINES_IVAN = os.path.join(REFFILES, 'Calibration_Ivan.pkl')
+ATLAS_FOR_SNIPPETS = "IVAN" #'CLICKED'   # choose from 'UVES', 'REEDMAN', 'CLICKED'
 WAVEMAP_IN_VACUUM_AIR = "AIR" #"VACUUM" # 'VACUUM' # or AIR
 
 EXCLUSION = os.path.join(REFFILES, 'excluded.dat')
