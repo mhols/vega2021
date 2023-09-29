@@ -226,7 +226,7 @@ def continuum(l, v, nnodes=10, q=0.3, qq=0.8, qqq=0.9):
         J = np.logical_and(l>=tt, l<ttt)
         d.append( np.quantile(res[J], qqq))
     pp = UnivariateSpline(t[2:-2], d, s=0)
-    return pp
+    return p
 
 def pseudo_inverse(x):
     """
