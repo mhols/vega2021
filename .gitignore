@@ -3,3 +3,6 @@ src/*.pdf
 src/__pycache__/*.py
 src/__pycache__/*.pyc
 .DS_Store
+token
+NEO_20220905_202536_st0 copie.fits
+thar/datareduction/requirements.txt
