@@ -102,6 +102,7 @@ class Atlas_UVES(Atlas):
         
 class Atlas_IVAN(Atlas):
     def __init__(self, snippets, **kwargs):
+        super(Atlas_IVAN, self).__init__(snippets, **kwargs)
         ivan = open(kwargs['REF_ATLASLINES_IVAN'],'rb')
         c = pickle.load(ivan)
         wave = np.array(c['Selected lines'])
