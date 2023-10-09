@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nextra"
+version = "0.0.1"
+authors = [
+  { name="Matthias Holschneider", email="matthias.holschneider@gmail.com" },
+  { name = "Torsten Böhm", email= "astroboehm@email.com" }
+]
+description = "A data reduction pipeline"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/pypa/sampleproject"
+"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"

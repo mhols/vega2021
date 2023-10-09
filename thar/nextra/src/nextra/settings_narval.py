@@ -23,7 +23,7 @@ comment = {}  ## this comments will be included into the .fits document
 
 class SettingsReference:
     #:
-    SETTING_ID = 'vega_reference'
+    SETTING_ID = 'NARVAL basic setting'
     """
     The setting ID for logging
     """
@@ -40,10 +40,10 @@ class SettingsReference:
     #----------------------------------
     #   geometric constans of ccd
     #---------------------------------
-    NROWS = 4208;           comment['NROWS'] = "number of rows"
-    NCOLS = 4196;           comment['NCOLS'] = "number of columns"
-    NCROSS = 100;           comment['NCROSS'] = "number of rows/columns in central cross"
-    REMOVECROSS = int(True)
+    NROWS = 4612;           comment['NROWS'] = "number of rows"
+    NCOLS = 2098;           comment['NCOLS'] = "number of columns"
+    NCROSS = 0;             comment['NCROSS'] = "number of rows/columns in central cross"
+    REMOVECROSS = int(False)
     NROWSBLOCK = 2054   #number of rows in individual blocks
     NCOLSBLOCK = 2048   #number of cols in individual blocks
     #old moon
@@ -52,6 +52,7 @@ class SettingsReference:
     HIGHEXP = 60
     LOWEXP = 15
     CUTORDER = 35   #means that cutting flats is between 34 and 35
+    UNIQUE_EXP = True     # no distinction high / low is made
     ABSORPTIONHALFW = 6 # central region beteween orders
     JUMP = 2.;              comment["JUMP"] = "allowed jump for beam extraction"
     SMOOTHWIDTH_BEAM = 101; comment["SMOOTHWIDTH_BEAM"] = "width of local polynomial fit"
@@ -69,50 +70,18 @@ class SettingsReference:
     BLAZE_RANGE = list(range(-OFFSETRED, OFFSETBLUE+1))                     # range for the blase function
     DEGREEBLAZE = 7                                                   # polynomial degree for blaze funtion fit
 
-    CENTRALROW = 2161 # arbitrarily selected central row
+    CENTRALROW = 2351 # arbitrarily selected central row
     USE_PICKED_CENTRAL_POSITIONS = True    # if True use CENTRALPOSITIONS othterwise try matching 
     CENTRALPOSITION = {
-        21: 824,
-        22: 866,
-        23: 907,
-        24: 948,
-        25: 990,
-        26:1032,
-        27:1074,
-        28:1117,
-        29:1161,
-        30:1206,
-        31:1252,
-        32:1299,
-        33:1347,
-        34:1398,
-        35:1449,
-        36:1501,
-        37:1555,
-        38:1611,
-        39:1669,
-        40:1728,
-        41:1789,
-        42:1852,
-        43:1918,
-        44:1985,
-        45:2054,
-        46:2126,
-        47:2200,
-        48:2276,
-        49:2355,
-        50:2436,
-        51:2520,
-        52:2606,
-        53:2697,
-        54:2789,
-        55:2885,
-        56:2984,
-        57:3086,}
-        # 58:3192,} TODO make snipets not to break ...
-        # 59:3302}  TODO make robust for empty beams
-
-    ORDERS = list(range(21,58))
+        o: n for o, n in [
+            [21,151],[22,182],[23,213],[24,244],[25,276],[26,309],[27,342],[28,376],[29,411],
+            [30,447],[31,483],[32,521],[33,560],[34,600],[35,641],[36,683],[37,726],[38,771],
+            [39,818],[40,865],[41,914],[42,965],[43,1017],[44,1070],[45,1126],[46,1183],
+            [47,1242],[48,1302],[49,1365],[50,1430],[51,1497],[52,1565],[53,1636],
+            [54,1709],[55,1785],[56,1863],[57,1945],[58,2031]]
+    }
+    
+    ORDERS = list(range(21,59))
 
 
     #----------------------------------------

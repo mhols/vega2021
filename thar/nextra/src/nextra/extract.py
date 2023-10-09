@@ -106,10 +106,19 @@ def load_image_from_fits(fitsfile, **kwargs):
     a = pyfits.open(fitsfile)
     image = np.clip(a[0].data, -100, 65535)
     a.close()
-    if has_cross(fitsfile):
+    try:
+        hc = has_cross(fitsfile)
+    except:
+        hc = kwargs['REMOVECROSS']
+    if hc:
         return removeCross(image, **kwargs)
     else:
         return image
+
+
+def header_from_fits(fitsfile):
+    a = pyfits.open(fitsfile)
+    return a[0].header
 
 
 def header_info_from_fits(fitsfile, keyword):
@@ -232,7 +241,10 @@ def masterflat(dirname, **kwargs):
     return mf
 
 
-def index_along_offset(y, x, delta=[0]):
+def index_along_offset(y, x, delta=[0], N=None):
+    """
+    returns indices y  
+    """
     x = np.round(x).astype(int)
     delta = np.asarray(delta).astype(int)
     A = y.astype(int)
@@ -247,11 +259,30 @@ def mask_along_offset(y, x, delta=[0], **kwargs):
     NROWS = kwargs['NROWS']
     NCOLS = kwargs['NCOLS']
 
+    assert len(x) == NROWS, f'wrong size for x in mask_along_offset {len(x)} != {NROWS}'
+
+    xi = np.arange(NCOLS)[None, :]
+    x = np.rint(x).astype(int)
+    
+    #I = np.full((NROWS, NCOLS), False, dtype=bool)
+    #I[np.where ( np.isin( xi-x[:,None], delta))] = True
+
+    return np.isin( xi-x[:,None], delta)
+
+    """
+    I = y >= 0
+    II = y < NROWS
+
+    J = x >= 0
+    JJ = x < NCOLS
+
+
+
     I = np.full((NROWS, NCOLS), False, dtype=bool)
     A, B = index_along_offset(y, x, delta)
     I[A, B] = True
     return I
-
+    """
 
 def extract_along_offset(image, y, x, delta=[0]):
     A, B = index_along_offset(y, x, delta)
@@ -267,8 +298,10 @@ def _followorder(image, xstart, ystart, up=True, **kwargs):
 
     delta = kwargs['ABSORPTIONHALFW']
     NROWS = kwargs['NROWS']
+    NCOLS = kwargs['NCOLS']
     NCROSS = kwargs['NCROSS']
     JUMP = kwargs['JUMP']
+
 
     if up:
         rows = range(ystart, NROWS)
@@ -283,7 +316,11 @@ def _followorder(image, xstart, ystart, up=True, **kwargs):
 
     for row in rows:
         # extract central position betwwen two beams, and this for each row
-        positions = np.arange(int(round(x))-delta, int(round(x))+delta+1)
+        a = min(max(0, int(round(x))-delta), NCOLS )
+
+        b = max(0, min( int(round(x))+delta+1, NCOLS))
+
+        positions = np.arange(a, b)
         values = image[row, positions]
 
         # centralposi, c2 =secondpoly(positions,values)
@@ -429,17 +466,17 @@ class BeamOrder:
         return tmp
 
     def mask_central_voie12(self):
-        x = np.arange(self.NCROSS+1, self.NROWS)
+        x = np.arange(self.NROWS)
         return mask_along_offset(x, self(x), [0], **self.kwargs)
 
     @property
     def mask_voie1(self):
-        x = np.arange(0, self.NROWS)
+        x = np.arange(self.NROWS)
         return mask_along_offset(x, self(x), self.SHIFT_MASK_VOIE1, **self.kwargs)
 
     @property
     def mask_voie2(self):
-        x = np.arange(0, self.NROWS)
+        x = np.arange(self.NROWS)
         return mask_along_offset(x, self(x), self.SHIFT_MASK_VOIE2, **self.kwargs)
 
     def beam_sum_voie1(self, image):
@@ -1208,6 +1245,14 @@ class Extractor_level_1:
     def masterflat_low(self):
         return meanfits(*getallflatfits(self.DATADIR, self.kwargs['LOWEXP']), **self.kwargs)
 
+    
+    def _compute_masterflat_unique(self):
+
+        return meanfits(
+            *[f for f in listallfits (self.DATADIR) if is_flatfield(f)], **self.kwargs
+        )
+
+
     def _compute_masterflat(self):
         """
         Bias removed flat
@@ -1251,13 +1296,10 @@ class Extractor_level_1:
     def masterflat(self):
         if self._masterflat is None:
             self.logging('computing masterflat')
-            try:
-                DIR = self.DATADIR
-            except Exception as ex:
-                self.end_logging()
-                raise Exception(
-                    'no masterflat and no DATADIR specified...' + str(ex))
-            self._masterflat = self._compute_masterflat()
+            if self.kwargs.get('UNIQUE_EXP', False):
+                self._masterflat = self._compute_masterflat_unique()
+            else:
+                self._masterflat = self._compute_masterflat()
             self.end_logging()
         return self._masterflat
 
