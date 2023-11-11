@@ -7,6 +7,7 @@ import astropy.units as u
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.constants import c
+from astroquery.simbad import Simbad
 
 #if query unsuccessful: "NameResolveError"
 def berv(jd,object,obs_long, obs_lat, obs_alt):
@@ -29,10 +30,16 @@ def berv(jd,object,obs_long, obs_lat, obs_alt):
     bjd = t.tdb + ltt_bary          #barycentric Coordinate Time
     bjd = bjd.value
 
+    # accessing the radial velocity values of a star
+    # utils.py in barycorrpy uses:
 
+    customSimbad = Simbad()
+    customSimbad.add_votable_fields('rv_value')
+    obj = customSimbad.query_object(object)
+    rv = obj['RV_VALUE'][0] * 1000
     
-
-    return bjd,vcorr
+    
+    return bjd,vcorr,rv
 
 
 
@@ -57,12 +64,21 @@ dateobs = hdr['DATE-FIT']       #'2021-10-06T21:42:55.408' / Data Observation
 exptime = hdr['EXPTIME']        #Integration time(sec)
 stokesnum = hdr['STOKESEQ']     #Number of the seq in the serie (1..4)
 object = "Gamma Equ"
+"""
+# another way to calculate julian date
+t = Time(dateobs)
+t.jd
+"""
 
 exptimed = exptime/(60*60*24)    #exposure time in days
 jdmid = jd + exptimed/2.
 
-bjd, vcorr = berv(jdmid,object,obs_long, obs_lat, obs_alt)
+bjd, vcorr, rv = berv(jdmid,object,obs_long, obs_lat, obs_alt)
         
 print("barycentric julian date (bjd):  ",bjd, "barycentric velocity correction (m/s):  ", vcorr)
 
-#rv = rv + vcorr + rv * vcorr / c
+
+clum = 3e8
+rv_new = rv + vcorr + rv * vcorr / clum
+print("rv:",rv, "rv_new:", rv_new)
+#rv = rv + vcorr * (1 + rv/c)

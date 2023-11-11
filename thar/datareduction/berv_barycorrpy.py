@@ -70,6 +70,12 @@ loc = EarthLocation.from_geodetic(obs_long, obs_lat, obs_alt)
    tbase: Baseline subtracted from times (default 0.0)
 """
 
+"""
+from barycorrpy.utils import get_stellar_data
+stellar_data = get_stellar_data("Proxima B")"
+rv = stellar_data[0]['rv']
+"""
+
 kwargs = dict(ra=ra, dec=dec, epoch=2000.0, pmra=0.0, pmdec=0.0, rv=0.0,
               lat=obs_lat, longi=obs_long, alt=obs_alt)
 bervres = barycorrpy.get_BC_vel(jd, zmeas=0.0, **kwargs)
