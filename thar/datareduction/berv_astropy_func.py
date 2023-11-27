@@ -82,3 +82,11 @@ clum = 3e8
 rv_new = rv + vcorr + rv * vcorr / clum
 print("rv:",rv, "rv_new:", rv_new)
 #rv = rv + vcorr * (1 + rv/c)
+
+
+# delta_lambda/lambda =  delta_v/c
+# lambda_new = lambda + delta_lambda
+#            = lambda * (1 + delta_v/c)
+# with delta_v = rv_new - rv
+
+
