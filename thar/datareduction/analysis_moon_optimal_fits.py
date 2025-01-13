@@ -6,7 +6,7 @@ from units import *
 import matplotlib.pyplot as plt
 import sys
 
-#fitsfile_reference = os.path.join(kwargs_moon['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
+fitsfile_reference = os.path.join(kwargs_moon['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
 
 starname = 'moon'
 

@@ -18,10 +18,14 @@ def berv(jd,object,obs_long, obs_lat, obs_alt):
 
     #t.jd ou t.mjd
 
+    from astropy.utils.iers import conf as iers_conf
+    iers_conf.iers_auto_url = 'https://datacenter.iers.org/data/9/finals2000A.all'
+    iers_conf.auto_max_age = 14.  #or none
 
+    """
     from astropy.utils.iers import conf
-    conf.auto_max_age = None
-
+    #conf.auto_max_age = None
+    """
 
     vcorr = targ.radial_velocity_correction(kind='barycentric', obstime=t, location=loc)
     vcorr = vcorr.value##vcorrt = vcorrt.value
@@ -49,12 +53,12 @@ obs_lat = 42.9333
 obs_alt = 2869.4
 
 
-
 #sc = SkyCoord.from_name("beta CrB")
 #targ = SkyCoord.from_name("AD Leo")
 
 #s = '/Users/boehm/Desktop/vega2021/thar/06oct21_Gam_Equ/NEO_20211006_214255_st0.fits'
-s =  '/Users/boehm/Desktop/vega2021/thar/06oct21_Gam_Equ/NEO_20211006_214255_st0.fits'
+#s =  '/Users/boehm/Desktop/vega2021/thar/06oct21_Gam_Equ/NEO_20211006_214656_st0.fits'
+s = '/Users/boehm/Desktop/vega2021/thar/06apr23_ADLeo/NEO_20230406_221242_st0.fits'
 
 hdulist=pyfits.open(s)
 hdr= hdulist[0].header
@@ -63,7 +67,7 @@ jd = hdr.get('DATE_JUL')
 dateobs = hdr['DATE-FIT']       #'2021-10-06T21:42:55.408' / Data Observation
 exptime = hdr['EXPTIME']        #Integration time(sec)
 stokesnum = hdr['STOKESEQ']     #Number of the seq in the serie (1..4)
-object = "Gamma Equ"
+object = "AD Leo"
 """
 # another way to calculate julian date
 t = Time(dateobs)
