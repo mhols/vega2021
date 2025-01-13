@@ -1701,7 +1701,7 @@ but did not provide the location""")
         for o in self.ORDERS:
             if not o in self.reference_extract.ORDERS:
                 problems.append(o)
-                #continue
+                # continue TODO: consistent treatment of non existing orders....
             rv = self.reference_extract.voie[voie][o]
             Ir = self.reference_extract.I[o]
 
@@ -1711,10 +1711,11 @@ but did not provide the location""")
 
             Ine = self.reference_extract.Inex_voie1[o]
 
-            n = self.n
+            nr = self.reference_extract.n
+            nm = self.n
 
             # OK regio \i - j\ > S
-            dd = np.abs( n[:, None] - n[None, :] ) > E
+            dd = np.abs( nr[:, None] - nm[None, :] ) > E
             # not any ( Ie[j] & |i-j| <= 5) = all (Ine[i] | \i-j\ > S
             Ine = np.all( Ine[None,:] | dd, axis=1)
 
