@@ -847,6 +847,85 @@ class Pictures(object):
 
 
 
+    def moving_peaks_time(self):
+        name = 'moving_peaks_time'
+        
+        vul = 1.-self.inte
+        eqwidth = self.analyzer.eqwidth()
+        signois = self.analyzer.meansignoise()
+
+
+#        for na, nightlist in zip(['s:1', 's:2', 's:3', 's:123456'], [[0], [1], [2], [0,1,2,3,4,5]]):
+
+        minmax=[]
+        
+
+        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+        for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12345','s123','s45'], [[0], [1], [2], [3], [4], [0,1,2,3,4], [0,1,2],[3,4]]):
+        #for na, nightlist in zip(['s:12','s:3','s:123'], [[0,1],[2],[0,1,2]]):
+            VV =[]
+            TT =[]
+
+            mintime=1e8
+            maxtime=0
+            plt.figure(figsize=(6,10))
+            plt.title('night'+na)
+            for night in nightlist:
+                print("night = ", night)
+                I = self.analyzer.list_index[night]
+                print(night, len(I))
+                TT += list(self.time[I])
+
+                mintime=min(np.min(self.time[I]), mintime)
+                maxtime=max(np.max(self.time[I]), maxtime)
+
+                pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
+                fac = pp(signois[I])[:,np.newaxis]
+                temp=vul[I]/fac
+                temp-=np.median(temp,axis=0)
+                VV += list(temp)
+
+            TT = [tt - mintime for tt in TT]
+                
+            val = np.row_stack(VV)
+
+            nphase=256
+            tmp, bins, mask = self.analyzer.spectrum_matrix_full(TT, val, period=maxtime-mintime, nphase=nphase, method=np.median)
+            #print("minmax:",np.min(tmp),np.max(tmp))
+            minmax.append([np.min(tmp),np.max(tmp)])
+            
+            #plt.contourf(self.velocity, bins, tmp, cmap=plt.cm.Reds)
+
+
+            #tmp = np.sign(tmp) * np.abs(tmp)**0.7
+
+            #ax = plt.axes([self.velocity[0],self.velocity[-1],0,1], frameon=False)
+            #ax.set_axis_off()
+            #ax.set_xlim(self.velocity[0],self.velocity[-1])
+            #ax.set_ylim(0,1)
+            v0=-13.01
+
+            #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
+            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.00051,vmax=0.000448)
+            #plt.plot(tmp)
+            plt.xticks([])
+            rv = np.array([-20, -10, 0, 10, 20 ])
+            st = [ str(i) for i in rv]
+            plt.xticks(rv, st)
+            plt.yticks([])
+            yt = [0,0.2,0.4,0.6,0.8, 1]
+            plt.yticks(yt,[str(t) for t in yt])
+            plt.vlines([-22, 0, 22], 0,1)
+            plt.vlines([-35, 0, 37], 0,1,linestyles='dashed')
+            plt.hlines([1./2], -33,32)
+            plt.xlim(self.velocity[0]-v0, self.velocity[-1]-v0)
+            plt.xlabel('velocity [km/s]')
+            plt.ylabel('phase fraction of period]')
+
+            plt.savefig(name + na +self.format)
+            
+        print("final minmax:",np.min(np.array(minmax)),np.max(np.array(minmax)))
+
     def moving_peaks_signoise(self):
         name = 'moving_peaks_eq_width'
         #return #TODO REMOVE
