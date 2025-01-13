@@ -31,6 +31,7 @@ DATAFILE9 = os.path.join(DATADIR, 'Vega_tbl10.dat')  # lines between 0.3 and 1.0
 DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # lines between 0.3 and 1.0 depth, medium
 
 DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # lines between 0.3 and 1.0 depth, medium
+DATAFILE12 = os.path.join(DATADIR, 'Vega_2024.dat')
 #DATAFILE11 = os.path.join(DATADIR, 'test.dat')  # lines between 0.3 and 1.0 depth, medium
 
 
@@ -45,6 +46,7 @@ nvals[DATAFILE8] = 201
 nvals[DATAFILE9] = 113
 nvals[DATAFILE10] = 201
 nvals[DATAFILE11] = 201
+nvals[DATAFILE12] = 175
 #                    113
 #                    268
 
@@ -55,6 +57,8 @@ ranges[DATAFILE8] = (72, 112)
 ranges[DATAFILE9] = None
 ranges[DATAFILE10] = (72, 112)
 ranges[DATAFILE11] = (72, 112)
+ranges[DATAFILE12] = (61, 104)
+
 
 vranges = {}
 vranges[DATAFILE3] = (-60.0, 40.0)
@@ -63,8 +67,9 @@ vranges[DATAFILE8] = None
 vranges[DATAFILE9] = (-60.0, 40.0)
 vranges[DATAFILE10] = (-60.0, 40.0)
 vranges[DATAFILE11] = (-60.0, 40.0)
+vranges[DATAFILE12] = (-60.0, 40.0)
 
-DATAFILE = DATAFILE10  # DATAFILE8
+DATAFILE = DATAFILE12  # DATAFILE8
 
 
 class Pictures(object):
@@ -852,8 +857,11 @@ class Pictures(object):
 
 #        for na, nightlist in zip(['s:1', 's:2', 's:3', 's:123456'], [[0], [1], [2], [0,1,2,3,4,5]]):
 
+        minmax=[]
+        
 
-        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+        for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12345','s123','s45'], [[0], [1], [2], [3], [4], [0,1,2,3,4], [0,1,2],[3,4]]):
         #for na, nightlist in zip(['s:12','s:3','s:123'], [[0,1],[2],[0,1,2]]):
             VV =[]
             TT =[]
@@ -866,16 +874,22 @@ class Pictures(object):
                 TT += list(self.time[I])
                 pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
                 fac = pp(signois[I])[:,np.newaxis]
-                VV += list(vul[I]/fac)
+                temp=vul[I]/fac
+                temp-=np.median(temp,axis=0)
+                VV += list(temp)
+                
             val = np.row_stack(VV)
-            val -= np.median(val,axis=0)
+            #val -= np.median(val,axis=0)
 
-            nphase=128
-            tmp, bins, mask = self.analyzer.spectrum_matrix_full(TT, val, period=self.rotperiod, nphase=nphase, method=np.mean)
+            nphase=256
+            tmp, bins, mask = self.analyzer.spectrum_matrix_full(TT, val, period=self.rotperiod, nphase=nphase, method=np.median)
+            #print("minmax:",np.min(tmp),np.max(tmp))
+            minmax.append([np.min(tmp),np.max(tmp)])
+            
             #plt.contourf(self.velocity, bins, tmp, cmap=plt.cm.Reds)
 
 
-            tmp = np.sign(tmp) * np.abs(tmp)**0.7
+            #tmp = np.sign(tmp) * np.abs(tmp)**0.7
 
             #ax = plt.axes([self.velocity[0],self.velocity[-1],0,1], frameon=False)
             #ax.set_axis_off()
@@ -883,9 +897,8 @@ class Pictures(object):
             #ax.set_ylim(0,1)
             v0=-13.01
 
-            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',
-                       interpolation='none', origin='lower',
-                       extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
+            #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
+            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.00051,vmax=0.000448)
             #plt.plot(tmp)
             plt.xticks([])
             rv = np.array([-20, -10, 0, 10, 20 ])
@@ -902,7 +915,8 @@ class Pictures(object):
             plt.ylabel('phase fraction of period]')
 
             plt.savefig(name + na +self.format)
-
+            
+        print("final minmax:",np.min(np.array(minmax)),np.max(np.array(minmax)))
 
     def ew_noise_corr(self):
         name = 'moving_peaks_eq_width'
@@ -1018,8 +1032,8 @@ if __name__ == '__main__':
     #myPics.ts_eqwidth()
 #    myPics.intens()
 #    myPics.intens_all()
-    myPics.vrad_mean_vspan()
-    myPics.vrad_corr_vspan()
+###    myPics.vrad_mean_vspan()
+###    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
 #    myPics.vrad_corr_skew()
@@ -1031,14 +1045,14 @@ if __name__ == '__main__':
 #    myPics.ls_spec_all3()
 #    myPics.ls_spec_vrad_corr()
 #    myPics.ls_spec_vrad_bis()
-    myPics.ls_spec_vspan()
+###    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
-    myPics.bisector_time()
+###    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #    myPics.bayes_freq_vrad_mean()
-#    myPics.moving_peaks_signoise()
+    myPics.moving_peaks_signoise()
 ###    myPics.estrotentropy()
 
     #myPics.saveData("time_vrad_mean.dat", [6142.+myPics.time, myPics.vrad_mean])  # first column

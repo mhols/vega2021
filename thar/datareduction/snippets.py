@@ -14,12 +14,15 @@ from astropy.utils.decorators import lazyproperty
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pickle
 import sys
 import os
 import json
 import scipy
-import nextra.util as util
-from nextra.units import C_LIGHT
+
+import util
+import units
+
 from scipy.optimize import curve_fit
 import nextra.extract as extract
 from nextra.units import *
@@ -50,12 +53,13 @@ class Atlas:
     def lmin(self, VACUUM_AIR='VACUUM'):
         """
         default implementation for catalog uncertainty range
-        """
-        l = (1.-self.kwargs['VRANGE']/ C_LIGHT )
+
+        l = 1.-self.kwargs['VRANGE']/units.C_LIGHT
         return l * self.lambda_ref(VACUUM_AIR)
 
     def lmax(self, VACUUM_AIR='VACUUM'):
-        r = (1.+self.kwargs['VRANGE']/ C_LIGHT )
+        r = 1.+self.kwargs['VRANGE']/units.C_LIGHT
+
         return r * self.lambda_ref(VACUUM_AIR)
     
     def atlasext(self, o):
@@ -98,7 +102,19 @@ class Atlas_UVES(Atlas):
         
         self._lambda_vacuum = 1e8 / uves.loc[:, 0].to_numpy()
         self._lambda_air = uves.loc[:,1].to_numpy()
-
+        
+class Atlas_IVAN(Atlas):
+    def __init__(self, snippets, **kwargs):
+        super(Atlas_IVAN, self).__init__(snippets, **kwargs)
+        ivan = open(kwargs['REF_ATLASLINES_IVAN'],'rb')
+        c = pickle.load(ivan)
+        wave = np.array(c['Selected lines'])
+        ivan.close()
+        
+        self.kwargs = kwargs
+        self._lambda_air = wave
+        self._lambda_vacuum = util.air_to_vac(wave)*wave
+        
 
 class Atlas_Redman(Atlas):
     pass
@@ -242,7 +258,8 @@ class Snippets:
         atlas_dict = {
             # 'REDMAN': self.atlasline_redman,
             'UVES': Atlas_UVES(self, **self.kwargs),
-            'CLICKED': Atlas_Clicked(self, **self.kwargs)
+            'CLICKED': Atlas_Clicked(self, **self.kwargs),
+            'IVAN': Atlas_IVAN(self, **self.kwargs)
         }
         return atlas_dict
 

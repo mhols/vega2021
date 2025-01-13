@@ -6,10 +6,10 @@ from units import *
 import matplotlib.pyplot as plt
 import sys
 
-#fitsfile_reference = os.path.join(kwargs_moon['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
+fitsfile_reference = os.path.join(kwargs_moon['BASEDIR'], 'vega_reference/NEO_20220903_191404_th0.fits')
 
 starname = 'moon'
-# fitsfile_tharname = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230406_190457_th0.fits')
+
 starname_1 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010642_st0.fits')
 starname_2 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010707_st0.fits')
 starname_3 = os.path.join(kwargs_moon['BASEDIR'], '06apr23_Moon/NEO_20230407_010731_st0.fits')
