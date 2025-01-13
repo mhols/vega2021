@@ -1130,8 +1130,9 @@ if __name__ == '__main__':
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
-#    myPics.bayes_freq_vrad_mean()
-    myPics.moving_peaks_signoise()
+ #   myPics.bayes_freq_vrad_mean()
+ #   myPics.moving_peaks_signoise()
+    myPics.moving_peaks_time()
 ###    myPics.estrotentropy()
 
     #myPics.saveData("time_vrad_mean.dat", [6142.+myPics.time, myPics.vrad_mean])  # first column
