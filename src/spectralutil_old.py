@@ -12,7 +12,7 @@ import os
 
 #for full profile 60,124
 #for short profile 72,112
-def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
+def load_data(DATAFILE, vrange, noiselevel):
     """
     loads a filematrix type data file
 
@@ -21,34 +21,37 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
     vrange     : alternatively prescribing velocity range
     noiselevel : for outlier removal
     """
+    data = np.loadtxt(DATAFILE)
+    data = data[np.argsort(data[:, 0])]
+
+    nval = (data.shape[1]-1)//3
+
+    print (nval)
 
     coltime = 0  # colum of time values
     colspec = 1
     colval = colspec + nval
     colvul = colval + nval
 
-    data = np.loadtxt(DATAFILE)
-    # data = tmp[:100]
     time = data[:, coltime:colspec].ravel()
-    print(data.shape, time.shape, time[0].shape)
 
-#    time = time-int(time[0])
-    time = time-2458331.
+    # time = time-2458331.
 
     velocity = data[0, colspec:colval]  # velocities of bins
     intens = data[:, colval:colvul]  # intensities
-    tmp = +intens
+    
     for i in range(intens.shape[0]):
         intens[i] = np.convolve(intens[i], np.array([1,2,3,4,3,2,1])/16, 'full')[3:-3]
-#        intens[i] = np.convolve(intens[i], np.array([1,2,3,2,1])/9, 'full')[2:-2]
     signoise = data[:, colvul:colvul+nval]
     meani    = intens.mean(axis=0)  # mean intensity
     diff     = intens - meani  # fluctuation around mean
 
     # selecting velocity bins
-    if vrange is not None:          # wenn vrange verschieden ist von none
-        I1, I2 = np.where(velocity >= vrange[0])[0], np.where(velocity<=vrange[1])[0]
-        rangei = (I1[0], I2[-1])    # -1 ist letztes element des vektors
+    if vrange is None:          # wenn vrange verschieden ist von none
+        raise Exception('vrange can not be None')
+    
+    I1, I2 = np.where(velocity >= vrange[0])[0], np.where(velocity<=vrange[1])[0]
+    rangei = (I1[0], I2[-1])    # -1 ist letztes element des vektors
     rangel   = np.arange(rangei[0], rangei[1])  # range of spectral line
 
     stdi = diff.ravel().std()  # variance of f TODO better wirh std ?       #macht vektor flach, dann varianz
@@ -57,11 +60,6 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
 
     # outlier removal
     I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
-#    plt.plot(np.std(diff[I, :], axis=1))
-
-#    plt.show()
-
-    print("reducing from ", time.shape , "to ", len(I), " spectral lines")
 
     time = time[I]
     velocity = velocity[rangel]
@@ -299,9 +297,6 @@ def FILEMATRIX_to_JSON(
         json.dump(res, outfile, indent=2)
 
 
-
-
-
 class SpectralAnalyser:
     """
     a class for the modeling of spectral lines a la Boehm
@@ -310,18 +305,18 @@ class SpectralAnalyser:
 
     def __init__(self,
                 DATAFILE,     # datafile containing the filematrix
-                nval,     # number of velocity bins
                 normalise,    # shall the spectra be normlized True or False
-                rangei,       # intensity ranges
                 vrange,       # velocity ranges
                 noiselevel    # variance of noise TODO CHECK std ?
         ):
+
+        print (DATAFILE, normalise, vrange, noiselevel)
 
         # reading the file matrix
 
         self.time, self.velocity, self.intensity, self.signoise, \
         self.list_time, self.list_inte, self.list_index = \
-        load_data(DATAFILE, nval, rangei, vrange, noiselevel)
+        load_data(DATAFILE, vrange, noiselevel)
 
         # normalize the spectrum if required TODO
         if normalise:

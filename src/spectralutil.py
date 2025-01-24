@@ -333,19 +333,16 @@ def spectrum_matrix(time, quantity, **kwargs):
       return res[:, 1:-1], bins[:-1]
 
 
-=======
->>>>>>> torsten
 class SpectralAnalyser:
     """
     a class for the modeling of spectral lines a la Boehm
     """
 
-    def __init__(self, jsonfile):
-
-        res = self._load_json(jsonfile)
+    def __init__(self, **kwargs):
 
         # reading the file matrix
-        self._name = res['name']
+
+        self._name = kwargs['name']
         self._time = np.array(res['time'])
         self._velocity = np.array(res['velocity'])
         self._intensity = np.array(res['intensity'])  # bar intensity before selection
