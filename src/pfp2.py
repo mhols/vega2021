@@ -32,7 +32,7 @@ DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # lines between 0.3 an
 
 DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE12 = os.path.join(DATADIR, 'Vega_2024.dat')
-#DATAFILE11 = os.path.join(DATADIR, 'test.dat')  # lines between 0.3 and 1.0 depth, medium
+DATAFILE11 = os.path.join(DATADIR, 'test.dat')  # lines between 0.3 and 1.0 depth, medium
 
 
 
@@ -67,9 +67,9 @@ vranges[DATAFILE8] = None
 vranges[DATAFILE9] = (-60.0, 40.0)
 vranges[DATAFILE10] = (-60.0, 40.0)
 vranges[DATAFILE11] = (-60.0, 40.0)
-vranges[DATAFILE12] = (-60.0, 40.0)
+#vranges[DATAFILE12] = (-60.0, 40.0)
 
-DATAFILE = DATAFILE12  # DATAFILE8
+DATAFILE = DATAFILE11
 
 
 class Pictures(object):
