@@ -28,12 +28,15 @@ DATAFILE6 = os.path.join(DATADIR, 'filematrix_453.dat')
 DATAFILE7 = os.path.join(DATADIR, 'Vega_cfht.dat')
 DATAFILE8 = os.path.join(DATADIR, 'Vega_9500.40.03-10.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE9 = os.path.join(DATADIR, 'Vega_tbl10.dat')  # lines between 0.3 and 1.0 depth, medium
-DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # lines between 0.3 and 1.0 depth, medium
+DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # Sophie lines between 0.3 and 1.0 depth, medium
 
-DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # lines between 0.3 and 1.0 depth, medium
+DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # Narval lines between 0.3 and 1.0 depth, medium
 DATAFILE12 = os.path.join(DATADIR, 'Vega_2024.dat')
+#DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean.old.clean')
+#DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean')
 #DATAFILE11 = os.path.join(DATADIR, 'test.dat')  # lines between 0.3 and 1.0 depth, medium
-
+DATAFILE13 = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_07.clean')
+DATAFILE14 = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_1.7.clean')
 
 
 ames = ["full", "single"]
@@ -47,6 +50,8 @@ nvals[DATAFILE9] = 113
 nvals[DATAFILE10] = 201
 nvals[DATAFILE11] = 201
 nvals[DATAFILE12] = 175
+nvals[DATAFILE13] = 201
+nvals[DATAFILE14] = 237
 #                    113
 #                    268
 
@@ -58,6 +63,9 @@ ranges[DATAFILE9] = None
 ranges[DATAFILE10] = (72, 112)
 ranges[DATAFILE11] = (72, 112)
 ranges[DATAFILE12] = (61, 104)
+#ranges[DATAFILE13] = (61, 104)
+ranges[DATAFILE13] = None
+ranges[DATAFILE14] = None
 
 
 vranges = {}
@@ -68,8 +76,10 @@ vranges[DATAFILE9] = (-60.0, 40.0)
 vranges[DATAFILE10] = (-60.0, 40.0)
 vranges[DATAFILE11] = (-60.0, 40.0)
 vranges[DATAFILE12] = (-60.0, 40.0)
+vranges[DATAFILE13] = (-60.0, 40.0)
+vranges[DATAFILE14] = (-60.0, 40.0)
 
-DATAFILE = DATAFILE12  # DATAFILE8
+DATAFILE = DATAFILE11 # DATAFILE8
 
 
 class Pictures(object):
@@ -826,7 +836,7 @@ class Pictures(object):
         eqwidth = self.analyzer.eqwidth()
         signois = self.analyzer.meansignoise()
 
-        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+        for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12345','s123','s45'], [[0], [1], [2], [3], [4], [0,1,2,3,4], [0,1,2],[3,4]]):
             VV =[]
             TT =[]
             plt.title('night'+na)
@@ -860,8 +870,9 @@ class Pictures(object):
         minmax=[]
         
 
-        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
-        for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12345','s123','s45'], [[0], [1], [2], [3], [4], [0,1,2,3,4], [0,1,2],[3,4]]):
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7', 's1234567','s123','s4567'], [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5,6]]):
+        #for na, nightlist in zip(['s1','s2','s3','s4'], [[0], [1], [2], [3]]):
+        #for na, nightlist in zip(['s1'], [[0]]):
         #for na, nightlist in zip(['s:12','s:3','s:123'], [[0,1],[2],[0,1,2]]):
             VV =[]
             TT =[]
@@ -889,7 +900,7 @@ class Pictures(object):
                 
             val = np.row_stack(VV)
 
-            nphase=256
+            nphase=128
             tmp, bins, mask = self.analyzer.spectrum_matrix_full(TT, val, period=maxtime-mintime, nphase=nphase, method=np.median)
             #print("minmax:",np.min(tmp),np.max(tmp))
             minmax.append([np.min(tmp),np.max(tmp)])
@@ -906,18 +917,18 @@ class Pictures(object):
             v0=-13.01
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
-            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.00051,vmax=0.000448)
+            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='None', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.001,vmax=0.0015)
             #plt.plot(tmp)
             plt.xticks([])
             rv = np.array([-20, -10, 0, 10, 20 ])
             st = [ str(i) for i in rv]
-            plt.xticks(rv, st)
-            plt.yticks([])
+            #plt.xticks(rv, st)
+            #plt.yticks([])
             yt = [0,0.2,0.4,0.6,0.8, 1]
-            plt.yticks(yt,[str(t) for t in yt])
-            plt.vlines([-22, 0, 22], 0,1)
-            plt.vlines([-35, 0, 37], 0,1,linestyles='dashed')
-            plt.hlines([1./2], -33,32)
+            #plt.yticks(yt,[str(t) for t in yt])
+            #plt.vlines([-22, 0, 22], 0,1)
+            #plt.vlines([-35, 0, 37], 0,1,linestyles='dashed')
+            #plt.hlines([1./2], -33,32)
             plt.xlim(self.velocity[0]-v0, self.velocity[-1]-v0)
             plt.xlabel('velocity [km/s]')
             plt.ylabel('phase fraction of period]')
@@ -939,9 +950,20 @@ class Pictures(object):
         minmax=[]
         
 
-        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
-        for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12345','s123','s45'], [[0], [1], [2], [3], [4], [0,1,2,3,4], [0,1,2],[3,4]]):
-        #for na, nightlist in zip(['s:12','s:3','s:123'], [[0,1],[2],[0,1,2]]):
+        #for na, nightlist in zip (['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s123456','s123','s456','s789','all'], [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9],[0,1,2,3,4,5], [0,1,2],[3,4,5],[6,7,8], [0,1,2,3,4,5,6,7,8,9]]):
+        #for na, nightlist in zip(['s1','s2','s3','s4'], [[0], [1], [2], [3]]):
+        
+        #2024:
+        #for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12345','s123','s45'], [[0], [1], [2], [3], [4], [0,1,2,3,4], [0,1,2],[3,4]]):
+        
+        #2018 TBL:
+        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7', 's1234567','s123','s4567'], [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5,6]]):
+        
+        #2018 OHP:
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+        
+
+        #for na, nightlist in zip(['s:all'], [[0,1,2,3,4,5,6,7,8,9]]):
             VV =[]
             TT =[]
             plt.figure(figsize=(6,10))
@@ -958,9 +980,9 @@ class Pictures(object):
                 VV += list(temp)
                 
             val = np.row_stack(VV)
-            #val -= np.median(val,axis=0)
+            val -= np.median(val,axis=0)
 
-            nphase=256
+            nphase=128
             tmp, bins, mask = self.analyzer.spectrum_matrix_full(TT, val, period=self.rotperiod, nphase=nphase, method=np.median)
             #print("minmax:",np.min(tmp),np.max(tmp))
             minmax.append([np.min(tmp),np.max(tmp)])
@@ -977,7 +999,7 @@ class Pictures(object):
             v0=-13.01
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
-            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.00051,vmax=0.000448)
+            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0003,vmax=0.0003)
             #plt.plot(tmp)
             plt.xticks([])
             rv = np.array([-20, -10, 0, 10, 20 ])
@@ -1111,8 +1133,8 @@ if __name__ == '__main__':
     #myPics.ts_eqwidth()
 #    myPics.intens()
 #    myPics.intens_all()
-###    myPics.vrad_mean_vspan()
-###    myPics.vrad_corr_vspan()
+    myPics.vrad_mean_vspan()
+    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
 #    myPics.vrad_corr_skew()
@@ -1124,15 +1146,15 @@ if __name__ == '__main__':
 #    myPics.ls_spec_all3()
 #    myPics.ls_spec_vrad_corr()
 #    myPics.ls_spec_vrad_bis()
-###    myPics.ls_spec_vspan()
+    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
 ###    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
  #   myPics.bayes_freq_vrad_mean()
- #   myPics.moving_peaks_signoise()
-    myPics.moving_peaks_time()
+    myPics.moving_peaks_signoise()
+   # myPics.moving_peaks_time()
 ###    myPics.estrotentropy()
 
     #myPics.saveData("time_vrad_mean.dat", [6142.+myPics.time, myPics.vrad_mean])  # first column
