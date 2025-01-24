@@ -12,7 +12,7 @@ from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-from spectralutil_old import *
+from spectralutil_old_hist import *
 
 
 PROGDIR = os.path.dirname(__file__)
@@ -80,8 +80,6 @@ vranges[DATAFILE13] = (-60.0, 40.0)
 vranges[DATAFILE14] = (-60.0, 40.0)
 
 DATAFILE = DATAFILE10 # DATAFILE8
-
-
 
 
 class Pictures(object):
