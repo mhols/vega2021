@@ -5,7 +5,7 @@ cration jan 24 2025
 
 from matplotlib import gridspec
 import os
-from scipy.signal import spectral
+from scipy.signal import lombscargle
 from scipy.stats import gaussian_kde
 from matplotlib.colors import Normalize
 import matplotlib.cm as cm
@@ -222,35 +222,35 @@ class Pictures(object):
     def ls_vrad_skew(self):
         if None is self._ls_vrad_skew:
             mn = np.mean(self.vrad_skew)
-            self._ls_vrad_skew = spectral.lombscargle(self.time, self.vrad_skew - mn, self.freq)
+            self._ls_vrad_skew = lombscargle(self.time, self.vrad_skew - mn, self.freq)
         return self._ls_vrad_skew
 
     @property
     def ls_vrad_mean(self):
         if None is self._ls_vrad_mean:
             mn = np.mean(self.vrad_mean)
-            self._ls_vrad_mean = spectral.lombscargle(self.time, self.vrad_mean - mn, self.freq)
+            self._ls_vrad_mean = lombscargle(self.time, self.vrad_mean - mn, self.freq)
         return self._ls_vrad_mean
 
     @property
     def ls_vrad_corr(self):
         if None is self._ls_vrad_corr:
             mn = np.mean(self.vrad_corr)
-            self._ls_vrad_corr = spectral.lombscargle(self.time, self.vrad_corr - mn, self.freq)
+            self._ls_vrad_corr = lombscargle(self.time, self.vrad_corr - mn, self.freq)
         return self._ls_vrad_corr
 
     @property
     def ls_vspan(self):
         if None is self._ls_vspan:
             mn = np.mean(self.vspan)
-            self._ls_vspan = spectral.lombscargle(self.time, self.vspan - mn, self.freq)
+            self._ls_vspan = lombscargle(self.time, self.vspan - mn, self.freq)
         return self._ls_vspan
 
     @property
     def ls_vrad_bis(self):
         if None is self._ls_vrad_bis:
             mn = np.mean(self.vrad_bis)
-            self._ls_vrad_bis = spectral.lombscargle(self.time, self.vrad_bis - mn, self.freq)
+            self._ls_vrad_bis = lombscargle(self.time, self.vrad_bis - mn, self.freq)
         return self._ls_vrad_bis
 
     @property
@@ -268,7 +268,7 @@ class Pictures(object):
     @property
     def window(self):
         if None is self._window:
-            self._window = spectral.lombscargle(self.time, np.ones(len(self.time)), self.freq)
+            self._window = lombscargle(self.time, np.ones(len(self.time)), self.freq)
         return self._window
 
     @property
@@ -281,7 +281,7 @@ class Pictures(object):
     def ls_eqwidth(self):
         if None is self._ls_eqwidth:
             mn = np.mean(self.eqwidth)
-            self._ls_eqwidth = spectral.lombscargle(self.time, self.eqwidth - mn, self.freq)
+            self._ls_eqwidth = lombscargle(self.time, self.eqwidth - mn, self.freq)
         return self._ls_eqwidth
 
 

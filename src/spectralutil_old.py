@@ -12,7 +12,7 @@ import os
 
 #for full profile 60,124
 #for short profile 72,112
-def load_data(DATAFILE, vrange, noiselevel):
+def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.mean):
     """
     loads a filematrix type data file
 
@@ -26,8 +26,6 @@ def load_data(DATAFILE, vrange, noiselevel):
 
     nval = (data.shape[1]-1)//3
 
-    print (nval)
-
     coltime = 0  # colum of time values
     colspec = 1
     colval = colspec + nval
@@ -37,17 +35,17 @@ def load_data(DATAFILE, vrange, noiselevel):
 
     # time = time-2458331.
 
-    velocity = data[0, colspec:colval]  # velocities of bins
+    velocity = data[0, colspec:colval]  # velocities of bins (redundant data format...)
     intens = data[:, colval:colvul]  # intensities
     
     for i in range(intens.shape[0]):
         intens[i] = np.convolve(intens[i], np.array([1,2,3,4,3,2,1])/16, 'full')[3:-3]
     signoise = data[:, colvul:colvul+nval]
-    meani    = intens.mean(axis=0)  # mean intensity
+    meani    = meanmethod(intens, axis=0)  # mean intensity
     diff     = intens - meani  # fluctuation around mean
 
     # selecting velocity bins
-    if vrange is None:          # wenn vrange verschieden ist von none
+    if vrange is None:          # wenn vrange nicht gesetzt ist
         raise Exception('vrange can not be None')
     
     I1, I2 = np.where(velocity >= vrange[0])[0], np.where(velocity<=vrange[1])[0]
@@ -56,7 +54,7 @@ def load_data(DATAFILE, vrange, noiselevel):
 
     stdi = diff.ravel().std()  # variance of f TODO better wirh std ?       #macht vektor flach, dann varianz
     #ueber langen vektor (ntimes*nval), dh varianz vom gesamten Bild
-    t0 = time[0]  # first rime
+    t0 = time[0]  # first time
 
     # outlier removal
     I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
