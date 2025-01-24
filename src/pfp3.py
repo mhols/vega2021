@@ -70,6 +70,7 @@ VEGA_2018_SOPHIE = Experiment(
     vrad = -13.4,  
     prot = 0.678, #days
     noiselevel = 1.3,
+    normalize = True,
     nights = zip(
         ['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], 
         [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]])
@@ -128,7 +129,7 @@ class Pictures(object):
 
         self.comment = "description of plots\n"
         self.analyzer = SpectralAnalyser(experiment['DATAFILE'],
-                                         normalise=self.normalize,
+                                         experiment['normalize'],
                                          vrange=experiment['vrange'],
                                          noiselevel=experiment['noiselevel'],
                                         )
@@ -897,7 +898,8 @@ class Pictures(object):
             val = np.row_stack(VV)
 
             nphase=128
-            tmp, bins, mask = self.analyzer.spectrum_matrix_full(TT, val, period=maxtime-mintime, nphase=nphase, method=np.median)
+            tmp, bins, mask = self.analyzer.spectrum_matrix_full(
+                TT, val, period=maxtime-mintime, nphase=nphase, method=np.median)
             #print("minmax:",np.min(tmp),np.max(tmp))
             minmax.append([np.min(tmp),np.max(tmp)])
             
@@ -932,6 +934,63 @@ class Pictures(object):
             plt.savefig(name + na +self.format)
             
         print("final minmax:",np.min(np.array(minmax)),np.max(np.array(minmax)))
+
+    def moving_peaks_simple(self):
+        nbins = 128 #256
+        sa = self.analyzer
+        time = sa.time
+
+        meanprofile = np.median(sa.intensity, axis=0)
+
+        F = np.zeros((sa.nvelocity, 2))
+        F[:,0] = 1
+        F[:,1] = meanprofile
+
+        diff = np.zeros((sa.nobs, sa.nvelocity))
+
+        for i in range(sa.nobs):
+            pp = np.linalg.lstsq(F, sa.intensity[i], rcond=None)[0]
+            diff[i,:] = sa.intensity[i] - (pp[0] + pp[1] * meanprofile)
+
+        print(pp)
+
+
+        # diff = sa.intensity - np.median(sa.intensity, axis=0)
+
+        phasebins = np.linspace(0, self.rotperiod, nbins+1)
+        #I = np.digitize(np.mod(sa.time, self.rotperiod), phasebins)
+        
+        res = np.zeros((nbins, sa.nvelocity))
+
+        tt = np.mod(sa.time, self.rotperiod)
+        for i, p1p2 in enumerate(zip(phasebins[0:-1], phasebins[1:])):
+            p1, p2 = p1p2
+            I = (p1 <= tt) & (tt < p2)
+            if sum(I) >=4:
+                res[i,:] = np.mean(diff[I], axis=0)
+        
+
+        minmax = np.max(np.abs(res))
+        print(minmax)
+
+        res /= minmax
+        res = np.sign(res) * np.abs(res)**0.75
+
+        plt.imshow(
+            res, 
+            cmap=plt.cm.gray_r, 
+            aspect='auto',
+            interpolation='None', 
+            origin='lower',
+            #extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
+            vmin=-0.8, vmax=0.8)
+
+
+
+
+
+
+
 
     def moving_peaks_signoise(self):
         name = 'moving_peaks_eq_width'
@@ -1127,8 +1186,8 @@ if __name__ == '__main__':
     #myPics.ts_eqwidth()
 #    myPics.intens()
 #    myPics.intens_all()
-    myPics.vrad_mean_vspan()
-    myPics.vrad_corr_vspan()
+#    myPics.vrad_mean_vspan()
+#    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
 #    myPics.vrad_corr_skew()
@@ -1140,14 +1199,15 @@ if __name__ == '__main__':
 #    myPics.ls_spec_all3()
 #    myPics.ls_spec_vrad_corr()
 #    myPics.ls_spec_vrad_bis()
-    myPics.ls_spec_vspan()
+     # myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
 ###    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
  #   myPics.bayes_freq_vrad_mean()
-    myPics.moving_peaks_signoise()
+    # myPics.moving_peaks_signoise()
+    myPics.moving_peaks_simple()
    # myPics.moving_peaks_time()
 ###    myPics.estrotentropy()
 

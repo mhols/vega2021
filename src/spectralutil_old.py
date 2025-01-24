@@ -18,8 +18,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.mean):
 
     nval       : number of bins for the spectrum
     rangei     : (a,b) taking indicies from a to b (included)
-    vrange     : alternatively prescribing velocity range
-    noiselevel : for outlier removal
+    vrange     : alternatively prescribing velocity rangmoving_peaks_simple
     """
     data = np.loadtxt(DATAFILE)
     data = data[np.argsort(data[:, 0])]
@@ -58,6 +57,22 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.mean):
 
     # outlier removal
     I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
+
+    print(I.shape[0])
+
+    # any filter based removal
+    time = time[I]
+    intens = intens[I]
+    signoise = signoise[I]
+
+    meani = meanmethod(intens)
+
+    diff = abs(intens - meani)
+    q = np.quantile(diff.ravel(), 0.999)
+    I = np.all( diff < q, axis=1)
+
+    print(sum(I))
+
 
     time = time[I]
     velocity = velocity[rangel]
