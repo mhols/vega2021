@@ -76,9 +76,34 @@ VEGA_2018_SOPHIE = Experiment(
         [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]])
 )
 
+VEGA_2018_LE= Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,  
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5','s6', 's7', 's1234567','s123','s456'], 
+        [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5]])
+)
 
+VEGA_2018_NEXTRA= Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_1.7.clean'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,  
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5','s6', 's7', 's1234567','s127','s456'], 
+        [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,6],[3,4,5]])
+    )
 
 experiment = VEGA_2018_SOPHIE.kwargs
+#experiment = VEGA_2018_LE.kwargs
+#experiment = VEGA_2018_NEXTRA.kwargs
+
 
 class Pictures(object):
 
@@ -104,8 +129,6 @@ class Pictures(object):
         self.cpd3l = 2. / 0.678 + 1. / (0.678 + 0.036)
         self.cpd3h = 2. / 0.678 + 1. / (0.678 - 0.029)
         self.cpd4l = 3. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd4h = 3. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd5l = 4. / 0.678 + 1. / (0.678 + 0.036)
         self.cpd5h = 4. / 0.678 + 1. / (0.678 - 0.029)
         self.cpd6l = 5. / 0.678 + 1. / (0.678 + 0.036)
         self.cpd6h = 5. / 0.678 + 1. / (0.678 - 0.029)
@@ -935,8 +958,8 @@ class Pictures(object):
             
         print("final minmax:",np.min(np.array(minmax)),np.max(np.array(minmax)))
 
-    def moving_peaks_simple(self):
-        nbins = 128 #256
+    def moving_peaks_simple_time(self):
+        nbins = 512
         sa = self.analyzer
         time = sa.time
 
@@ -948,42 +971,255 @@ class Pictures(object):
 
         diff = np.zeros((sa.nobs, sa.nvelocity))
 
+        lams = np.zeros(sa.nobs)
+        offsets = np.zeros(sa.nobs)
+
         for i in range(sa.nobs):
             pp = np.linalg.lstsq(F, sa.intensity[i], rcond=None)[0]
             diff[i,:] = sa.intensity[i] - (pp[0] + pp[1] * meanprofile)
+            lams[i] = pp[1]
+            offsets[i] = pp[0]
+
+
+        plt.figure()
+        plt.title('lambda')
+        plt.plot( time, lams, '.')
+
 
         print(pp)
 
+
+        time = sa.time[ lams > 0.98 ]
 
         # diff = sa.intensity - np.median(sa.intensity, axis=0)
 
         phasebins = np.linspace(0, self.rotperiod, nbins+1)
         #I = np.digitize(np.mod(sa.time, self.rotperiod), phasebins)
         
-        res = np.zeros((nbins, sa.nvelocity))
 
         tt = np.mod(sa.time, self.rotperiod)
-        for i, p1p2 in enumerate(zip(phasebins[0:-1], phasebins[1:])):
-            p1, p2 = p1p2
-            I = (p1 <= tt) & (tt < p2)
-            if sum(I) >=4:
-                res[i,:] = np.mean(diff[I], axis=0)
+
+        for na, nightlist in zip(['s1','s2','s3','s4','s5'], [[0], [1], [2], [3], [4], [5] ]):
+       
+            plt.figure(figsize=(6,10))
+            plt.title('night'+na)
+            
+            res = np.zeros((nbins, sa.nvelocity))
+
+            for night in nightlist:
+                I = self.analyzer.list_index[night]
+
+                ttt = time - time[I][0]
+                for i, p1p2 in enumerate(zip(phasebins[0:-1], phasebins[1:])):
+                    p1, p2 = p1p2
+                    II = (p1 <= ttt[I]) & (ttt[I] < p2)
+                    if sum(II) >=1:
+                        res[i,:] = np.mean(diff[I][II], axis=0)
+
+
+            minmax = np.max(np.abs(res))
+            print(minmax)
+
+            res /= minmax
+            res = np.sign(res) * np.abs(res)**0.75
+
+            v0=-13.01
+
+            plt.imshow(
+                res, 
+                cmap=plt.cm.gray_r, 
+                aspect='auto',
+                interpolation='None', 
+                origin='lower',
+                extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
+                vmin=-0.8, vmax=0.8)
+
+    def moving_peaks_simple_per_night(self):
+        nbins = 128 #256
+        sa = self.analyzer
+        time = sa.time
+
+        meanprofile = np.median(sa.intensity, axis=0)
+        meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
+
+        F = np.zeros((sa.nvelocity, 3))
+        F[:,0] = 1
+        F[:,1] = meanp
+        d = meanp[1:]-meanp[:-1]
+        F[:-1,2] = 0.5 * d
+        F[1:, 2] += 0.5 * d
+
+
+        diff = np.zeros((sa.nobs, sa.nvelocity))
+
+        lams = np.zeros(sa.nobs)
+        offsets = np.zeros(sa.nobs)
+        translat = np.zeros(sa.nobs)
+
+        for i in range(sa.nobs):
+            pp = np.linalg.lstsq(F, sa.intensity[i], rcond=None)[0]
+            alpha = np.sum((1-sa.intensity[i]) * meanp)
+            #diff[i,:] = sa.intensity[i] - (1-alpha*meanp) 
+            diff[i,:] = sa.intensity[i] - np.dot(F, pp)
+            #diff[i,:] = sa.intensity[i] - meanprofile
+            lams[i] = pp[1]
+            offsets[i] = pp[0]
+            translat[i] = pp[2]
+
+        plt.figure()
+        plt.plot(meanp)
+
+        plt.figure()
+        plt.plot(meanp[1:] - meanp[:-1])
+    
+        plt.figure()
+        plt.title('lambda')
+        plt.plot( time, lams, '.')
+
+        plt.figure()
+        plt.title('offset')
+        plt.plot( time, offsets, '.')
+
+        plt.figure()
+        plt.title('translat')
+        plt.plot( time, translat, '.')
+
+        lamfilter = lams < -0.465
+        # lamfilter = lams > 0.425
+        # lamfilter = lams > -1000
+
+        # diff = sa.intensity - np.median(sa.intensity, axis=0)
+
+        phasebins = np.linspace(0, self.rotperiod, nbins+1)
+        #I = np.digitize(np.mod(sa.time, self.rotperiod), phasebins)
         
 
-        minmax = np.max(np.abs(res))
-        print(minmax)
+        tt = np.mod(time, self.rotperiod)
 
-        res /= minmax
-        res = np.sign(res) * np.abs(res)**0.75
+        for na, nightlist in experiment['nights']: 
+       
+            plt.figure(figsize=(6,10))
+            plt.title('night'+na)
+            
+            res = np.zeros((nbins, sa.nvelocity))
 
-        plt.imshow(
-            res, 
-            cmap=plt.cm.gray_r, 
-            aspect='auto',
-            interpolation='None', 
-            origin='lower',
-            #extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
-            vmin=-0.8, vmax=0.8)
+            for night in nightlist:
+                I = self.analyzer.list_index[night]
+
+                dd = diff[I]
+                # dd -= np.median(dd, axis=0)
+
+                for i, p1p2 in enumerate(zip(phasebins[0:-1], phasebins[1:])):
+                    p1, p2 = p1p2
+                    II = (p1 <= tt[I]) & (tt[I] < p2) & lamfilter[I]
+                    if sum(II) >=1:
+                        res[i,:] = np.mean(dd[II], axis=0)
+
+
+            minmax = np.max(np.abs(res))
+            print(minmax)
+
+            res /= minmax
+            res = np.sign(res) * np.abs(res)**0.75
+
+            v0=-13.01
+
+            plt.imshow(
+                res, 
+                #cmap=plt.cm.bwr,  #plt.cm.gray_r, 
+                cmap=plt.cm.gray_r, 
+                aspect='auto',
+                interpolation='None', 
+                origin='lower',
+                extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
+                vmin=-0.8, vmax=0.8)
+
+
+
+    def moving_peaks_simple(self):
+        nbins = 128 #256
+        sa = self.analyzer
+        time = sa.time
+
+        meanprofile = np.median(sa.intensity, axis=0)
+        meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
+
+        F = np.zeros((sa.nvelocity, 2))
+        F[:,0] = 1
+        F[:,1] = meanp
+
+        diff = np.zeros((sa.nobs, sa.nvelocity))
+
+        lams = np.zeros(sa.nobs)
+        offsets = np.zeros(sa.nobs)
+
+        for i in range(sa.nobs):
+            pp = np.linalg.lstsq(F, sa.intensity[i], rcond=None)[0]
+            alpha = np.sum((1-sa.intensity[i]) * meanp)
+            #diff[i,:] = sa.intensity[i] - (1-alpha*meanp) 
+            diff[i,:] = sa.intensity[i] - (pp[0] + pp[1] * meanp)
+            #diff[i,:] = sa.intensity[i] - meanprofile
+            lams[i] = pp[1]
+            offsets[i] = pp[0]
+
+        plt.figure()
+        plt.plot(meanp)
+
+
+        plt.figure()
+        plt.title('lambda')
+        plt.plot( time, lams, '.')
+
+        plt.figure()
+        plt.title('offset')
+        plt.plot( time, offsets, '.')
+
+        #lamfilter = lams < -0.465
+        # lamfilter = lams > 0.425
+        lamfilter = lams > -1000
+
+        # diff = sa.intensity - np.median(sa.intensity, axis=0)
+
+        phasebins = np.linspace(0, self.rotperiod, nbins+1)
+        #I = np.digitize(np.mod(sa.time, self.rotperiod), phasebins)
+        
+
+        tt = np.mod(time, self.rotperiod)
+
+        for na, nightlist in experiment['nights']: 
+       
+            plt.figure(figsize=(6,10))
+            plt.title('night'+na)
+            
+            res = np.zeros((nbins, sa.nvelocity))
+
+            for night in nightlist:
+                I = self.analyzer.list_index[night]
+
+                for i, p1p2 in enumerate(zip(phasebins[0:-1], phasebins[1:])):
+                    p1, p2 = p1p2
+                    II = (p1 <= tt[I]) & (tt[I] < p2) & lamfilter[I]
+                    if sum(II) >=1:
+                        res[i,:] = np.mean(diff[I][II], axis=0)
+
+
+            minmax = np.max(np.abs(res))
+            print(minmax)
+
+            res /= minmax
+            res = np.sign(res) * np.abs(res)**0.75
+
+            v0=-13.01
+
+            plt.imshow(
+                res, 
+                #cmap=plt.cm.bwr,  #plt.cm.gray_r, 
+                cmap=plt.cm.gray_r, 
+                aspect='auto',
+                interpolation='None', 
+                origin='lower',
+                extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
+                vmin=-0.8, vmax=0.8)
 
 
 
@@ -1205,11 +1441,14 @@ if __name__ == '__main__':
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
- #   myPics.bayes_freq_vrad_mean()
-    # myPics.moving_peaks_signoise()
-    myPics.moving_peaks_simple()
-   # myPics.moving_peaks_time()
-###    myPics.estrotentropy()
+#   myPics.bayes_freq_vrad_mean()
+    #myPics.moving_peaks_signoise()
+    # myPics.moving_peaks_simple()
+    
+    myPics.moving_peaks_simple_per_night()
+    #myPics.moving_peaks_simple_time()
+    # myPics.moving_peaks_time()
+    ###    myPics.estrotentropy()
 
     #myPics.saveData("time_vrad_mean.dat", [6142.+myPics.time, myPics.vrad_mean])  # first column
     #myPics.saveData("time_vrad_corr.dat", [myPics.time, myPics.vrad_corr])  # first column

@@ -32,7 +32,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.mean):
 
     time = data[:, coltime:colspec].ravel()
 
-    # time = time-2458331.
+    time = time-2458331.
 
     velocity = data[0, colspec:colval]  # velocities of bins (redundant data format...)
     intens = data[:, colval:colvul]  # intensities
