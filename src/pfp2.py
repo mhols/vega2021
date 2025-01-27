@@ -31,13 +31,14 @@ DATAFILE9 = os.path.join(DATADIR, 'Vega_tbl10.dat')  # lines between 0.3 and 1.0
 DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # Sophie lines between 0.3 and 1.0 depth, medium
 
 DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # Narval lines between 0.3 and 1.0 depth, medium
-DATAFILE12 = os.path.join(DATADIR, 'Vega_2024.dat')
+#DATAFILE12 = os.path.join(DATADIR, 'Vega_2024.dat')
 #DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean.old.clean')
-#DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean')
+DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean')
+#DATAFILE13 = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_0.7.clean')
 #DATAFILE11 = os.path.join(DATADIR, 'test.dat')  # lines between 0.3 and 1.0 depth, medium
-DATAFILE13 = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_07.clean')
+DATAFILE13 = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean')
 DATAFILE14 = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_1.7.clean')
-
+#DATAFILE14 = os.path.join(DATADIR, 'Vega_2018_mask_vega_1.7') # NEXTRA calculation with mask_vega
 
 ames = ["full", "single"]
 
@@ -79,7 +80,7 @@ vranges[DATAFILE12] = (-60.0, 40.0)
 vranges[DATAFILE13] = (-60.0, 40.0)
 vranges[DATAFILE14] = (-60.0, 40.0)
 
-DATAFILE = DATAFILE10 # DATAFILE8
+DATAFILE = DATAFILE14 # DATAFILE8
 
 
 class Pictures(object):
@@ -90,6 +91,7 @@ class Pictures(object):
 
         self.normalize = False  # normalise spectra to interval (0,1) ?
         self.noiselevel = 1.3
+        
         self.r_depth = 0.5  # depth for
 #        self.upper, self.lower = (0.35, 0.5), (0.15, 0.25)  # limits for vspan
         self.upper, self.lower = (0.35, 0.5), (0.1, 0.25)  # limits for vspan
@@ -963,7 +965,7 @@ class Pictures(object):
         for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
         
 
-        #for na, nightlist in zip(['s:all'], [[0,1,2,3,4,5,6,7,8,9]]):
+        #for na, nightlist in zip(['s:6'], [[5]]):
             VV =[]
             TT =[]
             plt.figure(figsize=(6,10))
@@ -980,10 +982,13 @@ class Pictures(object):
                 VV += list(temp)
                 
             val = np.row_stack(VV)
-            val -= np.median(val,axis=0)
+            #val -= np.median(val,axis=0)
 
             nphase=128
-            tmp, bins, mask = self.analyzer.spectrum_matrix_full(TT, val, period=self.rotperiod, nphase=nphase, method=np.median)
+            tmp, bins, mask = self.analyzer.spectrum_matrix_full(TT, val, period=self.rotperiod, nphase=nphase, method=np.mean)
+            self.tmp=tmp
+            self.bins=bins
+            self.mask=mask
             #print("minmax:",np.min(tmp),np.max(tmp))
             minmax.append([np.min(tmp),np.max(tmp)])
             
@@ -999,7 +1004,9 @@ class Pictures(object):
             v0=-13.01
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
-            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0003,vmax=0.0003)
+            #cmap=plt.cm.bwr
+            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='None', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0003,vmax=0.0003)
+            #vmin=-0.0003,vmax=0.0003
             #plt.plot(tmp)
             plt.xticks([])
             rv = np.array([-20, -10, 0, 10, 20 ])

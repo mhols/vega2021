@@ -28,11 +28,12 @@ def load_data(DATAFILE, nval, rangei, vrange, noiselevel):
     colvul = colval + nval
 
     data = np.loadtxt(DATAFILE)
+    data = data[data[:,0].argsort()]
     # data = tmp[:100]
     time = data[:, coltime:colspec].ravel()
     print(data.shape, time.shape, time[0].shape)
 
-#    time = time-int(time[0])
+    #time = time-int(time[0])
     time = time-2458331.
 
     velocity = data[0, colspec:colval]  # velocities of bins
@@ -629,12 +630,17 @@ class SpectralAnalyser:
         """
     binns the spec into nphase bins
     """
+        #print("time",time)
         bins = np.linspace(0, period, nphase + 1)
+        #print("bins",bins)
+        #print("nphase",nphase)
         res = np.zeros((nphase, self.nvelocity))
         ii = np.digitize(np.mod(time, period), bins)
+        #print("ii:",ii)
         mask = np.zeros( (nphase, self.nvelocity), dtype = 'bool')
         mask[:,:] = False
-        for i, s in zip(range(1,nphase+1), spec):
+        for i, s in zip(ii, spec):
+            #print("ii,i",ii,i)
             I = np.where( ii == i)[0]
             if len(I)>0:
                 mask[i-1,:] = True
