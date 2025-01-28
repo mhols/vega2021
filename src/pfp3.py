@@ -118,6 +118,7 @@ class Pictures(object):
 #        self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
 
         self.rotperiod =  0.678 # 0.66149 #0.678# #0.678 #rotation period
+        
         self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
         self.d0, self.d1 = (0.1, 0.9)  # limits for bisector
         self.cpd = [24.0 / 12.5 ]  # cycles per day, where to plot a vertical lline (FRot
@@ -128,6 +129,8 @@ class Pictures(object):
         self.cpd3l = 2. / 0.678 + 1. / (0.678 + 0.036)
         self.cpd3h = 2. / 0.678 + 1. / (0.678 - 0.029)
         self.cpd4l = 3. / 0.678 + 1. / (0.678 + 0.036)
+        self.cpd4h = 3. / 0.678 + 1. / (0.678 - 0.029)
+        self.cpd5l = 4. / 0.678 + 1. / (0.678 + 0.036)
         self.cpd5h = 4. / 0.678 + 1. / (0.678 - 0.029)
         self.cpd6l = 5. / 0.678 + 1. / (0.678 + 0.036)
         self.cpd6h = 5. / 0.678 + 1. / (0.678 - 0.029)
