@@ -73,7 +73,8 @@ VEGA_2018_SOPHIE = Experiment(
     normalize = True,
     nights = zip(
         ['s1','s2','s3','s4','s5','s6', 's12','s34','s56'],
-        [[0], [1], [2], [3], [4], [5], [0,1], [2,3],[4,5]])
+        [[0], [1], [2], [3], [4], [5], [0,1], [2,3],[4,5]]),
+    lamfilter = -0.465
 )
 
 VEGA_2018_LE= Experiment(
@@ -85,7 +86,8 @@ VEGA_2018_LE= Experiment(
     normalize = True,
     nights = zip(
         ['s1','s2','s3','s4','s5','s6', 's7', 's1234567','s123','s456'], 
-        [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5]])
+        [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5]]),
+    lamfilter = -0.425
 )
 
 VEGA_2018_NEXTRA= Experiment(
@@ -96,14 +98,42 @@ VEGA_2018_NEXTRA= Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','56'],
-        [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3],[4,5]])
+        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56'],
+        [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3],[4,5]]),
+    lamfilter = 1000
+    )
+
+VEGA_2023_NEXTRA= Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910'],
+        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9]]),
+    lamfilter = 1000
+    )
+    
+VEGA_2024_NEXTRA= Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2024.dat'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5', 's12','s34'],
+        [[0], [1], [2], [3], [4], [0,1], [2,3]]),
+    lamfilter = 1000
     )
 
 #experiment = VEGA_2018_SOPHIE.kwargs
 #experiment = VEGA_2018_LE.kwargs
-experiment = VEGA_2018_NEXTRA.kwargs
-
+#experiment = VEGA_2018_NEXTRA.kwargs
+#experiment = VEGA_2023_NEXTRA.kwargs
+experiment = VEGA_2024_NEXTRA.kwargs
 
 class Pictures(object):
 
@@ -1087,9 +1117,7 @@ class Pictures(object):
         plt.title('translat')
         plt.plot( time, translat, '.')
 
-        #lamfilter = lams < -0.465
-        # lamfilter = lams > 0.425
-        lamfilter = lams > -1000
+        lamfilter = lams < experiment['lamfilter']
 
         # diff = sa.intensity - np.median(sa.intensity, axis=0)
 
@@ -1461,7 +1489,7 @@ if __name__ == '__main__':
     #myPics.moving_peaks_signoise()
     # myPics.moving_peaks_simple()
     
-##    myPics.moving_peaks_simple_per_night()
+    myPics.moving_peaks_simple_per_night()
     #myPics.moving_peaks_simple_time()
     # myPics.moving_peaks_time()
     ###    myPics.estrotentropy()
