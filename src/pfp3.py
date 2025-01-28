@@ -200,7 +200,7 @@ class Pictures(object):
 
     @property
     def vrad_mean(self):
-        if None == self._vrad_mean:
+        if self._vrad_mean is None:
             self._vrad_mean = self.analyzer.rv_mean(relative_depth=self.r_depth)
         return self._vrad_mean
 
