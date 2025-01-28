@@ -558,8 +558,9 @@ class Pictures(object):
                 plt.vlines([n*self.cpdnew -2 ],0,0.02)
                 plt.vlines([n*self.cpdnew +2],0,0.02)
 
-        plt.xlim(box[0],box[1])
-        plt.ylim(box[2],box[3])
+
+        maxa = max(amp)
+        plt.axis([0,15.,0,maxa])
         plt.plot(self.cycles_per_day, amp, '-k',linewidth=2, color = 'r')
         plt.minorticks_on()
 
