@@ -38,10 +38,12 @@ def berv(jd,object,obs_long, obs_lat, obs_alt):
     # utils.py in barycorrpy uses:
 
     customSimbad = Simbad()
-    customSimbad.add_votable_fields('rv_value')
+    #customSimbad.add_votable_fields('rv_value')
+    #obj = customSimbad.query_object(object)
+    #rv = obj['RV_VALUE'][0] * 1000
+    customSimbad.add_votable_fields('rvz_radvel')
     obj = customSimbad.query_object(object)
-    rv = obj['RV_VALUE'][0] * 1000
-    
+    rv = obj['rvz_radvel'] * 1000
     
     return bjd,vcorr,rv
 
@@ -77,6 +79,7 @@ t.jd
 exptimed = exptime/(60*60*24)    #exposure time in days
 jdmid = jd + exptimed/2.
 
+print(jdmid,object,obs_long, obs_lat, obs_alt)
 bjd, vcorr, rv = berv(jdmid,object,obs_long, obs_lat, obs_alt)
         
 print("barycentric julian date (bjd):  ",bjd, "barycentric velocity correction (m/s):  ", vcorr)

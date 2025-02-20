@@ -28,12 +28,13 @@ DATAFILE6 = os.path.join(DATADIR, 'filematrix_453.dat')
 DATAFILE7 = os.path.join(DATADIR, 'Vega_cfht.dat')
 DATAFILE8 = os.path.join(DATADIR, 'Vega_9500.40.03-10.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE9 = os.path.join(DATADIR, 'Vega_tbl10.dat')  # lines between 0.3 and 1.0 depth, medium
-DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # Sophie lines between 0.3 and 1.0 depth, medium
+#DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # Sophie lines between 0.3 and 1.0 depth, medium
+DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat') #produced with LSDpy, filematrix_SOPHIE.py
 
 DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # Narval lines between 0.3 and 1.0 depth, medium
-#DATAFILE12 = os.path.join(DATADIR, 'Vega_2024.dat')
+DATAFILE12 = os.path.join(DATADIR, 'Vega_2024.dat')
 #DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean.old.clean')
-DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean')
+#DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean')
 #DATAFILE13 = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_0.7.clean')
 #DATAFILE11 = os.path.join(DATADIR, 'test.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE13 = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean')
@@ -80,7 +81,7 @@ vranges[DATAFILE12] = (-60.0, 40.0)
 vranges[DATAFILE13] = (-60.0, 40.0)
 vranges[DATAFILE14] = (-60.0, 40.0)
 
-DATAFILE = DATAFILE14 # DATAFILE8
+DATAFILE = DATAFILE10 # DATAFILE8
 
 
 class Pictures(object):
@@ -954,15 +955,18 @@ class Pictures(object):
 
         #for na, nightlist in zip (['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s123456','s123','s456','s789','all'], [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9],[0,1,2,3,4,5], [0,1,2],[3,4,5],[6,7,8], [0,1,2,3,4,5,6,7,8,9]]):
         #for na, nightlist in zip(['s1','s2','s3','s4'], [[0], [1], [2], [3]]):
+        #2023:
+        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910'],[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9]]):
+        
         
         #2024:
-        #for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12345','s123','s45'], [[0], [1], [2], [3], [4], [0,1,2,3,4], [0,1,2],[3,4]]):
+        #for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12','s34'], [[0], [1], [2], [3], [4], [0,1], [2,3]]):
         
         #2018 TBL:
-        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7', 's1234567','s123','s4567'], [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5,6]]):
+        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7', 's1234567','s123','s4567'], [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5,6]]):
         
         #2018 OHP:
-        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
+        for na, nightlist in zip(['s1','s2','s3','s4','s5','s6', 's123456','s123','s456'], [[0], [1], [2], [3], [4], [5], [0,1,2,3,4,5], [0,1,2],[3,4,5]]):
         
 
         #for na, nightlist in zip(['s:6'], [[5]]):
@@ -1005,7 +1009,7 @@ class Pictures(object):
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
             #cmap=plt.cm.bwr
-            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='None', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0003,vmax=0.0003)
+            plt.imshow(-tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='None', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0003,vmax=0.0003)
             #vmin=-0.0003,vmax=0.0003
             #plt.plot(tmp)
             plt.xticks([])

@@ -29,7 +29,8 @@ loc = EarthLocation.from_geodetic(obs_long, obs_lat, obs_alt)
 
 
 
-s = '/Users/boehm/Desktop/vega2021/thar/06oct21_Gam_Equ/NEO_20211006_214255_st0.fits'
+#s = '/Users/boehm/Desktop/vega2021/thar/06oct21_Gam_Equ/NEO_20211006_214255_st0.fits'
+s = '/Users/boehm/Desktop/vega2021/thar/06apr23_ADLeo/NEO_20230406_221242_st0.fits'
 
 
 hdulist=pyfits.open(s)
