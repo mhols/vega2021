@@ -21,8 +21,8 @@ DATADIR = os.environ.get('DATADIR', DATADIR)
 DATAFILE7 = os.path.join(DATADIR, 'Vega_cfht.dat')
 DATAFILE8 = os.path.join(DATADIR, 'Vega_9500.40.03-10.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE9 = os.path.join(DATADIR, 'Vega_tbl10.dat')  # lines between 0.3 and 1.0 depth, medium
-DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # Sophie lines between 0.3 and 1.0 depth, medium
-
+#DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # Sophie lines between 0.3 and 1.0 depth, medium
+DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat')
 DATAFILE11 = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat')  # Narval lines between 0.3 and 1.0 depth, medium
 DATAFILE12 = os.path.join(DATADIR, 'Vega_2024.dat')
 #DATAFILE12 = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean.old.clean')
@@ -65,9 +65,11 @@ class Experiment:
 
 
 VEGA_2018_SOPHIE = Experiment(
-    DATAFILE = os.path.join(DATADIR, 'Vega_2018_0310.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
+    #DATAFILE = os.path.join(DATADIR, 'Vega_2018_0310.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
+    #DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat.1.7'), # Sophie lines between 0.3 and 1.0 depth, medium
+    DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
     vrange = [-60.0, 40.0],
-    vrad = -13.4,  
+    vrad = -13.4,
     prot = 0.678, #days
     noiselevel = 1.3,
     normalize = True,
@@ -76,6 +78,7 @@ VEGA_2018_SOPHIE = Experiment(
         [[0], [1], [2], [3], [4], [5], [0,1], [2,3],[4,5]]),
     lamfilter = -0.465
 )
+
 
 VEGA_2018_LE= Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat'),
@@ -1505,7 +1508,7 @@ if __name__ == '__main__':
 #    myPics.ls_spec_vrad_skew()
     myPics.ls_spec_vrad_mean()
 #    myPics.ls_spec_all3()
-    myPics.ls_spec_vrad_corr()
+#    myPics.ls_spec_vrad_corr()
     myPics.ls_spec_vrad_bis()
     myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
@@ -1514,8 +1517,9 @@ if __name__ == '__main__':
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-    #myPics.moving_peaks_signoise()
-    #myPics.moving_peaks_simple()
+#myPics.moving_peaks_signoise()
+#    myPics.moving_peaks_simple()
+
     
     myPics.moving_peaks_simple_per_night()
     #myPics.moving_peaks_simple_time()
