@@ -155,8 +155,8 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
     lamfilter = 1000 #-0.174
     )
 
-#experiment = VEGA_2018_SOPHIE.kwargs
-experiment = VEGA_2018_SOPHIE_FOLSOM.kwargs
+experiment = VEGA_2018_SOPHIE.kwargs
+#experiment = VEGA_2018_SOPHIE_FOLSOM.kwargs
 #experiment = VEGA_2018_FOLSOM.kwargs
 #experiment = VEGA_2018_LE.kwargs
 #experiment = VEGA_2018_NEXTRA.kwargs
