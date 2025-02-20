@@ -129,11 +129,39 @@ VEGA_2024_NEXTRA= Experiment(
     lamfilter = 1000
     )
 
+VEGA_2018_SOPHIE_FOLSOM = Experiment(
+DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5', 's12','s34', 's123456'],
+        [[0], [1], [2], [3], [4], [0,1], [2,3], [0,1,2,3,4,5]]),
+    lamfilter = -0.174
+    )
+
+VEGA_2018_FOLSOM = Experiment(
+DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5', 's12','s34', 's123456'],
+        [[0], [1], [2], [3], [4], [0,1], [2,3], [0,1,2,3,4,5]]),
+    lamfilter = 1000 #-0.174
+    )
+
 #experiment = VEGA_2018_SOPHIE.kwargs
+experiment = VEGA_2018_SOPHIE_FOLSOM.kwargs
+#experiment = VEGA_2018_FOLSOM.kwargs
 #experiment = VEGA_2018_LE.kwargs
 #experiment = VEGA_2018_NEXTRA.kwargs
 #experiment = VEGA_2023_NEXTRA.kwargs
-experiment = VEGA_2024_NEXTRA.kwargs
+#experiment = VEGA_2024_NEXTRA.kwargs
 
 class Pictures(object):
 
@@ -1181,7 +1209,7 @@ class Pictures(object):
 
 
     def moving_peaks_simple(self):
-        nbins = 128 #256
+        nbins = 256
         sa = self.analyzer
         time = sa.time
 
@@ -1487,7 +1515,7 @@ if __name__ == '__main__':
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
     #myPics.moving_peaks_signoise()
-    # myPics.moving_peaks_simple()
+    #myPics.moving_peaks_simple()
     
     myPics.moving_peaks_simple_per_night()
     #myPics.moving_peaks_simple_time()
