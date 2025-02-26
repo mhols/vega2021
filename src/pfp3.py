@@ -18,7 +18,7 @@ PROGDIR = os.path.dirname(__file__)
 DATADIR = os.path.join(PROGDIR, '../data')
 DATADIR = os.environ.get('DATADIR', DATADIR)
 
-DATAFILE7 = os.path.join(DATADIR, 'Vega_cfht.dat')
+DATAFILE7 = os.path.join(DATADIR, 'duofilematrix.dat')
 DATAFILE8 = os.path.join(DATADIR, 'Vega_9500.40.03-10.dat')  # lines between 0.3 and 1.0 depth, medium
 DATAFILE9 = os.path.join(DATADIR, 'Vega_tbl10.dat')  # lines between 0.3 and 1.0 depth, medium
 #DATAFILE10 = os.path.join(DATADIR, 'Vega_2018_0310.dat')  # Sophie lines between 0.3 and 1.0 depth, medium
@@ -64,10 +64,9 @@ class Experiment:
 
 
 
-VEGA_2018_SOPHIE = Experiment(
-    #DATAFILE = os.path.join(DATADIR, 'Vega_2018_0310.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
-    #DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat.1.7'), # Sophie lines between 0.3 and 1.0 depth, medium
-    DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
+# OLD DATA REDUCTION Sophie 2018 Sophie_pipeline LSD (JFD) mask_0310
+VEGA_2018_SOPHIE_LSDJFD = Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2018_0310.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
     vrange = [-60.0, 40.0],
     vrad = -13.4,
     prot = 0.678, #days
@@ -80,59 +79,8 @@ VEGA_2018_SOPHIE = Experiment(
 )
 
 
-VEGA_2018_LE= Experiment(
-    DATAFILE = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat'),
-    vrange = [-60.0, 40.0],
-    vrad = -13.4,  
-    prot = 0.678, #days
-    noiselevel = 1.3,
-    normalize = True,
-    nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's1234567','s123','s456'], 
-        [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5]]),
-    lamfilter = -0.425
-)
-
-VEGA_2018_NEXTRA= Experiment(
-    DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_1.7.clean'),
-    vrange = [-60.0, 40.0],
-    vrad = -13.4,  
-    prot = 0.678, #days
-    noiselevel = 1.3,
-    normalize = True,
-    nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56'],
-        [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3],[4,5]]),
-    lamfilter = 1000
-    )
-
-VEGA_2023_NEXTRA= Experiment(
-    DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean'),
-    vrange = [-60.0, 40.0],
-    vrad = -13.4,
-    prot = 0.678, #days
-    noiselevel = 1.3,
-    normalize = True,
-    nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910'],
-        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9]]),
-    lamfilter = 1000
-    )
-    
-VEGA_2024_NEXTRA= Experiment(
-    DATAFILE = os.path.join(DATADIR, 'Vega_2024.dat'),
-    vrange = [-60.0, 40.0],
-    vrad = -13.4,
-    prot = 0.678, #days
-    noiselevel = 1.3,
-    normalize = True,
-    nights = zip(
-        ['s1','s2','s3','s4','s5', 's12','s34'],
-        [[0], [1], [2], [3], [4], [0,1], [2,3]]),
-    lamfilter = 1000
-    )
-
-VEGA_2018_SOPHIE_FOLSOM = Experiment(
+# Sophie 2018 Sophie_pipeline LSDpy 2.0km/s mask_folsom
+VEGA_2018_SOPHIE_LSDPY = Experiment(
 DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
@@ -145,7 +93,23 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'),
     lamfilter = -0.174
     )
 
-VEGA_2018_FOLSOM = Experiment(
+
+# OLD DATA REDUCTION Narval 2018 LE LSD (JFD) mask_0310
+VEGA_2018_NARVAL_LE= Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,  
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5','s6', 's7', 's1234567','s123','s456'], 
+        [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5]]),
+    lamfilter = -0.425
+)
+
+# Narval 2018 NEXTRA LSDpy 2.Okm/s mask_folsom
+VEGA_2018_NARVAL_NEXTRA = Experiment(
 DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
@@ -158,13 +122,97 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
     lamfilter = 1000 #-0.174
     )
 
-experiment = VEGA_2018_SOPHIE.kwargs
-#experiment = VEGA_2018_SOPHIE_FOLSOM.kwargs
-#experiment = VEGA_2018_FOLSOM.kwargs
-#experiment = VEGA_2018_LE.kwargs
-#experiment = VEGA_2018_NEXTRA.kwargs
-#experiment = VEGA_2023_NEXTRA.kwargs
-#experiment = VEGA_2024_NEXTRA.kwargs
+
+# Narval 2018 NEXTRA LSDpy 1.7km/s mask_folsom, Quantile 1
+VEGA_2018_NARVAL_NEXTRA_KM17 = Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_1.7.clean'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,  
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56'],
+        [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3],[4,5]]),
+    lamfilter = 1000
+    )
+
+
+
+# Neo-Narval 2023 NEXTRA LSDpy 2.0km/s mask_folsom
+VEGA_2023_NEO-NARVAL_NEXTRA= Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910'],
+        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9]]),
+    lamfilter = 1000
+    )
+
+# Neo-Narval 2023 NEXTRA LSDpy 2.0km/s mask_folsom, quantile 0.9 selection in filematrix
+VEGA_2023_NEO-NARVAL_NEXTRA_Q09= Experiment(
+    DATAFILE = os.path.join(DATADIR,'Vega_2023_maskvega_folsom.clean_0.9.dat'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910'],
+        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9]]),
+    lamfilter = 1000
+    )
+    
+# Neo-Narval 2024 NEXTRA LSDpy 2.0km/s mask_folsom
+VEGA_2024_NEO-NARVAL_NEXTRA= Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2024.dat'),
+    #DATAFILE = os.path.join(DATADIR, 'Vega_2024_sel.dat'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5', 's12','s34'],
+        [[0], [1], [2], [3], [4], [0,1], [2,3]]),
+    lamfilter = 1000
+    )
+    
+# Neo-Narval 2018 SOPHIE & NEXTRA LSDpy 1.7 km/s mask_folsom
+VEGA_2018_SOPHIE_NARVAL_DUOFILE= Experiment(
+    DATAFILE = os.path.join(DATADIR, 'duofilematrix.dat'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56'],
+        [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3], [4,5]]),
+    lamfilter = 1000
+    )
+
+
+
+#experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
+#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+
+#experiment = VEGA_2018_NARVAL_LE.kwargs
+#experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
+#experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
+
+#experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
+
+#experiment = VEGA_2023_NEO-NARVAL_NEXTRA.kwargs
+#experiment = VEGA_2023_NEO-NARVAL_NEXTRA_Q09.kwargs
+
+#experiment = VEGA_2024_NEO-NARVAL_NEXTRA.kwargs
+
+
 
 class Pictures(object):
 
@@ -513,8 +561,8 @@ class Pictures(object):
 #        plt.plot(self.vrad_mean, self.vspan, 'o')
         plt.xlabel('radial velocity (first moment) (km/s)')
         plt.ylabel('vspan (km/s)')
-        plt.xlim(-13.1, -13.01)
-        plt.ylim(0.2, 0.6)
+        #plt.xlim(-13.1, -13.01)
+        #plt.ylim(0.2, 0.6)
         plt.savefig(name + self.format)
 
 
@@ -545,8 +593,8 @@ class Pictures(object):
         plt.xlabel('vrad (m/s)')
         plt.ylabel('vspan (m/s)')
         plt.title('vspan as a function of radial velocity')
-        plt.xlim(-0.17, 0.17)
-        plt.ylim(0.15, 0.55)
+        #plt.xlim(-0.17, 0.17)
+        #plt.ylim(0.15, 0.55)
 
         plt.savefig(name + self.format)
 
@@ -1363,7 +1411,8 @@ class Pictures(object):
             v0=-13.01
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
-            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0003,vmax=0.0003)
+            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
+            #vmin=-0.0003,vmax=0.0003
             #plt.plot(tmp)
             plt.xticks([])
             rv = np.array([-20, -10, 0, 10, 20 ])
@@ -1509,7 +1558,7 @@ if __name__ == '__main__':
     myPics.ls_spec_vrad_mean()
 #    myPics.ls_spec_all3()
 #    myPics.ls_spec_vrad_corr()
-    myPics.ls_spec_vrad_bis()
+#    myPics.ls_spec_vrad_bis()
     myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
 ###    myPics.bisector_time()
@@ -1517,11 +1566,11 @@ if __name__ == '__main__':
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-#myPics.moving_peaks_signoise()
+    myPics.moving_peaks_signoise()
 #    myPics.moving_peaks_simple()
 
     
-    myPics.moving_peaks_simple_per_night()
+    #myPics.moving_peaks_simple_per_night()
     #myPics.moving_peaks_simple_time()
     # myPics.moving_peaks_time()
     ###    myPics.estrotentropy()
