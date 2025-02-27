@@ -10,6 +10,9 @@ import numpy as np
 import json
 import os
 
+vel_beg = 100 #-60. #km/s
+vel_end = 150# 40  #km/s
+
 #for full profile 60,124
 #for short profile 72,112
 def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
@@ -24,7 +27,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     data = data[np.argsort(data[:, 0])]
 
     nval = (data.shape[1]-1)//3
-
+    print("files before any filtering: ", data.shape[0])
     coltime = 0  # colum of time values
     colspec = 1
     colval = colspec + nval
@@ -65,7 +68,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     intens = intens[I]
     signoise = signoise[I]
 
-    meani = meanmethod(intens)
+    meani = meanmethod(intens,axis=0)
 
     diff = abs(intens - meani)
     q = np.quantile(diff.ravel(), 0.999)
