@@ -208,8 +208,8 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
 #experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
-experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
-#experiment = VEGA_2024_NEONARVAL_NEXTRA.kwargs
+#experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
+experiment = VEGA_2024_NEONARVAL_NEXTRA.kwargs
 
 
 

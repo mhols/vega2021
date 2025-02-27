@@ -33,18 +33,34 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     colval = colspec + nval
     colvul = colval + nval
 
-    time = data[:, coltime:colspec].ravel()
+    time = data[:, coltime].ravel()
 
     time = time-2458331.
 
     velocity = data[0, colspec:colval]  # velocities of bins (redundant data format...)
     intens = data[:, colval:colvul]  # intensities
-    
-    for i in range(intens.shape[0]):
-        intens[i] = np.convolve(intens[i], np.array([1,2,3,4,3,2,1])/16, 'full')[3:-3]
     signoise = data[:, colvul:colvul+nval]
-    meani    = meanmethod(intens, axis=0)  # mean intensity
-    diff     = intens - meani  # fluctuation around mean
+
+    ## indices of continuum
+    IC = (velocity>=vel_beg) & (velocity<=vel_end)
+
+    diff = intens
+    fluctuation = np.std( diff[:, IC], axis=1)
+
+    print (fluctuation.shape, time.shape)
+    q = np.quantile(fluctuation, 0.9)
+    I = np.where( fluctuation <= q)
+
+    print(I)
+    time = time[I]
+    intens = intens[I]
+    signoise = signoise[I]
+
+    
+    #for i in range(intens.shape[0]):
+    #    intens[i] = np.convolve(intens[i], np.array([1,2,3,4,3,2,1])/16, 'full')[3:-3]
+    #meani    = meanmethod(intens, axis=0)  # mean intensity
+    #diff     = intens - meani  # fluctuation around mean
 
     # selecting velocity bins
     if vrange is None:          # wenn vrange nicht gesetzt ist
@@ -54,36 +70,36 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     rangei = (I1[0], I2[-1])    # -1 ist letztes element des vektors
     rangel   = np.arange(rangei[0], rangei[1])  # range of spectral line
 
-    stdi = diff.ravel().std()  # variance of f TODO better wirh std ?       #macht vektor flach, dann varianz
+    #stdi = diff.ravel().std()  # variance of f TODO better wirh std ?       #macht vektor flach, dann varianz
     #ueber langen vektor (ntimes*nval), dh varianz vom gesamten Bild
     t0 = time[0]  # first time
 
     # outlier removal
-    I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
+    #I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
 
-    print('after noisefiltering', I.shape[0])
+    #print('after noisefiltering', I.shape[0])
 
     # any filter based removal
-    time = time[I]
-    intens = intens[I]
-    signoise = signoise[I]
+    #time = time[I]
+    #intens = intens[I]
+    #signoise = signoise[I]
 
-    meani = meanmethod(intens,axis=0)
+    #meani = meanmethod(intens,axis=0)
 
-    diff = abs(intens - meani)
-    q = np.quantile(diff.ravel(), 0.999)
-    I = np.all( diff < q, axis=1)
+    #diff = abs(intens - meani)
+    #q = np.quantile(diff.ravel(), 0.999)
+    #I = np.all( diff < q, axis=1)
 
-    print('after quantile', sum(I))
+    #print('after quantile', sum(I))
 
 
-    time = time[I]
+    # time = time[I]
     velocity = velocity[rangel]
 
-    intens = intens[I, :]
+    # intens = intens[I, :]
     intens = intens[:, rangel]
 
-    signoise = signoise[I,:]
+    # signoise = signoise[I,:]
     signoise = signoise[:,rangel]
 
     # recomputing mean and diff
