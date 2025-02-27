@@ -63,7 +63,6 @@ class Experiment:
         self.kwargs = kwargs
 
 
-
 # OLD DATA REDUCTION Sophie 2018 Sophie_pipeline LSD (JFD) mask_0310
 VEGA_2018_SOPHIE_LSDJFD = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2018_0310.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
@@ -95,7 +94,7 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'),
 
 
 # OLD DATA REDUCTION Narval 2018 LE LSD (JFD) mask_0310
-VEGA_2018_NARVAL_LE= Experiment(
+VEGA_2018_NARVAL_LE = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,  
@@ -106,7 +105,7 @@ VEGA_2018_NARVAL_LE= Experiment(
         ['s1','s2','s3','s4','s5','s6', 's7', 's1234567','s123','s456'], 
         [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5]]),
     lamfilter = -0.425
-)
+    )
 
 # Narval 2018 NEXTRA LSDpy 2.Okm/s mask_folsom
 VEGA_2018_NARVAL_NEXTRA = Experiment(
@@ -140,7 +139,7 @@ VEGA_2018_NARVAL_NEXTRA_KM17 = Experiment(
 
 
 # Neo-Narval 2023 NEXTRA LSDpy 2.0km/s mask_folsom
-VEGA_2023_NEO-NARVAL_NEXTRA= Experiment(
+VEGA_2023_NEONARVAL_NEXTRA = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
@@ -153,8 +152,9 @@ VEGA_2023_NEO-NARVAL_NEXTRA= Experiment(
     lamfilter = 1000
     )
 
+
 # Neo-Narval 2023 NEXTRA LSDpy 2.0km/s mask_folsom, quantile 0.9 selection in filematrix
-VEGA_2023_NEO-NARVAL_NEXTRA_Q09= Experiment(
+VEGA_2023_NEONARVAL_NEXTRA_Q09 = Experiment(
     DATAFILE = os.path.join(DATADIR,'Vega_2023_maskvega_folsom.clean_0.9.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
@@ -166,9 +166,9 @@ VEGA_2023_NEO-NARVAL_NEXTRA_Q09= Experiment(
         [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9]]),
     lamfilter = 1000
     )
-    
+
 # Neo-Narval 2024 NEXTRA LSDpy 2.0km/s mask_folsom
-VEGA_2024_NEO-NARVAL_NEXTRA= Experiment(
+VEGA_2024_NEONARVAL_NEXTRA = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2024.dat'),
     #DATAFILE = os.path.join(DATADIR, 'Vega_2024_sel.dat'),
     vrange = [-60.0, 40.0],
@@ -183,7 +183,7 @@ VEGA_2024_NEO-NARVAL_NEXTRA= Experiment(
     )
     
 # Neo-Narval 2018 SOPHIE & NEXTRA LSDpy 1.7 km/s mask_folsom
-VEGA_2018_SOPHIE_NARVAL_DUOFILE= Experiment(
+VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
     DATAFILE = os.path.join(DATADIR, 'duofilematrix.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
@@ -207,10 +207,9 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE= Experiment(
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-#experiment = VEGA_2023_NEO-NARVAL_NEXTRA.kwargs
-#experiment = VEGA_2023_NEO-NARVAL_NEXTRA_Q09.kwargs
-
-#experiment = VEGA_2024_NEO-NARVAL_NEXTRA.kwargs
+#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
+#experiment = VEGA_2024_NEONARVAL_NEXTRA.kwargs
 
 
 
