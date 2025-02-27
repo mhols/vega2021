@@ -12,7 +12,7 @@ import os
 
 #for full profile 60,124
 #for short profile 72,112
-def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.mean):
+def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     """
     loads a filematrix type data file
 
@@ -58,7 +58,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.mean):
     # outlier removal
     I = np.where(diff.std(axis=1) < noiselevel * stdi)[0]
 
-    print(I.shape[0])
+    print('after noisefiltering', I.shape[0])
 
     # any filter based removal
     time = time[I]
@@ -71,7 +71,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.mean):
     q = np.quantile(diff.ravel(), 0.999)
     I = np.all( diff < q, axis=1)
 
-    print(sum(I))
+    print('after quantile', sum(I))
 
 
     time = time[I]
