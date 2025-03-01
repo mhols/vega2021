@@ -209,7 +209,8 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 
 #experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
-experiment = VEGA_2024_NEONARVAL_NEXTRA.kwargs
+
+#experiment = VEGA_2024_NEONARVAL_NEXTRA.kwargs
 
 
 
@@ -1410,7 +1411,7 @@ class Pictures(object):
             v0=-13.01
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
-            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
+            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0003,vmax=0.0003)
             #vmin=-0.0003,vmax=0.0003
             #plt.plot(tmp)
             plt.xticks([])

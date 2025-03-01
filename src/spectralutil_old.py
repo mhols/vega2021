@@ -48,7 +48,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     fluctuation = np.std( diff[:, IC], axis=1)
 
     print (fluctuation.shape, time.shape)
-    q = np.quantile(fluctuation, 0.9)
+    q = np.quantile(fluctuation, 0.6)
     I = np.where( fluctuation <= q)
 
     print(I)
