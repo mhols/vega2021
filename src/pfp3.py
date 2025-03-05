@@ -207,7 +207,7 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
 
 #experiment = VEGA_2024_NEONARVAL_NEXTRA.kwargs
@@ -1147,7 +1147,7 @@ class Pictures(object):
                 vmin=-0.8, vmax=0.8)
 
     def moving_peaks_simple_per_night(self):
-        nbins = 128 #256
+        nbins = 256
         sa = self.analyzer
         time = sa.time
 
@@ -1172,8 +1172,8 @@ class Pictures(object):
             pp = np.linalg.lstsq(F, sa.intensity[i], rcond=None)[0]
             alpha = np.sum((1-sa.intensity[i]) * meanp)
             #diff[i,:] = sa.intensity[i] - (1-alpha*meanp) 
-            diff[i,:] = sa.intensity[i] - np.dot(F, pp)
-            #diff[i,:] = sa.intensity[i] - meanprofile
+            #diff[i,:] = sa.intensity[i] - np.dot(F, pp)
+            diff[i,:] = sa.intensity[i] - meanprofile
             lams[i] = pp[1]
             offsets[i] = pp[0]
             translat[i] = pp[2]
@@ -1198,7 +1198,7 @@ class Pictures(object):
 
         lamfilter = lams < experiment['lamfilter']
 
-        # diff = sa.intensity - np.median(sa.intensity, axis=0)
+        diff = sa.intensity - np.median(sa.intensity, axis=0)
 
         phasebins = np.linspace(0, self.rotperiod, nbins+1)
         #I = np.digitize(np.mod(sa.time, self.rotperiod), phasebins)
@@ -1217,13 +1217,13 @@ class Pictures(object):
                 I = self.analyzer.list_index[night]
 
                 dd = diff[I]
-                # dd -= np.median(dd, axis=0)
+                dd -= np.median(dd, axis=0)
 
                 for i, p1p2 in enumerate(zip(phasebins[0:-1], phasebins[1:])):
                     p1, p2 = p1p2
-                    II = (p1 <= tt[I]) & (tt[I] < p2) & lamfilter[I]
+                    II = (p1 <= tt[I]) & (tt[I] < p2) #& lamfilter[I]
                     if sum(II) >=1:
-                        res[i,:] = np.mean(dd[II], axis=0)
+                        res[i,:] = np.median(dd[II], axis=0)
 
 
             minmax = np.max(np.abs(res))
@@ -1566,11 +1566,11 @@ if __name__ == '__main__':
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-    myPics.moving_peaks_signoise()
-#    myPics.moving_peaks_simple()
+    #myPics.moving_peaks_signoise()
+    # myPics.moving_peaks_simple()
 
     
-    #myPics.moving_peaks_simple_per_night()
+    myPics.moving_peaks_simple_per_night()
     #myPics.moving_peaks_simple_time()
     # myPics.moving_peaks_time()
     ###    myPics.estrotentropy()

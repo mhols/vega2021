@@ -47,9 +47,16 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     diff = intens
     fluctuation = np.std( diff[:, IC], axis=1)
 
+    #### tmp plot
+    fl = np.sort(fluctuation)
+    plt.figure('fluctuations')
+    plt.plot(np.cumsum(fl))
+
+
+
     print (fluctuation.shape, time.shape)
-    q = np.quantile(fluctuation, 0.6)
-    I = np.where( fluctuation <= q)
+    q = np.quantile(fluctuation, 0.8)
+    I, = np.where( fluctuation <= q)
 
     print(I)
     time = time[I]
