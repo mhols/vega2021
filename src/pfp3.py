@@ -147,8 +147,22 @@ VEGA_2023_NEONARVAL_NEXTRA = Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910'],
-        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9]]),
+        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910','s46710'],
+        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9],[3,5,6,9]]),
+    lamfilter = 1000
+    )
+
+# Neo-Narval 2023 NEXTRA LSDpy 2.0km/s mask_folsom
+VEGA_2023_NEONARVAL_NEXTRA_SELECT = Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean_31_6_7_12.clean'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.678, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4'],
+        [[0], [1], [2], [3]]),
     lamfilter = 1000
     )
 
@@ -162,8 +176,8 @@ VEGA_2023_NEONARVAL_NEXTRA_Q09 = Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910'],
-        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9]]),
+        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910','s46710'],
+        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9],[3,5,6,9]]),
     lamfilter = 1000
     )
 
@@ -207,8 +221,9 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
+#experiment = VEGA_2023_NEONARVAL_NEXTRA_SELECT.kwargs
 
 #experiment = VEGA_2024_NEONARVAL_NEXTRA.kwargs
 
@@ -1239,7 +1254,7 @@ class Pictures(object):
                 #cmap=plt.cm.bwr,  #plt.cm.gray_r, 
                 cmap=plt.cm.gray_r, 
                 aspect='auto',
-                interpolation='None', 
+                interpolation='bicubic',
                 origin='lower',
                 extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
                 vmin=-0.8, vmax=0.8)
@@ -1411,7 +1426,7 @@ class Pictures(object):
             v0=-13.01
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
-            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0003,vmax=0.0003)
+            plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='bicubic', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.0002,vmax=0.0002)
             #vmin=-0.0003,vmax=0.0003
             #plt.plot(tmp)
             plt.xticks([])
