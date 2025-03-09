@@ -64,7 +64,7 @@ class RotStar(object):
     def Theta(self, p):
         return np.arccos(self.CosTheta(p))
     
-    def spectrum(self, time = 0, nn=None, ni = None):
+    def spectrum(self, time = 0, nn=None, ni = 55):
         """
         the spectrum sampled at nn points in velocity and nt points in time
         the integrals are performed using ni nodes
