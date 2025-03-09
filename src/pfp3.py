@@ -1587,7 +1587,7 @@ if __name__ == '__main__':
     
     myPics.moving_peaks_simple_per_night()
 
-    myPics.moving_peaks_signoise()
+    #myPics.moving_peaks_signoise()
     
     # myPics.moving_peaks_simple()
     #myPics.moving_peaks_simple_time()

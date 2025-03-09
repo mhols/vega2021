@@ -6,7 +6,7 @@ from scipy.interpolate import PPoly, make_interp_spline
 
 
 def TPXYZ(theta, phi):
-    return np.array(
+    return np.row_stack(
         [
             np.sin(theta) * np.cos(phi),
             np.sin(theta) * np.sin(phi),
@@ -16,7 +16,7 @@ def TPXYZ(theta, phi):
 
 def XYZTP(x,y,z):
     r = np.sqrt( x**2 + y**2 + z**2)
-    return np.array(
+    return np.row_stack(
         [
             np.arccos(z),
             np.arctan2(y,x)
@@ -105,6 +105,11 @@ class StarSpotFinder:
         self.clickvelocity = 0
         self.clickphase = 0
 
+        self.line_image = []
+        self.line_star_earth = []
+        self.line_star_star = []
+
+
         self._plot_background()
         self._plot_star_disk()
 
@@ -115,7 +120,7 @@ class StarSpotFinder:
         self.fig.canvas.mpl_connect("button_release_event", self._switch_off)
 
         self._on = False
-        self._mod = 'phase'
+        self._mod = ''
 
 
     def _switch_on(self, event):
@@ -133,23 +138,19 @@ class StarSpotFinder:
 
             self.theta, self.phi = self.YZTP(event.xdata, event.ydata)
             
-
-        """
+        
         if event.inaxes is self.ax0:
             if self._mod == 'phase':
                 self.phase = event.ydata
             else:
-                roots = self._points_with_v_on_orbit( self.clickvelocity)
-                if len(roots) == 2:
-                    self.phase = self.clickphase-roots[0]
+                self.clickvelocity, self.clickphase = event.xdata, event.ydata
 
-            for art in list(self.ax1.lines)+list(self.ax0.lines):
-                art.remove()
-            self._plot_orbit_on_star_and_picture()
+                tp = self.spots_compatible_with_v_at_phase(self.clickvelocity, self.clickphase)
 
-        self.fig.canvas.draw()
-        """
+                
+        self._clear_and_redraw()
 
+    def _clear_and_redraw(self):
         for art in list(self.ax1.lines)+list(self.ax0.lines):
             art.remove()
         self._plot_orbit_on_star_and_picture()
@@ -161,12 +162,16 @@ class StarSpotFinder:
     # The function to be called anytime a slider's value changes
     def _change_phase(self, val):
         self.phase = self.amp_slider.val
-        for art in list(self.ax1.lines)+list(self.ax0.lines):
-            art.remove()
-         
-        self._plot_orbit_on_star_and_picture()
+        self._clear_and_redraw()
 
-        self.fig.canvas.draw()
+    def _update_line_image(self):
+        pass
+
+    def _update_line_star_earth(self):
+        pass
+
+    def _update_line_star_star(self):
+        pass
 
     def velocity(self, y):
         return y * self.kwargs['vmax']
@@ -185,9 +190,9 @@ class StarSpotFinder:
         :param v: velocity
         :type v: float
         """
-        y = self.y(v)
 
         phases = self.sampled_phases
+        y = np.full(phases.shape[0], self.y(v))
 
         orbit_o = np.row_stack(
             (
@@ -240,7 +245,15 @@ class StarSpotFinder:
         :type phase: _type_
         """
 
-        pass
+        xyz = self.points_on_star_of_velocity(v)
+        t,p = XYZTP(*xyz)
+
+        p -= phase
+
+        return ( np.dot(self.rotation_star_to_earth(), TPXYZ(t, p)))
+
+
+
 
     def rotation_to_observer(self):
         """turns the star to the observer
