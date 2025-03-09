@@ -216,12 +216,12 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 #experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
-#experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
+experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_SELECT.kwargs
 
@@ -1581,7 +1581,7 @@ if __name__ == '__main__':
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-    #myPics.moving_peaks_signoise()
+    myPics.moving_peaks_signoise()
     # myPics.moving_peaks_simple()
 
     
