@@ -93,9 +93,8 @@ class StarSpotFinder:
         # register the update function with each slider
         self.amp_slider.on_changed(self._change_phase)
 
-        self.velocity = np.loadtxt(self.kwargs['vbins'])
+        self.velocity_bins = np.loadtxt(self.kwargs['vbins'])
 
-        self.velocity = velocity
 
         # inernal state of possible spots (for the moment only one)
         self.phase = 0
@@ -104,10 +103,25 @@ class StarSpotFinder:
 
         self.clickvelocity = 0
         self.clickphase = 0
+        self._slide_phase = 0
 
         self.line_image = []
-        self.line_star_earth = []
-        self.line_star_star = []
+
+        self._on = False
+        self._mod = ''
+
+        self.line_star_earth_phi = []  # XYZ earth coordinates of orbit under different phases
+        self.line_star_earth_vel = []  # XYZ earth coordinates of orbit under constant velocity
+        self.line_velocities = []      # velocities 
+        
+        self.line_star_star_phi = []   # XYZ star coordinates of orbit under different phases 
+        self.line_star_star_vel = []   # XYZ star coordinates of orbit under different phases 
+
+
+        self._update_line_image()
+        self._update_line_star_earth_phi()
+        self._update_line_star_earth_vel()
+        self._update_line_star_star()
 
 
         self._plot_background()
@@ -119,33 +133,32 @@ class StarSpotFinder:
         self.fig.canvas.mpl_connect("motion_notify_event", self._move_the_point)
         self.fig.canvas.mpl_connect("button_release_event", self._switch_off)
 
-        self._on = False
-        self._mod = ''
-
-
+ 
     def _switch_on(self, event):
 
-        if event.inaxes is self.ax0:
-            self.clickvelocity, self.clickphase = event.xdata, event.ydata
-            print(self.clickvelocity, self.clickphase )
-        else:
-            self._on = True
+        self._on = True
+        self._move_the_point(event)
 
 
 
     def _move_the_point(self, event):
-        if event.inaxes is self.ax1 and self._on and self._mod == "phase":
+        if event.inaxes is self.ax0 and self._on:
+            self.clickvelocity, self.clickphase = event.xdata, event.ydata
 
-            self.theta, self.phi = self.YZTP(event.xdata, event.ydata)
-            
+            #r = self.points_on_star_of_velocity(self.clickvelocity, self.clickphase)
+            #self.theta, self.phi = XYZTP(*r)
+            self._update_line_star_earth_vel()
         
-        if event.inaxes is self.ax0:
-            if self._mod == 'phase':
-                self.phase = event.ydata
-            else:
-                self.clickvelocity, self.clickphase = event.xdata, event.ydata
+        if event.inaxes is self.ax1 and self._on: # and self._mod == "phase":
 
-                tp = self.spots_compatible_with_v_at_phase(self.clickvelocity, self.clickphase)
+            return
+            #self.theta, self.phi = self.YZTP(event.xdata, event.ydata)
+            #self.clickvelocity = self.velocity(event.xdata)
+            #self.clickphase = self.phase
+            #self._update_line_star_earth_phi() 
+        
+        
+
 
                 
         self._clear_and_redraw()
@@ -160,15 +173,39 @@ class StarSpotFinder:
         self._on = False
 
     # The function to be called anytime a slider's value changes
+
     def _change_phase(self, val):
-        self.phase = self.amp_slider.val
-        self._clear_and_redraw()
+        self._slide_phase = val
+        #self.phi = self.amp_slider.val
+        i = int(self.sampled_phases.shape[0] * val / (2 * np.pi) )
+        self.theta, self.phi = XYZTP( *self.line_star_star_vel[:,i])
+
+        self._update_line_star_earth_phi()
+        
+
+        #self._clear_and_redraw()
 
     def _update_line_image(self):
         pass
 
-    def _update_line_star_earth(self):
-        pass
+    def _update_line_star_earth_vel(self):
+        if not self._on:
+            return
+        
+        self.line_star_earth_vel, self.line_star_star_vel = \
+            self.spots_compatible_with_v_at_phase(self.clickvelocity, self.clickphase)
+        
+        self.theta, self.phi = XYZTP( *self.line_star_star_vel[:, 0])
+
+        self.line_star_earth_phi, self.line_star_star_phi = self.spots_constant_latitude_on_star(self.theta)
+        self.line_velocities = self.kwargs['vmax'] * self.line_star_earth_phi[1, :]
+
+    def _update_line_star_earth_phi(self):
+        
+        self.line_star_earth_phi, self.line_star_star_phi = self.spots_constant_latitude_on_star(self.theta)
+        self.line_velocities = self.kwargs['vmax'] * self.line_star_earth_phi[1, :]
+
+
 
     def _update_line_star_star(self):
         pass
@@ -183,39 +220,32 @@ class StarSpotFinder:
     def sampled_phases(self):
         return np.linspace(0, 2*np.pi, 1024, endpoint=False)
 
+    
 
-    def points_on_star_of_velocity(self,v):
+    def points_on_star_of_velocity(self, v, phases=None):
         """the xyz coordinates in star coordinates or points of velocity v
 
         :param v: velocity
         :type v: float
         """
 
-        phases = self.sampled_phases
+        if phases is None:
+            phases = self.sampled_phases
+        else:
+            phases = np.atleast_1d(phases)
         y = np.full(phases.shape[0], self.y(v))
 
+        r = np.sqrt(1-y**2)
         orbit_o = np.row_stack(
             (
-                np.sin(phases),
+                r * np.sin(phases),
                 y,
-                np.cos(phases)
+                r * np.cos(phases)
             )
         )
-        orbit = np.dot(self.rotation_earth_to_star(), orbit_o)
-
-        return orbit
+        
+        return orbit_o
     
-    def points_on_star_passing_through_velocity_phase(self, v, phase):
-        """the point in xyz star coordinates that pass through the point v, phase
-
-        :param v: velocity
-        :type v: float
-        :param phase: the phase
-        :type phase: float (mod 2)
-        """
-
-        pass
-
 
     def _points_with_v_on_orbit(self, v):
         """returns the normlized y coordinate and
@@ -232,6 +262,7 @@ class StarSpotFinder:
         y = self.y(v)
 
         p = PPoly.from_spline(make_interp_spline(phases, yv-y, k=1 )).roots()
+        raise Exception()
         
         return [pp for pp in p if pp*(2*np.pi - pp) > 0]
 
@@ -246,11 +277,30 @@ class StarSpotFinder:
         """
 
         xyz = self.points_on_star_of_velocity(v)
-        t,p = XYZTP(*xyz)
+        #t,p = XYZTP(*xyz)
 
-        p -= phase
+        #p -= phase
 
-        return ( np.dot(self.rotation_star_to_earth(), TPXYZ(t, p)))
+        #v = TPXYZ(t, p)
+
+        r = np.dot(rotation_matrix_Z(-phase), xyz)
+
+        return np.dot(self.rotation_star_to_earth(), r), r
+    
+    def spots_constant_latitude_on_star(self, theta):
+        phases = self.sampled_phases
+        ct = np.cos(theta)
+        st = np.sin(theta)
+
+        v = np.row_stack(
+            (
+               st * np.cos(phases),
+               st * np.sin(phases),
+               np.full( phases.shape[0], ct) 
+            )
+        )
+
+        return np.dot( self.rotation_star_to_earth(), v), v
 
 
 
@@ -272,19 +322,22 @@ class StarSpotFinder:
     
 
     def YZTP(self, y, z):
-        t, p = YZTP(y, z)
-        v = TPXYZ(t,p)
-        v = np.dot(self.rotation_to_observer().T , v)
-        t, p = XYZTP(*v)
-        return t, p+self.phase
+        """Y Z in earth coordinates, T P on star"""
 
+        x = np.sqrt(1 - y**2 - z**2)
+        v = np.row_stack( (x, y, z))
 
+        v = np.dot(self.rotation_earth_to_star(), v)
+
+        return XYZTP(*v)
+    
+    
 
     def XYZ(self):
         """the projected star disk coordinates of the  spot and a boolean visibility
         """
-        v = TPXYZ(self.theta, self.phi-self.phase)
-        v = np.dot( self.rotation_to_observer(self.phase) , v)
+        v = TPXYZ(self.theta, self.phi)
+        v = np.dot( self.rotation_star_to_earth() , v)
         return v
     
     def YZOrbit(self):
@@ -302,11 +355,13 @@ class StarSpotFinder:
         orbit = np.column_stack(xyz)
         visi = orbit[0,:] > 0
 
+        raise Exception()
+
         return orbit, visi, phases
 
     def _plot_background(self):
         res = np.loadtxt(self.kwargs['image'])
-        velocity = self.velocity
+        velocity = self.velocity_bins
         v0 = self.kwargs['v0']
         self.ax0.set_xlim(velocity[0]-v0, velocity[-1]-v0)
         self.ax0.imshow(-res, cmap=plt.cm.gray_r, 
@@ -340,14 +395,26 @@ class StarSpotFinder:
         :type z: float in [-1, 1]
         """
 
-        orbit, visi, phases = self.YZOrbit()
+        #orbit, visi, phases = self.YZOrbit()
 
-        self.ax1.plot( orbit[1,visi], orbit[2, visi], '.k', markersize=0.2)
-        self.ax0.plot( orbit[1, visi]*self.kwargs['vmax'], phases[visi], '.r', markersize=0.2)
-        self.ax1.plot( [orbit[1,0]], [orbit[2,0]], 'ok', markersize=10)
+        #self.ax1.plot( orbit[1,visi], orbit[2, visi], '.k', markersize=0.2)
+        #self.ax1.plot( [orbit[1,0]], [orbit[2,0]], 'ok', markersize=10)
+        try:
 
-        self.ax0.plot( [self.clickvelocity], [self.clickphase], 'or', markersize=5)
+            self.ax0.plot( self.line_velocities, np.mod( self.sampled_phases - self.phi, 2 * np.pi), '.r', markersize=1)
 
+            self.ax1.plot( self.line_star_earth_phi[1,:], self.line_star_earth_phi[2,:], '.k', markersize=1)
+            self.ax1.plot( self.line_star_earth_vel[1,:], self.line_star_earth_vel[2,:], '.y', markersize=1)
+
+            self.ax0.plot( [self.clickvelocity], [self.clickphase], 'or', markersize=5)
+
+            x, y, z = self.XYZ()
+
+            self.ax1.plot( [y], [z], '.k', markersize=4)
+
+            print(f'Spotposition (lat, lon) {180 * self.theta / np.pi},  {180 * self.phi / np.pi}')
+        except:
+            pass
 
 
 
@@ -365,19 +432,6 @@ if __name__ == '__main__':
 
     image = "moving_simple_per_night.txt"
     vbins = "velocitybins.txt"
-
-    res = np.loadtxt(image)
-    velocity = np.loadtxt(vbins)
-
-
-
-
-            
-
-
-    #for theta in [np.pi/2, np.pi/3, np.pi/4, np.pi/8, np.pi/16]:
-    #    vr, vi, phases = vega_trace(theta, 0)
-    #    plt.plot(vr[vi], phases[vi], 'o')
 
 
     star = StarSpotFinder(
