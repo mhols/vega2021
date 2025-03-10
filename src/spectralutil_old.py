@@ -665,7 +665,7 @@ class SpectralAnalyser:
     """
         bins = np.linspace(0, period, nphase + 1)
         res = np.zeros((nphase, self.nvelocity))
-        ii = np.digitize(np.mod(time, period), bins)
+        ii = np.digitize(np.mod(time, period), bins)    # the phase index
         mask = np.zeros( (nphase, self.nvelocity), dtype = 'bool')
         mask[:,:] = False
         for i, s in zip(range(1,nphase+1), spec):

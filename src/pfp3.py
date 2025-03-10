@@ -146,9 +146,11 @@ VEGA_2023_NEONARVAL_NEXTRA = Experiment(
     prot = 0.678, #days
     noiselevel = 1.3,
     normalize = True,
-    nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910','s46710'],
-        [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9],[3,5,6,9]]),
+    nights = list(zip(
+        ['s46710'],
+        [[3,5,6,9]])),
+        #['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910','s46710'],
+        #[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9],[3,5,6,9]]),
     lamfilter = 1000
     )
 
@@ -216,12 +218,12 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 #experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
-experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
+#experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_SELECT.kwargs
 
@@ -1000,7 +1002,6 @@ class Pictures(object):
                 mins = np.min(signois[I])
                 newx = np.linspace(mins,maxs,1000)
                 plt.plot(newx,pp(newx))
-                plt.show()
 
 
 
@@ -1162,7 +1163,7 @@ class Pictures(object):
                 vmin=-0.8, vmax=0.8)
 
     def moving_peaks_simple_per_night(self):
-        nbins = 256
+        nbins = 128
         sa = self.analyzer
         time = sa.time
 
@@ -1187,8 +1188,8 @@ class Pictures(object):
             pp = np.linalg.lstsq(F, sa.intensity[i], rcond=None)[0]
             alpha = np.sum((1-sa.intensity[i]) * meanp)
             #diff[i,:] = sa.intensity[i] - (1-alpha*meanp) 
-            #diff[i,:] = sa.intensity[i] - np.dot(F, pp)
-            diff[i,:] = sa.intensity[i] - meanprofile
+            diff[i,:] = sa.intensity[i] - np.dot(F, pp)
+            #diff[i,:] = sa.intensity[i] - meanprofile
             lams[i] = pp[1]
             offsets[i] = pp[0]
             translat[i] = pp[2]
@@ -1213,7 +1214,10 @@ class Pictures(object):
 
         lamfilter = lams < experiment['lamfilter']
 
-        diff = sa.intensity - np.median(sa.intensity, axis=0)
+        #diff = sa.intensity - np.median(sa.intensity, axis=0)
+
+        
+
 
         phasebins = np.linspace(0, self.rotperiod, nbins+1)
         #I = np.digitize(np.mod(sa.time, self.rotperiod), phasebins)
@@ -1228,27 +1232,47 @@ class Pictures(object):
             
             res = np.zeros((nbins, sa.nvelocity))
 
+            ## collecting data for list of nights
+            TT = []
+            val = []
+
             for night in nightlist:
                 I = self.analyzer.list_index[night]
 
                 dd = diff[I]
                 dd -= np.median(dd, axis=0)
 
+                TT += list(time[I])
+                val += list(dd)
+
+            val = np.row_stack(val)
+
+            res, bins, mask = self.analyzer.spectrum_matrix_full(
+                    TT, val, period=self.rotperiod, nphase=nbins, method=np.median)
+            """
                 for i, p1p2 in enumerate(zip(phasebins[0:-1], phasebins[1:])):
                     p1, p2 = p1p2
                     II = (p1 <= tt[I]) & (tt[I] < p2) #& lamfilter[I]
                     if sum(II) >=1:
                         res[i,:] = np.median(dd[II], axis=0)
+            """
 
+            #minmax = np.max(np.abs(res))
+            #print(minmax)
 
-            minmax = np.max(np.abs(res))
-            print(minmax)
+            #res /= minmax
+            #res = np.sign(res) * np.abs(res)**0.75
 
-            res /= minmax
-            res = np.sign(res) * np.abs(res)**0.75
+            np.savetxt('moving_simple_per_night.txt', res)
+            np.savetxt('velocitybins.txt', self.velocity)
 
             v0=-13.01
-
+            plt.imshow(-res, cmap=plt.cm.gray_r, 
+                       aspect='auto',interpolation='bicubic', 
+                       origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
+                       vmin=-0.0002,vmax=0.0002)
+            
+            """
             plt.imshow(
                 res, 
                 #cmap=plt.cm.bwr,  #plt.cm.gray_r, 
@@ -1258,6 +1282,7 @@ class Pictures(object):
                 origin='lower',
                 extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
                 vmin=-0.8, vmax=0.8)
+            """
             plt.xticks([])
             rv = np.array([-20, -10, 0, 10, 20 ])
             st = [ str(i) for i in rv]
@@ -1275,7 +1300,7 @@ class Pictures(object):
 
 
     def moving_peaks_simple(self):
-        nbins = 256
+        nbins = 128
         sa = self.analyzer
         time = sa.time
 
@@ -1378,32 +1403,19 @@ class Pictures(object):
 
         minmax=[]
         
-
-        #for na, nightlist in zip (['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s123456','s123','s456','s789','all'], [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9],[0,1,2,3,4,5], [0,1,2],[3,4,5],[6,7,8], [0,1,2,3,4,5,6,7,8,9]]):
-        #for na, nightlist in zip(['s1','s2','s3','s4'], [[0], [1], [2], [3]]):
-        
-        #2024:
-        #for na, nightlist in zip(['s1','s2','s3','s4','s5', 's12345','s123','s45'], [[0], [1], [2], [3], [4], [0,1,2,3,4], [0,1,2],[3,4]]):
-        
-        #2018 TBL:
-        #for na, nightlist in zip(['s1','s2','s3','s4','s5','s6','s7', 's1234567','s123','s4567'], [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5,6]]):
-        
-        #2018 OHP:
         for na, nightlist in experiment['nights']:
 
             VV =[]
             TT =[]
             plt.figure(figsize=(6,10))
-            plt.title('night'+na)
+            plt.title('signoise night'+na)
             for night in nightlist:
-                print("night = ", night)
                 I = self.analyzer.list_index[night]
-                print(night, len(I))
                 TT += list(self.time[I])
                 pp = np.poly1d(np.polyfit(signois[I], eqwidth[I], deg=3))
                 fac = pp(signois[I])[:,np.newaxis]
-                temp=vul[I]/fac
-                temp-=np.median(temp,axis=0)
+                temp =vul[I]/fac
+                temp -=np.median(temp,axis=0)
                 VV += list(temp)
                 
             val = np.row_stack(VV)
@@ -1414,15 +1426,6 @@ class Pictures(object):
             #print("minmax:",np.min(tmp),np.max(tmp))
             minmax.append([np.min(tmp),np.max(tmp)])
             
-            #plt.contourf(self.velocity, bins, tmp, cmap=plt.cm.Reds)
-
-
-            #tmp = np.sign(tmp) * np.abs(tmp)**0.7
-
-            #ax = plt.axes([self.velocity[0],self.velocity[-1],0,1], frameon=False)
-            #ax.set_axis_off()
-            #ax.set_xlim(self.velocity[0],self.velocity[-1])
-            #ax.set_ylim(0,1)
             v0=-13.01
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
@@ -1445,7 +1448,7 @@ class Pictures(object):
 
             plt.savefig(name + na +self.format)
             
-        print("final minmax:",np.min(np.array(minmax)),np.max(np.array(minmax)))
+        #print("final minmax:",np.min(np.array(minmax)),np.max(np.array(minmax)))
 
     def ew_noise_corr(self):
         name = 'moving_peaks_eq_width'
@@ -1561,8 +1564,8 @@ if __name__ == '__main__':
     #myPics.ts_eqwidth()
 #    myPics.intens()
 #    myPics.intens_all()
-    myPics.vrad_mean_vspan()
-    myPics.vrad_corr_vspan()
+#    myPics.vrad_mean_vspan()
+#    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
 #    myPics.vrad_corr_skew()
@@ -1570,22 +1573,23 @@ if __name__ == '__main__':
 #    myPics.ts_skew()
 #    myPics.ts_vspan()
 #    myPics.ls_spec_vrad_skew()
-    myPics.ls_spec_vrad_mean()
+#    myPics.ls_spec_vrad_mean()
 #    myPics.ls_spec_all3()
 #    myPics.ls_spec_vrad_corr()
 #    myPics.ls_spec_vrad_bis()
-    myPics.ls_spec_vspan()
+#    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
 ###    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-    myPics.moving_peaks_signoise()
-    # myPics.moving_peaks_simple()
-
     
     myPics.moving_peaks_simple_per_night()
+
+    #myPics.moving_peaks_signoise()
+    
+    # myPics.moving_peaks_simple()
     #myPics.moving_peaks_simple_time()
     # myPics.moving_peaks_time()
     ###    myPics.estrotentropy()
