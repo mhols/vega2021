@@ -13,6 +13,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from spectralutil_old import *
 
+radial_velocity = -13.9 #km/s
+rotation_vsini = 21.6 #km/s
+full_prof_add = 10 #km/s
+prof_beg = radial_velocity-rotation_vsini #km/s
+prof_end = radial_velocity+rotation_vsini #km/s
+full_prof_beg =  prof_beg-full_prof_add #km/s
+full_prof_end =  prof_end+full_prof_add#km/s
+
 
 PROGDIR = os.path.dirname(__file__)
 DATADIR = os.path.join(PROGDIR, '../data')
@@ -87,9 +95,9 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'),
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5', 's12','s34', 's123456'],
+        ['s1','s2','s3','s4','s5', 's12','s34', '2018 SOPHIE (1,2,3,4,5,6)'],
         [[0], [1], [2], [3], [4], [0,1], [2,3], [0,1,2,3,4,5]]),
-    lamfilter = -0.174
+    lamfilter = -0.179
     )
 
 
@@ -116,7 +124,7 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5', 's12','s34', 's123456'],
+        ['s1','s2','s3','s4','s5', 's12','s34', '2018 NARVAL (1,2,3,4,5,6)'],
         [[0], [1], [2], [3], [4], [0,1], [2,3], [0,1,2,3,4,5]]),
     lamfilter = 1000 #-0.174
     )
@@ -131,8 +139,8 @@ VEGA_2018_NARVAL_NEXTRA_KM17 = Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56'],
-        [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3],[4,5]]),
+        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56','s123456'],
+        [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3],[4,5],[0,1,2,3,4,5]]),
     lamfilter = 1000
     )
 
@@ -147,10 +155,10 @@ VEGA_2023_NEONARVAL_NEXTRA = Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = list(zip(
-        ['s46710'],
+        ['2023 (4,6,7,10)'],
         [[3,5,6,9]])),
         #['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910','s46710'],
-        #[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9],[3,5,6,9]]),
+        #[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9],[3,5,6,9]])),
     lamfilter = 1000
     )
 
@@ -215,15 +223,15 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+##experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
-#experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
+experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_SELECT.kwargs
 
@@ -1063,7 +1071,7 @@ class Pictures(object):
             #ax.set_axis_off()
             #ax.set_xlim(self.velocity[0],self.velocity[-1])
             #ax.set_ylim(0,1)
-            v0=-13.01
+            v0=-13.9
 
             #plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='none', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1])
             plt.imshow(tmp, cmap=plt.cm.gray_r, aspect='auto',interpolation='None', origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],vmin=-0.001,vmax=0.0015)
@@ -1170,10 +1178,10 @@ class Pictures(object):
         meanprofile = np.median(sa.intensity, axis=0)
         meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
 
-        F = np.zeros((sa.nvelocity, 3))
-        F[:,0] = 1
-        F[:,1] = meanp
-        d = meanp[1:]-meanp[:-1]
+        F = np.zeros((sa.nvelocity, 3))     #linear model
+        F[:,0] = 1          #contant
+        F[:,1] = meanp      # mean profile
+        d = meanp[1:]-meanp[:-1]    #first derivative
         F[:-1,2] = 0.5 * d
         F[1:, 2] += 0.5 * d
 
@@ -1187,12 +1195,15 @@ class Pictures(object):
         for i in range(sa.nobs):
             pp = np.linalg.lstsq(F, sa.intensity[i], rcond=None)[0]
             alpha = np.sum((1-sa.intensity[i]) * meanp)
-            #diff[i,:] = sa.intensity[i] - (1-alpha*meanp) 
-            diff[i,:] = sa.intensity[i] - np.dot(F, pp)
+            #diff[i,:] = sa.intensity[i] - (1-alpha*meanp)
+            #pp[2]=0     #translation has no significant impact
+            #pp[1]=0    scaling has major impact!
+            #pp[0]=0    has impact
+            diff[i,:] = sa.intensity[i] - np.dot(F, pp) #difference between obs and 3 component adjutstment
             #diff[i,:] = sa.intensity[i] - meanprofile
-            lams[i] = pp[1]
-            offsets[i] = pp[0]
-            translat[i] = pp[2]
+            lams[i] = pp[1]             #coefficient of mean profile
+            offsets[i] = pp[0]          #shift in intensity (continuum normalization error)
+            translat[i] = pp[2]         #shift in velocity
 
         plt.figure()
         plt.plot(meanp)
@@ -1212,7 +1223,7 @@ class Pictures(object):
         plt.title('translat')
         plt.plot( time, translat, '.')
 
-        lamfilter = lams < experiment['lamfilter']
+        lamfilter = lams < experiment['lamfilter']      #throw out too extreme profile changes
 
         #diff = sa.intensity - np.median(sa.intensity, axis=0)
 
@@ -1223,12 +1234,12 @@ class Pictures(object):
         #I = np.digitize(np.mod(sa.time, self.rotperiod), phasebins)
         
 
-        tt = np.mod(time, self.rotperiod)
+        tt = np.mod(time, self.rotperiod)       #time modulo rotationperiod
 
-        for na, nightlist in experiment['nights']: 
+        for na, nightlist in experiment['nights']:          #for all nights
        
             plt.figure(figsize=(6,10))
-            plt.title('night'+na)
+            plt.title('nights '+na)
             
             res = np.zeros((nbins, sa.nvelocity))
 
@@ -1237,7 +1248,7 @@ class Pictures(object):
             val = []
 
             for night in nightlist:
-                I = self.analyzer.list_index[night]
+                I = self.analyzer.list_index[night]         #indices showing belonging to a night
 
                 dd = diff[I]
                 dd -= np.median(dd, axis=0)
@@ -1266,8 +1277,8 @@ class Pictures(object):
             np.savetxt('moving_simple_per_night.txt', res)
             np.savetxt('velocitybins.txt', self.velocity)
 
-            v0=-13.01
-            plt.imshow(-res, cmap=plt.cm.gray_r, 
+            v0=-13.9
+            plt.imshow(-res, cmap=plt.cm.gray_r,
                        aspect='auto',interpolation='bicubic', 
                        origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
                        vmin=-0.0002,vmax=0.0002)
@@ -1290,9 +1301,17 @@ class Pictures(object):
             plt.yticks([])
             yt = [0,0.2,0.4,0.6,0.8, 1]
             plt.yticks(yt,[str(t) for t in yt])
-            plt.vlines([-22, 0, 22], 0,1)
-            plt.vlines([-35, 0, 37], 0,1,linestyles='dashed')
-            plt.hlines([1./2], -33,32)
+            prof_beg_0 = -rotation_vsini
+            prof_end_0 =  rotation_vsini
+            full_prof_beg_0 = prof_beg_0-full_prof_add
+            full_prof_end_0 = prof_end_0+full_prof_add
+            
+            plt.vlines([prof_beg_0,0,prof_end_0],0,1)
+            plt.vlines([full_prof_beg_0,0,full_prof_end_0],0,1,linestyles="dashed")
+
+            #plt.vlines([-22, 0, 22], 0,1)
+            #plt.vlines([-33, 0, 33], 0,1,linestyles='dashed')
+            plt.hlines([1./2],  full_prof_beg_0,full_prof_end_0)
             plt.xlim(self.velocity[0]-v0, self.velocity[-1]-v0)
             plt.xlabel('velocity [km/s]')
             plt.ylabel('phase fraction of period]')
@@ -1564,7 +1583,7 @@ if __name__ == '__main__':
     #myPics.ts_eqwidth()
 #    myPics.intens()
 #    myPics.intens_all()
-#    myPics.vrad_mean_vspan()
+    myPics.vrad_mean_vspan()
 #    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
@@ -1573,11 +1592,11 @@ if __name__ == '__main__':
 #    myPics.ts_skew()
 #    myPics.ts_vspan()
 #    myPics.ls_spec_vrad_skew()
-#    myPics.ls_spec_vrad_mean()
+##    myPics.ls_spec_vrad_mean()
 #    myPics.ls_spec_all3()
-#    myPics.ls_spec_vrad_corr()
-#    myPics.ls_spec_vrad_bis()
-#    myPics.ls_spec_vspan()
+##    myPics.ls_spec_vrad_corr()
+    myPics.ls_spec_vrad_bis()
+    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
 ###    myPics.bisector_time()
 #    myPics.bisector_width()
