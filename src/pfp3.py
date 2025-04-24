@@ -110,7 +110,7 @@ VEGA_2018_NARVAL_LE = Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's1234567','s123','s456'], 
+        ['s1','s2','s3','s4','s5','s6', 's7', '2018 NARVAL (1,2,3,4,5,6,7)','s123','s456'],
         [[0], [1], [2], [3], [4], [5], [6], [0,1,2,3,4,5,6], [0,1,2],[3,4,5]]),
     lamfilter = -0.425
     )
@@ -155,7 +155,7 @@ VEGA_2023_NEONARVAL_NEXTRA = Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = list(zip(
-        ['2023 (4,6,7,10)'],
+        ['NEO-NARVAL 2023 (4,6,7,10)'],
         [[3,5,6,9]])),
         #['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910','s46710'],
         #[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9],[3,5,6,9]])),
@@ -201,7 +201,7 @@ VEGA_2024_NEONARVAL_NEXTRA = Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5', 's12','s34', 's12345'],
+        ['s1','s2','s3','s4','s5', 's12','s34', 'NEO-NARVAL 2024 (1,2,3,4,5)'],
         [[0], [1], [2], [3], [4], [0,1], [2,3], [0,1,2,3,4]]),
     lamfilter = 1000
     )
@@ -223,7 +223,7 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-##experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
@@ -1179,7 +1179,7 @@ class Pictures(object):
         meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
 
         F = np.zeros((sa.nvelocity, 3))     #linear model
-        F[:,0] = 1          #contant
+        F[:,0] = 1          #constant
         F[:,1] = meanp      # mean profile
         d = meanp[1:]-meanp[:-1]    #first derivative
         F[:-1,2] = 0.5 * d
@@ -1282,6 +1282,7 @@ class Pictures(object):
                        aspect='auto',interpolation='bicubic', 
                        origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
                        vmin=-0.0002,vmax=0.0002)
+            plt.savefig('nights'+na + self.format)
             
             """
             plt.imshow(
@@ -1598,7 +1599,7 @@ if __name__ == '__main__':
     myPics.ls_spec_vrad_bis()
     myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
-###    myPics.bisector_time()
+    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
