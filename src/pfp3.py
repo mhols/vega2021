@@ -215,7 +215,7 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
@@ -223,7 +223,7 @@ experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_SELECT.kwargs
 
@@ -590,8 +590,11 @@ class Pictures(object):
 #        print(self.vrad_corr)
         x = self.vrad_corr
         y = self.vspan
+        print(self.time.shape, y.shape, x.shape)
         xy = np.vstack([x,y])
-        z =gaussian_kde(xy)(xy)
+        z = np.mod(self.time / self.rotperiod, 1) #gaussian_kde(xy)(xy)
+        I = ((z>0.15) & (z < 0.35)) | ((z >0.65) & ( z < 0.85))
+        z = np.where(I, 0, 1)
 
 # Sort the points by density, so that the densest points are plotted last
         idx = z.argsort()
@@ -1565,7 +1568,7 @@ if __name__ == '__main__':
 #    myPics.intens()
 #    myPics.intens_all()
 #    myPics.vrad_mean_vspan()
-#    myPics.vrad_corr_vspan()
+    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
 #    myPics.vrad_corr_skew()
@@ -1585,7 +1588,7 @@ if __name__ == '__main__':
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
     
-    myPics.moving_peaks_simple_per_night()
+    #myPics.moving_peaks_simple_per_night()
 
     #myPics.moving_peaks_signoise()
     
