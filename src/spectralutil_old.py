@@ -35,7 +35,8 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
 
     time = data[:, coltime].ravel()
 
-    time = time-2458331.
+    #subtraction of the HJD_zero by P.Petit
+    time = time-2456892.015
 
     velocity = data[0, colspec:colval]  # velocities of bins (redundant data format...)
     intens = data[:, colval:colvul]  # intensities
@@ -48,10 +49,11 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     fluctuation = np.std( diff[:, IC], axis=1)
 
     #### tmp plot
+    """
     fl = np.sort(fluctuation)
     plt.figure('fluctuations')
     plt.plot(np.cumsum(fl))
-
+    """
 
 
     print (fluctuation.shape, time.shape)
@@ -665,6 +667,7 @@ class SpectralAnalyser:
     """
         bins = np.linspace(0, period, nphase + 1)
         res = np.zeros((nphase, self.nvelocity))
+        print("time of the first spectrum of the first night", time[0])
         ii = np.digitize(np.mod(time, period), bins)    # the phase index
         mask = np.zeros( (nphase, self.nvelocity), dtype = 'bool')
         mask[:,:] = False
