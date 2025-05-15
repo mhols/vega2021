@@ -36,8 +36,9 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     time = data[:, coltime].ravel()
 
     #subtraction of the HJD_zero by P.Petit
-    time = time-2456892.015
-
+    #time = time-2456892.015
+    time = time-2456142.
+    #time = time-time[0] #only for 2012 Sophie data set
     velocity = data[0, colspec:colval]  # velocities of bins (redundant data format...)
     intens = data[:, colval:colvul]  # intensities
     signoise = data[:, colvul:colvul+nval]
