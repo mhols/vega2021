@@ -76,7 +76,7 @@ VEGA_2018_SOPHIE_LSDJFD = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2018_0310.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.678, #days
+    prot = 0.68, #days Petit et al 2022
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -85,19 +85,33 @@ VEGA_2018_SOPHIE_LSDJFD = Experiment(
     lamfilter = -0.465
 )
 
+# Sophie 2018 Sophie_pipeline LSDpy 2.0km/s mask_folsom
+VEGA_2012_SOPHIE_LSDPY = Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_2012_SOPHIE_maskvega_folsom.clean.1.7'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = 0.68, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5', 's12','s34','2012 SOPHIE (1,2,3,4,5)'],
+        [[0], [1], [2], [3], [4], [0,1], [2,3],[0,1,2,3,4]]),
+    lamfilter = 1000
+    )
+
 
 # Sophie 2018 Sophie_pipeline LSDpy 2.0km/s mask_folsom
 VEGA_2018_SOPHIE_LSDPY = Experiment(
-DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'),
+DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat.1.7'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.678, #days
+    prot = 0.68, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
         ['s1','s2','s3','s4','s5', 's12','s34', '2018 SOPHIE (1,2,3,4,5,6)'],
         [[0], [1], [2], [3], [4], [0,1], [2,3], [0,1,2,3,4,5]]),
-    lamfilter = -0.179
+    lamfilter = -0.172
     )
 
 
@@ -105,8 +119,13 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat'),
 VEGA_2018_NARVAL_LE = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat'),
     vrange = [-60.0, 40.0],
+<<<<<<< HEAD
+    vrad = -13.4,  
+    prot = 0.68, #days
+=======
     vrad = -13.4,
     prot = 0.678, #days
+>>>>>>> f7dcf06b0bc2fef59e614c89d50008a8ee8de0ac
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -120,7 +139,7 @@ VEGA_2018_NARVAL_NEXTRA = Experiment(
 DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.678, #days
+    prot = 0.68, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -134,8 +153,13 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
 VEGA_2018_NARVAL_NEXTRA_KM17 = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_1.7.clean'),
     vrange = [-60.0, 40.0],
+<<<<<<< HEAD
+    vrad = -13.4,  
+    prot = 0.68, #days
+=======
     vrad = -13.4,
     prot = 0.678, #days
+>>>>>>> f7dcf06b0bc2fef59e614c89d50008a8ee8de0ac
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -151,7 +175,7 @@ VEGA_2023_NEONARVAL_NEXTRA = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.678, #days
+    prot = 0.68, #days
     noiselevel = 1.3,
     normalize = True,
     nights = list(zip(
@@ -159,7 +183,7 @@ VEGA_2023_NEONARVAL_NEXTRA = Experiment(
         [[3,5,6,9]])),
         #['s1','s2','s3','s4','s5','s6', 's7', 's8', 's9', 's10', 's12','s34','s56','s78','s910','s46710'],
         #[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [0,1], [2,3], [4,5] , [6,7], [8,9],[3,5,6,9]])),
-    lamfilter = 1000
+    lamfilter = -0.163
     )
 
 # Neo-Narval 2023 NEXTRA LSDpy 2.0km/s mask_folsom
@@ -167,7 +191,7 @@ VEGA_2023_NEONARVAL_NEXTRA_SELECT = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean_31_6_7_12.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.678, #days
+    prot = 0.68, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -182,7 +206,7 @@ VEGA_2023_NEONARVAL_NEXTRA_Q09 = Experiment(
     DATAFILE = os.path.join(DATADIR,'Vega_2023_maskvega_folsom.clean_0.9.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.678, #days
+    prot = 0.68, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -197,7 +221,7 @@ VEGA_2024_NEONARVAL_NEXTRA = Experiment(
     #DATAFILE = os.path.join(DATADIR, 'Vega_2024_sel.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.678, #days
+    prot = 0.68, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -211,16 +235,17 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
     DATAFILE = os.path.join(DATADIR, 'duofilematrix.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.678, #days
+    prot = 0.68, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56', 's1234567'],
+        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56', '2018 NARVAL and SOPHIE s1234567'],
         [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3], [4,5], [0,1,2,3,4,5,6]]),
     lamfilter = 1000
     )
 
 
+#experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
 experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
@@ -251,36 +276,41 @@ class Pictures(object):
         self.upper, self.lower = (0.35, 0.5), (0.1, 0.25)  # limits for vspan
 #        self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
 
+<<<<<<< HEAD
+        self.rotperiod =  0.68 # 0.66149 #0.68# #0.68 #rotation period
+        
+=======
         self.rotperiod =  0.678 # 0.66149 #0.678# #0.678 #rotation period
 
+>>>>>>> f7dcf06b0bc2fef59e614c89d50008a8ee8de0ac
         self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
         self.d0, self.d1 = (0.1, 0.9)  # limits for bisector
         self.cpd = [24.0 / 12.5 ]  # cycles per day, where to plot a vertical lline (FRot
-        self.cpdl = 1. / (0.678 + 0.036)  # cycles per day, low, Alina
-        self.cpdh = 1. / (0.678 - 0.029)  # cycles per day, high, Alina
-        self.cpd2l = 1. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd2h = 1. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd3l = 2. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd3h = 2. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd4l = 3. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd4h = 3. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd5l = 4. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd5h = 4. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd6l = 5. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd6h = 5. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd7l = 6. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd7h = 6. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd8l = 7. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd8h = 7. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd9l = 8. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd9h = 8. / 0.678 + 1. / (0.678 - 0.029)
-        self.cpd10l = 9. / 0.678 + 1. / (0.678 + 0.036)
-        self.cpd10h = 9. / 0.678 + 1. / (0.678 - 0.029)
+        self.cpdl = 1. / (0.68 + 0.036)  # cycles per day, low, Alina
+        self.cpdh = 1. / (0.68 - 0.029)  # cycles per day, high, Alina
+        self.cpd2l = 1. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd2h = 1. / 0.68 + 1. / (0.68 - 0.029)
+        self.cpd3l = 2. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd3h = 2. / 0.68 + 1. / (0.68 - 0.029)
+        self.cpd4l = 3. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd4h = 3. / 0.68 + 1. / (0.68 - 0.029)
+        self.cpd5l = 4. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd5h = 4. / 0.68 + 1. / (0.68 - 0.029)
+        self.cpd6l = 5. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd6h = 5. / 0.68 + 1. / (0.68 - 0.029)
+        self.cpd7l = 6. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd7h = 6. / 0.68 + 1. / (0.68 - 0.029)
+        self.cpd8l = 7. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd8h = 7. / 0.68 + 1. / (0.68 - 0.029)
+        self.cpd9l = 8. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd9h = 8. / 0.68 + 1. / (0.68 - 0.029)
+        self.cpd10l = 9. / 0.68 + 1. / (0.68 + 0.036)
+        self.cpd10h = 9. / 0.68 + 1. / (0.68 - 0.029)
 
         self.cpdnew = 1.78
 
         self.cpdb = 1.6062959  # cycles per day, Butkovskaya
-        self.nfreq = 1024  # number of frquencies for spectral analysis
+        self.nfreq = 1024  # number of frquencies for analysis
         self.min_cpd, self.max_cpd = 0.2, 50.  # limits of frequency analysis (cycles per day)
         self.format = ".pdf"  # all pictures as .pdf files
 
@@ -404,6 +434,8 @@ class Pictures(object):
         if None is self._ls_vspan:
             mn = np.mean(self.vspan)
             self._ls_vspan = lombscargle(self.time, self.vspan - mn, self.freq)
+            filename="lsvspan_timeseries"
+            np.savetxt(filename,np.column_stack([self.time,self.vspan-mn]))
         return self._ls_vspan
 
     @property
@@ -1238,7 +1270,7 @@ class Pictures(object):
 
 
         tt = np.mod(time, self.rotperiod)       #time modulo rotationperiod
-
+        
         for na, nightlist in experiment['nights']:          #for all nights
 
             plt.figure(figsize=(6,10))
@@ -1251,6 +1283,7 @@ class Pictures(object):
             val = []
 
             for night in nightlist:
+    
                 I = self.analyzer.list_index[night]         #indices showing belonging to a night
 
                 dd = diff[I]
