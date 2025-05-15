@@ -173,7 +173,7 @@ def remove_night_trend(time, value):
     time -= int(time[0])
     nnight = int(time[-1] - time[0]) + 1
     t0 = int(time[-1])
-    for n in xrange(nnight):
+    for n in range(nnight):
         I = np.where((time - n) * (n + 1 - time) >= 0.)
         value[I], p, pp = remove_trend(time[I], value[I])
 

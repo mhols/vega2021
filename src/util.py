@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.widgets import Slider
+from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import PPoly, make_interp_spline
 
 
@@ -301,7 +302,89 @@ class StarSpotFinder:
         )
 
         return np.dot( self.rotation_star_to_earth(), v), v
+    
+    def likelihood_spot(self, theta, phi, phase=0):
+        """the likelihood to have a starspot at theta, phi (at phase)
 
+        :param theta: _description_
+        :type theta: _type_
+        :param phi: _description_
+        :type phi: _type_
+        :param phase: _description_, defaults to 0
+        :type phase: int, optional
+        """
+        phases = np.linspace(0, 2*np.pi, self.movingpeak.shape[1])
+        ct = np.cos(theta)
+        st = np.sin(theta)
+
+        v = np.vstack(
+            (
+               st * np.cos(phi+phase+phases),
+               st * np.sin(phi+phase+phases),
+               np.full( phases.shape[0], ct) 
+            )
+        )
+
+        v0 = self.kwargs['v0']
+        vv = np.dot( self.rotation_star_to_earth(), v)
+        vr = self.kwargs['vmax'] * vv[1, :] + self.kwargs['v0']
+        visi = vv[0,:] > 0
+
+        dv = self.velocity_bins[1] - self.velocity_bins[0]
+
+        vel = np.zeros(self.velocity_bins.shape[0] + 1)
+        vel[1:] = self.velocity_bins + dv/2
+        vel[0] = self.velocity_bins[0] - dv/2
+
+        j = np.digitize(vr, vel)
+        # print(j)
+
+        res = 0
+        try:
+            res = np.sum( [self.movingpeak[j[i], i ] for i in range(phases.shape[0]) if (i<self.velocity_bins.shape[0] and visi[i])])
+        except:
+            pass
+        return res
+
+
+
+
+    def lh_spot(self):
+
+
+        theta=np.linspace(-np.pi/2, np.pi/2, 128)
+        phi = np.linspace(0, 2*np.pi, 128)
+
+        map = Basemap(projection='moll', lon_0=0)
+
+        #p, t = map.makegrid(nx=128, ny=128)
+
+        #print('couout', p, t)
+
+        t, p = np.meshgrid(theta, phi)
+        #x,y = map(t, p)
+
+        res = np.zeros(len(theta)*len(phi))
+
+        for i, tp in enumerate(zip(t.ravel(), p.ravel())):
+            # print(i, tp)
+            res[i] = self.likelihood_spot(np.pi/2 - tp[0], tp[1])
+    
+        res = np.reshape(res, (len(theta), len(phi)))
+
+        plt.figure()
+        #map.drawcoastlines()
+        map.imshow(res.T, interpolation='bicubic')
+
+        map.drawmeridians(np.linspace(-180, 180, 12))
+        map.drawparallels(np.linspace(-90, 90, 6))
+        map.plot(180*phi/np.pi, 128*[180*self.kwargs['angle']/np.pi], '-b', latlon=True)
+        map.plot(180*phi/np.pi, 128*[0], '-r', latlon=True)
+        map.plot(180*phi/np.pi, 128*[-180*self.kwargs['angle']/np.pi], '-b', latlon=True)
+        plt.show()
+
+        #print(res)
+        return res
 
 
 
@@ -361,6 +444,7 @@ class StarSpotFinder:
 
     def _plot_background(self):
         res = np.loadtxt(self.kwargs['image'])
+        self.movingpeak = res
         velocity = self.velocity_bins
         v0 = self.kwargs['v0']
         self.ax0.set_xlim(velocity[0]-v0, velocity[-1]-v0)
@@ -399,6 +483,8 @@ class StarSpotFinder:
 
         #self.ax1.plot( orbit[1,visi], orbit[2, visi], '.k', markersize=0.2)
         #self.ax1.plot( [orbit[1,0]], [orbit[2,0]], 'ok', markersize=10)
+        
+        #print(self.likelihood_spot(self.theta, self.phi, self.phase))
         try:
 
             self.ax0.plot( self.line_velocities, np.mod( self.sampled_phases - self.phi, 2 * np.pi), '.r', markersize=1)
@@ -412,7 +498,10 @@ class StarSpotFinder:
 
             self.ax1.plot( [y], [z], '.k', markersize=4)
 
-            print(f'Spotposition (lat, lon) {180 * self.theta / np.pi},  {180 * self.phi / np.pi}')
+            # print(f'Spotposition (lat, lon) {180 * self.theta / np.pi},  {180 * self.phi / np.pi}')
+
+            print(self.likelihood_spot(self.theta, self.phi, self.phase))
+
         except:
             pass
 
@@ -441,8 +530,12 @@ if __name__ == '__main__':
         vmax = 22,
         angle= 7 * np.pi/180
         )
-    
-    
 
+    plt.show()
+    
+    #plt.figure()
+    #plt.imshow(star.lh_spot().T) 
+
+    star.lh_spot()
 
     plt.show()
