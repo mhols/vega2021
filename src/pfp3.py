@@ -119,13 +119,8 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat.1.7
 VEGA_2018_NARVAL_LE = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat'),
     vrange = [-60.0, 40.0],
-<<<<<<< HEAD
     vrad = -13.4,  
     prot = 0.68, #days
-=======
-    vrad = -13.4,
-    prot = 0.678, #days
->>>>>>> f7dcf06b0bc2fef59e614c89d50008a8ee8de0ac
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -153,13 +148,8 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
 VEGA_2018_NARVAL_NEXTRA_KM17 = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_1.7.clean'),
     vrange = [-60.0, 40.0],
-<<<<<<< HEAD
     vrad = -13.4,  
     prot = 0.68, #days
-=======
-    vrad = -13.4,
-    prot = 0.678, #days
->>>>>>> f7dcf06b0bc2fef59e614c89d50008a8ee8de0ac
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -276,13 +266,7 @@ class Pictures(object):
         self.upper, self.lower = (0.35, 0.5), (0.1, 0.25)  # limits for vspan
 #        self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
 
-<<<<<<< HEAD
         self.rotperiod =  0.68 # 0.66149 #0.68# #0.68 #rotation period
-        
-=======
-        self.rotperiod =  0.678 # 0.66149 #0.678# #0.678 #rotation period
-
->>>>>>> f7dcf06b0bc2fef59e614c89d50008a8ee8de0ac
         self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
         self.d0, self.d1 = (0.1, 0.9)  # limits for bisector
         self.cpd = [24.0 / 12.5 ]  # cycles per day, where to plot a vertical lline (FRot
