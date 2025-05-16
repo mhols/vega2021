@@ -424,7 +424,7 @@ class SpectralAnalyser:
 
     
     def spot_density(self):
-        nbins=128
+        nbins=32
         meanprofile = np.median(self.intensity, axis=0)
         meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
 

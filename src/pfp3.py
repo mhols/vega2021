@@ -235,10 +235,10 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
     )
 
 
-#experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
+experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
@@ -1630,7 +1630,7 @@ if __name__ == '__main__':
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
 
-    myPics.moving_peaks_simple_per_night()
+#    myPics.moving_peaks_simple_per_night()
 
     myPics.spot_density()
 
