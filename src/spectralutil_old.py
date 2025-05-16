@@ -423,8 +423,9 @@ class SpectralAnalyser:
         return F
 
     
-    def spot_density(self):
-        nbins=32
+    def spot_density(self, **kwargs):
+
+        nbins=kwargs.get('nbins', 64)
         meanprofile = np.median(self.intensity, axis=0)
         meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
 
