@@ -111,7 +111,7 @@ DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat.1.7
     nights = zip(
         ['s1','s2','s3','s4','s5', 's12','s34', '2018 SOPHIE (1,2,3,4,5,6)'],
         [[0], [1], [2], [3], [4], [0,1], [2,3], [0,1,2,3,4,5]]),
-    lamfilter = -0.172
+    lamfilter = -0.194
     )
 
 
@@ -246,7 +246,7 @@ experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_SELECT.kwargs
 
@@ -266,7 +266,7 @@ class Pictures(object):
         self.upper, self.lower = (0.35, 0.5), (0.1, 0.25)  # limits for vspan
 #        self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
 
-        self.rotperiod =  0.68 # 0.66149 #0.68# #0.68 #rotation period
+        self.rotperiod =  0.68 # 0.66149 #0.68# #0.68 #rotation perio
         self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
         self.d0, self.d1 = (0.1, 0.9)  # limits for bisector
         self.cpd = [24.0 / 12.5 ]  # cycles per day, where to plot a vertical lline (FRot
@@ -1627,7 +1627,7 @@ if __name__ == '__main__':
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
 
-    #myPics.moving_peaks_simple_per_night()
+    myPics.moving_peaks_simple_per_night()
 
     #myPics.moving_peaks_signoise()
 
