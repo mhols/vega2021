@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import os
+import util
 
 vel_beg = 100 #-60. #km/s
 vel_end = 150# 40  #km/s
@@ -352,6 +353,8 @@ class SpectralAnalyser:
                 noiselevel    # variance of noise TODO CHECK std ?
         ):
 
+        self.rotperiod =  0.678 # 0.66149 #0.678# #0.678 #rotation period
+
         print (DATAFILE, normalise, vrange, noiselevel)
 
         # reading the file matrix
@@ -418,6 +421,58 @@ class SpectralAnalyser:
         for i in range(5):
             F[self.list_index[i], i] = 1
         return F
+
+    
+    def spot_density(self, **kwargs):
+
+        nbins=kwargs.get('nbins', 64)
+        meanprofile = np.median(self.intensity, axis=0)
+        meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
+
+        F = np.zeros((self.nvelocity, 3))     #linear model
+        F[:,0] = 1          #constant
+        F[:,1] = meanp      # mean profile
+        d = meanp[1:]-meanp[:-1]    #first derivative
+        F[:-1,2] = 0.5 * d
+        F[1:, 2] += 0.5 * d
+
+
+        diff = np.zeros((self.nobs, self.nvelocity))
+
+        for i in range(self.nobs):
+            pp = np.linalg.lstsq(F, self.intensity[i], rcond=None)[0]
+            diff[i,:] = self.intensity[i] - np.dot(F, pp) #difference between obs and 3 component adjutstment
+
+            ## collecting data for list of nights
+            TT = []
+            val = []
+
+            for I in self.list_index:
+
+                dd = diff[I]
+                dd -= np.median(dd, axis=0)
+
+                TT += list(self.time[I])
+                val += list(dd)
+
+            val = np.row_stack(val)
+
+
+        res, bins, mask = self.spectrum_matrix_full(
+                    self.time, val, period=self.rotperiod, nphase=nbins, method=np.median)
+        
+        star = util.StarSpotFinder(
+            movingpeak=res,
+            velocity_bins = self.velocity,
+            v0=-13.01,
+            vmax = 22,
+            angle= 7 * np.pi/180
+        )
+        star.lh_spot()
+
+        plt.show()
+
+
 
     def rv_eqwidth(self, relative_depth):
         """

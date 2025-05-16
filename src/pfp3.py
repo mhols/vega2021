@@ -1338,7 +1338,6 @@ class Pictures(object):
             plt.ylabel('phase fraction of period]')
 
 
-
     def moving_peaks_simple(self):
         nbins = 128
         sa = self.analyzer
@@ -1541,6 +1540,12 @@ class Pictures(object):
                 plt.plot(self.analyzer.eqwidth()[II][I], self.analyzer.meansignoise()[II][I], clrs[i-1])
             plt.savefig(name + self.format)
 
+    
+    def spot_density(self):
+        nbins = 64
+        self.analyzer.spot_density(nbins=nbins)
+        plt.savefig('spot_density.pdf')
+
     def estrotentropy(self):
         """
         estimating the rotation using local generalized entroypy
@@ -1605,8 +1610,8 @@ if __name__ == '__main__':
 #    myPics.intens()
 #    myPics.intens_all()
 #    myPics.vrad_mean_vspan()
-    myPics.vrad_corr_vspan()
-    myPics.vrad_mean_vspan()
+#    myPics.vrad_corr_vspan()
+#    myPics.vrad_mean_vspan()
 #    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
 #    myPics.vrad_mean_std()
@@ -1618,16 +1623,17 @@ if __name__ == '__main__':
 ##    myPics.ls_spec_vrad_mean()
 #    myPics.ls_spec_all3()
 ##    myPics.ls_spec_vrad_corr()
-    myPics.ls_spec_vrad_bis()
-    myPics.ls_spec_vspan()
+#    myPics.ls_spec_vrad_bis()
+#    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
-    myPics.bisector_time()
+#    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
+#    myPics.moving_peaks_simple_per_night()
 
-    myPics.moving_peaks_simple_per_night()
+    myPics.spot_density()
 
     #myPics.moving_peaks_signoise()
 

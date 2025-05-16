@@ -70,71 +70,80 @@ def vega_trace(theta, phi, phases=None):
 
 class StarSpotFinder:
 
-    def __init__(self, **kwargs):
+    def __init__(self, velocity_bins=None, movingpeak=None, interactive=False, **kwargs):
         self.kwargs = kwargs
 
-        self.fig, (self.ax0, self.ax1) = plt.subplots(1,2, width_ratios=[1, 1])
+        self.phase = 0
+        self.theta = np.pi/4
+        self.phi = 0 # longitude on star in its restframe
+        if velocity_bins is None:
+            self.velocity_bins = np.loadtxt(self.kwargs['vbins'])
+        else:
+            self.velocity_bins=velocity_bins
+        if movingpeak is None:
+            self.movingpeak = np.loadtxt(self.kwargs['image'])
+        else:
+            self.movingpeak = movingpeak
+ 
+        if interactive:
+            self.fig, (self.ax0, self.ax1) = plt.subplots(1,2, width_ratios=[1, 1])
         
-        self.axamp = self.fig.add_axes([0.9, 0.1, 0.1, 0.8])
+            self.axamp = self.fig.add_axes([0.9, 0.1, 0.1, 0.8])
         
-        # Make a vertically oriented slider to control the amplitude
-        self.amp_slider = Slider(
-        ax=self.axamp,
-            label="p",
-            valmin=0,
-            valmax=2*np.pi,
-            valinit=0,
-            orientation="vertical"
-        )
+            # Make a vertically oriented slider to control the amplitude
+            self.amp_slider = Slider(
+            ax=self.axamp,
+                label="p",
+                valmin=0,
+                valmax=2*np.pi,
+                valinit=0,
+                orientation="vertical"
+            )
 
 
 
     
 
-        # register the update function with each slider
-        self.amp_slider.on_changed(self._change_phase)
-
-        self.velocity_bins = np.loadtxt(self.kwargs['vbins'])
+            # register the update function with each slider
+            self.amp_slider.on_changed(self._change_phase)
 
 
-        # inernal state of possible spots (for the moment only one)
-        self.phase = 0
-        self.theta = np.pi/4
-        self.phi = 0 # longitude on star in its restframe
 
-        self.clickvelocity = 0
-        self.clickphase = 0
-        self._slide_phase = 0
+            # inernal state of possible spots (for the moment only one)
+            self.clickvelocity = 0
+            self.clickphase = 0
+            self._slide_phase = 0
 
-        self.line_image = []
+            self.line_image = []
 
-        self._on = False
-        self._mod = ''
+            self._on = False
+            self._mod = ''
 
-        self.line_star_earth_phi = []  # XYZ earth coordinates of orbit under different phases
-        self.line_star_earth_vel = []  # XYZ earth coordinates of orbit under constant velocity
-        self.line_velocities = []      # velocities 
+            self.line_star_earth_phi = []  # XYZ earth coordinates of orbit under different phases
+            self.line_star_earth_vel = []  # XYZ earth coordinates of orbit under constant velocity
+            self.line_velocities = []      # velocities 
         
-        self.line_star_star_phi = []   # XYZ star coordinates of orbit under different phases 
-        self.line_star_star_vel = []   # XYZ star coordinates of orbit under different phases 
+            self.line_star_star_phi = []   # XYZ star coordinates of orbit under different phases 
+            self.line_star_star_vel = []   # XYZ star coordinates of orbit under different phases 
 
 
-        self._update_line_image()
-        self._update_line_star_earth_phi()
-        self._update_line_star_earth_vel()
-        self._update_line_star_star()
+            self._update_line_image()
+            self._update_line_star_earth_phi()
+            self._update_line_star_earth_vel()
+            self._update_line_star_star()
 
 
-        self._plot_background()
-        self._plot_star_disk()
+            self._plot_background()
+            self._plot_star_disk()
 
-        self._plot_orbit_on_star_and_picture()
+            self._plot_orbit_on_star_and_picture()
 
-        self.fig.canvas.mpl_connect("button_press_event", self._switch_on)
-        self.fig.canvas.mpl_connect("motion_notify_event", self._move_the_point)
-        self.fig.canvas.mpl_connect("button_release_event", self._switch_off)
+            self.fig.canvas.mpl_connect("button_press_event", self._switch_on)
+            self.fig.canvas.mpl_connect("motion_notify_event", self._move_the_point)
+            self.fig.canvas.mpl_connect("button_release_event", self._switch_off)
 
  
+
     def _switch_on(self, event):
 
         self._on = True
@@ -326,7 +335,7 @@ class StarSpotFinder:
         )
 
         v0 = self.kwargs['v0']
-        vv = np.dot( self.rotation_star_to_earth(), v)
+        vv = np.dot( self.rotation_star_to_earth(), v) / np.sqrt( np.sum(v**2))
         vr = self.kwargs['vmax'] * vv[1, :] + self.kwargs['v0']
         visi = vv[0,:] > 0
 
@@ -341,7 +350,10 @@ class StarSpotFinder:
 
         res = 0
         try:
-            res = np.sum( [self.movingpeak[j[i], i ] for i in range(phases.shape[0]) if (i<self.velocity_bins.shape[0] and visi[i])])
+            res = np.sum( 
+                [self.movingpeak[j[i], i ] 
+                    for i in range(phases.shape[0]) 
+                        if (i<self.velocity_bins.shape[0] and visi[i])])
         except:
             pass
         return res
@@ -443,8 +455,6 @@ class StarSpotFinder:
         return orbit, visi, phases
 
     def _plot_background(self):
-        res = np.loadtxt(self.kwargs['image'])
-        self.movingpeak = res
         velocity = self.velocity_bins
         v0 = self.kwargs['v0']
         self.ax0.set_xlim(velocity[0]-v0, velocity[-1]-v0)
