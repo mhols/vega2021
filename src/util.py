@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.widgets import Slider
-from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import PPoly, make_interp_spline
 
 
@@ -367,7 +366,6 @@ class StarSpotFinder:
         theta=np.linspace(-np.pi/2, np.pi/2, 128)
         phi = np.linspace(0, 2*np.pi, 128)
 
-        map = Basemap(projection='moll', lon_0=0)
 
         #p, t = map.makegrid(nx=128, ny=128)
 
@@ -384,19 +382,8 @@ class StarSpotFinder:
     
         res = np.reshape(res, (len(theta), len(phi)))
 
-        plt.figure()
-        #map.drawcoastlines()
-        map.imshow(res.T, interpolation='bicubic')
-
-        map.drawmeridians(np.linspace(-180, 180, 12))
-        map.drawparallels(np.linspace(-90, 90, 6))
-        map.plot(180*phi/np.pi, 128*[180*self.kwargs['angle']/np.pi], '-b', latlon=True)
-        map.plot(180*phi/np.pi, 128*[0], '-r', latlon=True)
-        map.plot(180*phi/np.pi, 128*[-180*self.kwargs['angle']/np.pi], '-b', latlon=True)
-        plt.show()
-
         #print(res)
-        return res
+        return theta, phi, res
 
 
 
@@ -458,6 +445,7 @@ class StarSpotFinder:
         velocity = self.velocity_bins
         v0 = self.kwargs['v0']
         self.ax0.set_xlim(velocity[0]-v0, velocity[-1]-v0)
+        res=self.movingpeak
         self.ax0.imshow(-res, cmap=plt.cm.gray_r, 
                        aspect='auto',interpolation='bicubic', 
                        origin='lower',extent=[velocity[0]-v0, velocity[-1]-v0,0,2*np.pi],
@@ -538,7 +526,8 @@ if __name__ == '__main__':
         vbins = "velocitybins.txt",
         v0=-13.01,
         vmax = 22,
-        angle= 7 * np.pi/180
+        angle= 7 * np.pi/180,
+        interactive = True
         )
 
     plt.show()

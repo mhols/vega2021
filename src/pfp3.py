@@ -11,6 +11,7 @@ from matplotlib.colors import Normalize
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.basemap import Basemap
 from spectralutil_old import *
 
 radial_velocity = -13.9 #km/s
@@ -235,10 +236,10 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
     )
 
 
-#experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
+experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
@@ -1543,7 +1544,20 @@ class Pictures(object):
     
     def spot_density(self):
         nbins = 64
-        self.analyzer.spot_density(nbins=nbins)
+        theta, phi, res = self.analyzer.spot_density(nbins=nbins)
+        map = Basemap(projection='moll', lon_0=0)
+        plt.figure()
+        #map.drawcoastlines()
+        map.imshow(res.T, interpolation='bicubic')
+
+        map.drawmeridians(np.linspace(-180, 180, 12))
+        map.drawparallels(np.linspace(-90, 90, 6))
+        #map.plot(180*phi/np.pi, 128*[180*self.kwargs['angle']/np.pi], '-b', latlon=True)
+        map.plot(180*phi/np.pi, 128*[0], '-r', latlon=True)
+        #map.plot(180*phi/np.pi, 128*[-180*self.kwargs['angle']/np.pi], '-b', latlon=True)
+        plt.show()
+
+ 
         plt.savefig('spot_density.pdf')
 
     def estrotentropy(self):
@@ -1631,14 +1645,14 @@ if __name__ == '__main__':
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-#    myPics.moving_peaks_simple_per_night()
+    myPics.moving_peaks_simple_per_night()
 
     myPics.spot_density()
 
     #myPics.moving_peaks_signoise()
 
     # myPics.moving_peaks_simple()
-    #myPics.moving_peaks_simple_time()
+    # myPics.moving_peaks_simple_time()
     # myPics.moving_peaks_time()
     ###    myPics.estrotentropy()
 
