@@ -432,7 +432,7 @@ class SpectralAnalyser:
     
     def spot_density(self, **kwargs):
 
-        nbins=kwargs.get('nbins', 64)
+        nbins=256 # kwargs.get('nbins', 64)
         meanprofile = np.median(self.intensity, axis=0)
         meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
 
@@ -469,15 +469,13 @@ class SpectralAnalyser:
                     self.time, val, period=self.rotperiod, nphase=nbins, method=np.median)
         
         star = util.StarSpotFinder(
-            movingpeak=res,
+            movingpeak=np.random.normal(size=res.shape),
             velocity_bins = self.velocity,
             v0=-13.01,
-            vmax = 22,
+            vmax = 31,
             angle= 7 * np.pi/180
         )
-        star.lh_spot()
-
-        plt.show()
+        return star.lh_spot()
 
 
 
