@@ -95,8 +95,10 @@ VEGA_2012_SOPHIE_LSDPY = Experiment(
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5', 's12','s34','2012 SOPHIE (1,2,3,4,5)'],
-        [[0], [1], [2], [3], [4], [0,1], [2,3],[0,1,2,3,4]]),
+        ['s1','s2','s3','s4','s5', 's12','s34','2012 SOPHIE (1,2,3,4)'],
+        [[0], [1], [2], [3], [4], [0,1], [2,3],[0,1,2,3]]),
+        #['s12'],
+        #[[0,1]]),
     lamfilter = 1000
     )
 
@@ -1190,6 +1192,163 @@ class Pictures(object):
                 extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
                 vmin=-0.8, vmax=0.8)
 
+    def moving_peaks_simple_per_night_play(self):
+        nbins = 128
+        sa = self.analyzer
+        time = sa.time
+
+        meanprofile = np.median(sa.intensity, axis=0)
+        meanp = (1-meanprofile) / np.sqrt(np.sum((1-meanprofile)**2))
+
+        F = np.zeros((sa.nvelocity, 3))     #linear model
+        F[:,0] = 1          #constant
+        F[:,1] = meanp      # mean profile
+        d = meanp[1:]-meanp[:-1]    #first derivative
+        F[:-1,2] = 0.5 * d
+        F[1:, 2] += 0.5 * d
+
+
+        diff = np.zeros((sa.nobs, sa.nvelocity))
+
+        lams = np.zeros(sa.nobs)
+        offsets = np.zeros(sa.nobs)
+        translat = np.zeros(sa.nobs)
+
+        for i in range(sa.nobs):
+            pp = np.linalg.lstsq(F, sa.intensity[i], rcond=None)[0]
+            alpha = np.sum((1-sa.intensity[i]) * meanp)
+            #diff[i,:] = sa.intensity[i] - (1-alpha*meanp)
+            #pp[2]=0     #translation has no significant impact
+            #pp[1]=0    scaling has major impact!
+            #pp[0]=0    has impact
+            diff[i,:] = sa.intensity[i] - np.dot(F, pp) #difference between obs and 3 component adjutstment
+            #diff[i,:] = sa.intensity[i] - meanprofile
+            lams[i] = pp[1]             #coefficient of mean profile
+            offsets[i] = pp[0]          #shift in intensity (continuum normalization error)
+            translat[i] = pp[2]         #shift in velocity
+
+        #plt.figure()
+        #plt.plot(meanp)
+
+        #plt.figure()
+        #plt.plot(meanp[1:] - meanp[:-1])
+
+        #plt.figure()
+        #plt.title('lambda')
+        #plt.plot( time, lams, '.')
+
+        #plt.figure()
+        #plt.title('offset')
+        #plt.plot( time, offsets, '.')
+
+        #plt.figure()
+        #plt.title('translat')
+        #plt.plot( time, translat, '.')
+
+        #lamfilter = lams < experiment['lamfilter']      #throw out too extreme profile changes
+
+        #diff = sa.intensity - np.median(sa.intensity, axis=0)
+
+
+
+
+        #phasebins = np.linspace(0, self.rotperiod, nbins+1)
+        #I = np.digitize(np.mod(sa.time, self.rotperiod), phasebins)
+
+
+        #tt = np.mod(time, self.rotperiod)       #time modulo rotationperiod
+        
+        for na, nightlist in experiment['nights']:          #for all nights
+
+            plt.figure(figsize=(6,10))
+            plt.title('nights '+na)
+
+            res = np.zeros((nbins, sa.nvelocity))
+
+            ## collecting data for list of nights
+            TT = []
+            val = []
+
+            for night in nightlist:
+    
+                I = self.analyzer.list_index[night]         #indices showing belonging to a night
+
+                dd = sa.intensity[I]
+                H = np.median(dd, axis=0)#-1
+                #H = np.convolve([0.25,0.5,0.25], H)
+                #H = np.convolve([0.25,0.5,0.25], H)
+                #H = H[2:-2]+1
+                #plt.figure()
+                # plt.plot(H)
+                dd -= H
+
+                TT += list(time[I])
+                val += list(dd)
+
+            val = np.row_stack(val)
+
+            res, bins, mask = self.analyzer.spectrum_matrix_full(
+                    TT, val, period=self.rotperiod, nphase=nbins, method=np.median)
+            """
+                for i, p1p2 in enumerate(zip(phasebins[0:-1], phasebins[1:])):
+                    p1, p2 = p1p2
+                    II = (p1 <= tt[I]) & (tt[I] < p2) #& lamfilter[I]
+                    if sum(II) >=1:
+                        res[i,:] = np.median(dd[II], axis=0)
+            """
+
+            #minmax = np.max(np.abs(res))
+            #print(minmax)
+
+            #res /= minmax
+            #res = np.sign(res) * np.abs(res)**0.75
+
+
+            np.savetxt('moving_simple_per_night.txt', res)
+            np.savetxt('velocitybins.txt', self.velocity)
+
+            v0=-13.9
+            plt.imshow(-res, cmap=plt.cm.gray_r,
+                       aspect='auto',interpolation='bicubic',
+                       origin='lower',
+                       extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
+                       vmin=-0.0002,vmax=0.0002
+                       )
+            plt.savefig('nights'+na + self.format)
+
+            """
+            plt.imshow(
+                res,
+                #cmap=plt.cm.bwr,  #plt.cm.gray_r,
+                cmap=plt.cm.gray_r,
+                aspect='auto',
+                interpolation='bicubic',
+                origin='lower',
+                extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
+                vmin=-0.8, vmax=0.8)
+            """
+            plt.xticks([])
+            rv = np.array([-20, -10, 0, 10, 20 ])
+            st = [ str(i) for i in rv]
+            plt.xticks(rv, st)
+            plt.yticks([])
+            yt = [0,0.2,0.4,0.6,0.8, 1]
+            plt.yticks(yt,[str(t) for t in yt])
+            prof_beg_0 = -rotation_vsini
+            prof_end_0 =  rotation_vsini
+            full_prof_beg_0 = prof_beg_0-full_prof_add
+            full_prof_end_0 = prof_end_0+full_prof_add
+
+            plt.vlines([prof_beg_0,0,prof_end_0],0,1)
+            plt.vlines([full_prof_beg_0,0,full_prof_end_0],0,1,linestyles="dashed")
+
+            #plt.vlines([-22, 0, 22], 0,1)
+            #plt.vlines([-33, 0, 33], 0,1,linestyles='dashed')
+            plt.hlines([1./2],  full_prof_beg_0,full_prof_end_0)
+            plt.xlim(self.velocity[0]-v0, self.velocity[-1]-v0)
+            plt.xlabel('velocity [km/s]')
+            plt.ylabel('phase fraction of period]')
+
     def moving_peaks_simple_per_night(self):
         nbins = 128
         sa = self.analyzer
@@ -1294,6 +1453,7 @@ class Pictures(object):
 
             #res /= minmax
             #res = np.sign(res) * np.abs(res)**0.75
+
 
             np.savetxt('moving_simple_per_night.txt', res)
             np.savetxt('velocitybins.txt', self.velocity)
@@ -1642,10 +1802,12 @@ if __name__ == '__main__':
 #    myPics.ls_spec_eqwidth()
 #    myPics.bisector_time()
 #    myPics.bisector_width()
-#    myPics.ls_window()
+#    myPics.ls_window(-rw-rw-r-- 1 hols hols   22112 Jun  4 14:59  spectralutil_old.py
+
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-    myPics.moving_peaks_simple_per_night()
+    #myPics.moving_peaks_simple_per_night()
+    myPics.moving_peaks_simple_per_night_play()
 
     myPics.spot_density()
 

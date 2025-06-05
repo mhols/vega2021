@@ -487,14 +487,14 @@ class StarSpotFinder:
 
             self.ax0.plot( self.line_velocities, np.mod( self.sampled_phases - self.phi, 2 * np.pi), '.r', markersize=1)
 
-            self.ax1.plot( self.line_star_earth_phi[1,:], self.line_star_earth_phi[2,:], '.k', markersize=1)
+            self.ax1.plot( self.line_star_earth_phi[1,:], self.line_star_earth_phi[2,:], '.r', markersize=1)
             self.ax1.plot( self.line_star_earth_vel[1,:], self.line_star_earth_vel[2,:], '.y', markersize=1)
 
-            self.ax0.plot( [self.clickvelocity], [self.clickphase], 'or', markersize=5)
+            self.ax0.plot( [self.clickvelocity], [self.clickphase], 'oy', markersize=5)
 
             x, y, z = self.XYZ()
 
-            self.ax1.plot( [y], [z], '.k', markersize=4)
+            self.ax1.plot( [y], [z], '.y', markersize=10)
 
             # print(f'Spotposition (lat, lon) {180 * self.theta / np.pi},  {180 * self.phi / np.pi}')
 
@@ -525,7 +525,7 @@ if __name__ == '__main__':
         image = "moving_simple_per_night.txt",
         vbins = "velocitybins.txt",
         v0=-13.01,
-        vmax = 22,
+        vmax = 33,
         angle= 7 * np.pi/180,
         interactive = True
         )
