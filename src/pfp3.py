@@ -16,6 +16,23 @@ from spectralutil_old import *
 radial_velocity = -13.9 #km/s
 rotation_vsini = 21.6 #km/s
 full_prof_add = 10 #km/s
+
+# rotation period as of alina et al
+# rotper = 0.678 #d upper_errorbar = 0.0042, lower_errorbar = - 0.0042
+
+# rotation period as of 2012 and 2018 FELIX calculation
+#rotper = 0.6705 #d error bar 0.0019
+
+# rotation period FELIX for 2012 data
+# rotper = 0.6679 # error bar 0.0016
+
+# rotation period FELIX for 2018 data
+# rotper = 0.6730 # error bar 0.0001
+
+# rotation period fixed for comparision with PPetit
+rotper = 0.678
+
+
 prof_beg = radial_velocity-rotation_vsini #km/s
 prof_end = radial_velocity+rotation_vsini #km/s
 full_prof_beg =  prof_beg-full_prof_add #km/s
@@ -76,7 +93,7 @@ VEGA_2018_SOPHIE_LSDJFD = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2018_0310.dat'), # Sophie lines between 0.3 and 1.0 depth, medium
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days Petit et al 2022
+    prot = rotper, #days Petit et al 2022
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -85,12 +102,27 @@ VEGA_2018_SOPHIE_LSDJFD = Experiment(
     lamfilter = -0.465
 )
 
-# Sophie 2018 Sophie_pipeline LSDpy 2.0km/s mask_folsom
+# Sophie 2012 Sophie_pipeline LSDpy 2.0km/s mask_folsom
 VEGA_2012_SOPHIE_LSDPY = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2012_SOPHIE_maskvega_folsom.clean.1.7'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days
+    prot = rotper, #days
+    noiselevel = 1.3,
+    normalize = True,
+    nights = zip(
+        ['s1','s2','s3','s4','s5', 's12','s34','2012 SOPHIE (1,2,3,4,5)'],
+        [[0], [1], [2], [3], [4], [0,1], [2,3],[0,1,2,3,4]]),
+    lamfilter = 1000
+    )
+
+
+# Sophie 2012 Sophie_pipeline LSD Donati
+VEGA_2012_SOPHIE_LSD = Experiment(
+    DATAFILE = os.path.join(DATADIR, 'Vega_Sophie_2012_9500.40.03-10.dat'),
+    vrange = [-60.0, 40.0],
+    vrad = -13.4,
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -105,7 +137,7 @@ VEGA_2018_SOPHIE_LSDPY = Experiment(
 DATAFILE = os.path.join(DATADIR, 'Vega_2018_SOPHIE_maskvega_folsom.clean.dat.1.7'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -120,7 +152,7 @@ VEGA_2018_NARVAL_LE = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_Narval_2018_031.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,  
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -134,7 +166,7 @@ VEGA_2018_NARVAL_NEXTRA = Experiment(
 DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -149,11 +181,11 @@ VEGA_2018_NARVAL_NEXTRA_KM17 = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2018_maskvega_folsom.clean_1.7.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,  
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
-        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56','s123456'],
+        ['s1','s2','s3','s4','s5','s6', 's7', 's12','s34','s56','2018 NARVAL (1,2,3,4,5,6)'],
         [[0], [1], [2], [3], [4], [5], [6], [0,1], [2,3],[4,5],[0,1,2,3,4,5]]),
     lamfilter = 1000
     )
@@ -165,7 +197,7 @@ VEGA_2023_NEONARVAL_NEXTRA = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = list(zip(
@@ -181,7 +213,7 @@ VEGA_2023_NEONARVAL_NEXTRA_SELECT = Experiment(
     DATAFILE = os.path.join(DATADIR, 'Vega_2023_maskvega_folsom.clean_31_6_7_12.clean'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -196,7 +228,7 @@ VEGA_2023_NEONARVAL_NEXTRA_Q09 = Experiment(
     DATAFILE = os.path.join(DATADIR,'Vega_2023_maskvega_folsom.clean_0.9.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -211,7 +243,7 @@ VEGA_2024_NEONARVAL_NEXTRA = Experiment(
     #DATAFILE = os.path.join(DATADIR, 'Vega_2024_sel.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -225,7 +257,7 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
     DATAFILE = os.path.join(DATADIR, 'duofilematrix.dat'),
     vrange = [-60.0, 40.0],
     vrad = -13.4,
-    prot = 0.68, #days
+    prot = rotper, #days
     noiselevel = 1.3,
     normalize = True,
     nights = zip(
@@ -236,6 +268,7 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 
 
 #experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
+#experiment = VEGA_2012_SOPHIE_LSD.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
 experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
@@ -265,35 +298,44 @@ class Pictures(object):
 #        self.upper, self.lower = (0.35, 0.5), (0.15, 0.25)  # limits for vspan
         self.upper, self.lower = (0.35, 0.5), (0.1, 0.25)  # limits for vspan
 #        self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
-
-        self.rotperiod =  0.68 # 0.66149 #0.68# #0.68 #rotation perio
+        """
+        self.upper_errorbar = 0.036
+        self.lower_errorbar = - 0.029
+        self.rotperiod =  0.68 # 0.66149 #self.rotperiod# #self.rotperiod #rotation period
+        """
+        
+        self.upper_errorbar = 0.0001
+        self.lower_errorbar = - 0.0001
+        self.rotperiod =  0.678 # 0.66149 #self.rotperiod# #self.rotperiod #rotation period
+        ##self.rotperiod =  0.678
         self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
         self.d0, self.d1 = (0.1, 0.9)  # limits for bisector
         self.cpd = [24.0 / 12.5 ]  # cycles per day, where to plot a vertical lline (FRot
-        self.cpdl = 1. / (0.68 + 0.036)  # cycles per day, low, Alina
-        self.cpdh = 1. / (0.68 - 0.029)  # cycles per day, high, Alina
-        self.cpd2l = 1. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd2h = 1. / 0.68 + 1. / (0.68 - 0.029)
-        self.cpd3l = 2. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd3h = 2. / 0.68 + 1. / (0.68 - 0.029)
-        self.cpd4l = 3. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd4h = 3. / 0.68 + 1. / (0.68 - 0.029)
-        self.cpd5l = 4. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd5h = 4. / 0.68 + 1. / (0.68 - 0.029)
-        self.cpd6l = 5. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd6h = 5. / 0.68 + 1. / (0.68 - 0.029)
-        self.cpd7l = 6. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd7h = 6. / 0.68 + 1. / (0.68 - 0.029)
-        self.cpd8l = 7. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd8h = 7. / 0.68 + 1. / (0.68 - 0.029)
-        self.cpd9l = 8. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd9h = 8. / 0.68 + 1. / (0.68 - 0.029)
-        self.cpd10l = 9. / 0.68 + 1. / (0.68 + 0.036)
-        self.cpd10h = 9. / 0.68 + 1. / (0.68 - 0.029)
+        
+        self.cpdl = 1. / (self.rotperiod + self.upper_errorbar)  # cycles per day, low, Alina
+        self.cpdh = 1. / (self.rotperiod + self.lower_errorbar)  # cycles per day, high, Alina
+        self.cpd2l = 1. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd2h = 1. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
+        self.cpd3l = 2. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd3h = 2. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
+        self.cpd4l = 3. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd4h = 3. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
+        self.cpd5l = 4. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd5h = 4. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
+        self.cpd6l = 5. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd6h = 5. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
+        self.cpd7l = 6. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd7h = 6. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
+        self.cpd8l = 7. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd8h = 7. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
+        self.cpd9l = 8. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd9h = 8. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
+        self.cpd10l = 9. / self.rotperiod + 1. / (self.rotperiod + self.upper_errorbar)
+        self.cpd10h = 9. / self.rotperiod + 1. / (self.rotperiod + self.lower_errorbar)
 
         self.cpdnew = 1.78
 
-        self.cpdb = 1.6062959  # cycles per day, Butkovskaya
+        #self.cpdb = 1.6062959  # cycles per day, Butkovskaya
         self.nfreq = 1024  # number of frquencies for analysis
         self.min_cpd, self.max_cpd = 0.2, 50.  # limits of frequency analysis (cycles per day)
         self.format = ".pdf"  # all pictures as .pdf files
@@ -605,6 +647,28 @@ class Pictures(object):
         #plt.xlim(-13.1, -13.01)
         #plt.ylim(0.2, 0.6)
         plt.savefig(name + self.format)
+        
+
+        name="vspan_time"
+        plt.figure()
+        plt.title(name)
+        plt.title('vspan')
+        plt.plot(self.time, self.vspan, 'o')
+        plt.xlabel('time (BJD)')
+        plt.ylabel('vspan (km/s)')
+        plt.savefig(name + self.format)
+        np.savetxt(name, np.column_stack((self.time,self.vspan)), fmt='%12.8f')
+        
+        name="vrad_mean_time"
+        plt.figure()
+        plt.title(name)
+        plt.title('vrad_mean')
+        plt.plot(self.time, self.vrad_mean, 'o')
+        plt.xlabel('time (BJD)')
+        plt.ylabel('vrad_mean (km/s)')
+        plt.savefig(name + self.format)
+        np.savetxt(name, np.column_stack((self.time,self.vrad_mean)), fmt='%12.8f')
+
 
 
     def vrad_corr_vspan(self):
@@ -693,35 +757,43 @@ class Pictures(object):
         plt.savefig(name + self.format)
 
     def _plt_ls(self, amp, box=[], bars=True):
-        ll = [self.cpdl, self.cpd2l, self.cpd3l, self.cpd4l, self.cpd5l, self.cpd6l, self.cpd7l, self.cpd8l, self.cpd9l, self.cpd10l]
-        hh = [self.cpdh, self.cpd2h, self.cpd3h, self.cpd4h, self.cpd5h, self.cpd6h, self.cpd7h, self.cpd8h, self.cpd9h, self.cpd10h]
+        ll = [self.cpdl, self.cpd2l, self.cpd3l, self.cpd4l, self.cpd5l]
+        hh = [self.cpdh, self.cpd2h, self.cpd3h, self.cpd4h, self.cpd5h]
 
         if bars:
             for l, h in zip (ll, hh):
-                plt.gca().add_patch(plt.Rectangle((l,0), h-l, 0.3, fc='0.85', color='0.85'))
-                plt.gca().add_patch(plt.Rectangle((l-1,0), h-l, 0.15, fc='0.7', color='0.7'))
-                plt.gca().add_patch(plt.Rectangle((l+1,0), h-l, 0.15, fc='0.7', color='0.7'))
-                plt.gca().add_patch(plt.Rectangle((l-2,0), h-l, 0.02, fc='0.5', color='0.5'))
-                plt.gca().add_patch(plt.Rectangle((l+2,0), h-l, 0.02, fc='0.5', color='0.5'))
-
+                #plt.gca().add_patch(plt.Rectangle((l,0), h-l, 0.3, fc='0.85', color='0.85'))
+                #plt.gca().add_patch(plt.Rectangle((l,0), h-l, 0.3, fc='0.3', color='0.3'))
+                #plt.gca().add_patch(plt.Rectangle((l-1,0), h-l, 0.15, fc='0.5', color='0.5'))
+                #plt.gca().add_patch(plt.Rectangle((l+1,0), h-l, 0.15, fc='0.5', color='0.5'))
+                #plt.gca().add_patch(plt.Rectangle((l-2,0), h-l, 0.02, fc='0.7', color='0.7'))
+                #plt.gca().add_patch(plt.Rectangle((l+2,0), h-l, 0.02, fc='0.7', color='0.7'))
+                plt.gca().add_patch(plt.Rectangle((l,0), h-l, 0.3, fc='orangered', color='orangered'))
+                plt.gca().add_patch(plt.Rectangle((l,0), h-l, 0.3, fc='orangered', color='orangered'))
+                plt.gca().add_patch(plt.Rectangle((l-1,0), h-l, 0.15, fc='darkorange', color='darkorange'))
+                plt.gca().add_patch(plt.Rectangle((l+1,0), h-l, 0.15, fc='darkorange', color='darkorange'))
+                plt.gca().add_patch(plt.Rectangle((l-2,0), h-l, 0.02, fc='wheat', color='wheat'))
+                plt.gca().add_patch(plt.Rectangle((l+2,0), h-l, 0.02, fc='wheat', color='wheat'))
+            
+            """
             for n in range(1,5):
                 plt.vlines([n*self.cpdnew],0,0.3)
                 plt.vlines([n*self.cpdnew-1],0,0.15)
                 plt.vlines([n*self.cpdnew+1],0,0.15)
                 plt.vlines([n*self.cpdnew -2 ],0,0.02)
                 plt.vlines([n*self.cpdnew +2],0,0.02)
-
+            """
 
         maxa = max(amp)
         plt.axis([0,15.,0,maxa])
-        plt.plot(self.cycles_per_day, amp, '-k',linewidth=2, color = 'r')
+        plt.plot(self.cycles_per_day, amp, '-k',linewidth=2, color = 'dimgrey')
         plt.minorticks_on()
 
     def _plt_ls_vr(self, data):
         amp = np.abs(data)
 #        amp /= np.max(amp)
-        ll = [self.cpdl, self.cpd2l, self.cpd3l, self.cpd4l, self.cpd5l, self.cpd6l, self.cpd7l, self.cpd8l, self.cpd9l]
-        hh = [self.cpdh, self.cpd2h, self.cpd3h, self.cpd4h, self.cpd5h, self.cpd6h, self.cpd7h, self.cpd8h, self.cpd9h]
+        ll = [self.cpdl, self.cpd2l, self.cpd3l, self.cpd4l, self.cpd5l]
+        hh = [self.cpdh, self.cpd2h, self.cpd3h, self.cpd4h, self.cpd5h]
         for l, h in zip (ll, hh):
             plt.gca().add_patch(plt.Rectangle((l,0), h-l, 10., fc='0.85', color='0.85'))
             plt.gca().add_patch(plt.Rectangle((l-1,0), h-l, 5., fc='0.7', color='0.7'))
@@ -1336,6 +1408,7 @@ class Pictures(object):
             plt.xlim(self.velocity[0]-v0, self.velocity[-1]-v0)
             plt.xlabel('velocity [km/s]')
             plt.ylabel('phase fraction of period]')
+            plt.savefig('nights'+na + self.format)
 
 
     def moving_peaks_simple(self):
@@ -1609,8 +1682,8 @@ if __name__ == '__main__':
     #myPics.ts_eqwidth()
 #    myPics.intens()
 #    myPics.intens_all()
-#    myPics.vrad_mean_vspan()
-#    myPics.vrad_corr_vspan()
+    myPics.vrad_mean_vspan()
+    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_vspan()
 #    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
@@ -1619,21 +1692,21 @@ if __name__ == '__main__':
 #    myPics.skew_vspan()
 #    myPics.ts_skew()
 #    myPics.ts_vspan()
-#    myPics.ls_spec_vrad_skew()
+##   myPics.ls_spec_vrad_skew()
 ##    myPics.ls_spec_vrad_mean()
 #    myPics.ls_spec_all3()
 ##    myPics.ls_spec_vrad_corr()
-#    myPics.ls_spec_vrad_bis()
-#    myPics.ls_spec_vspan()
+##    myPics.ls_spec_vrad_bis()
+##    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
 #    myPics.bisector_time()
 #    myPics.bisector_width()
 #    myPics.ls_window()
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-#    myPics.moving_peaks_simple_per_night()
+    myPics.moving_peaks_simple_per_night()
 
-    myPics.spot_density()
+##    myPics.spot_density()
 
     #myPics.moving_peaks_signoise()
 

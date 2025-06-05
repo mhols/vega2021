@@ -70,7 +70,7 @@ def vega_trace(theta, phi, phases=None):
 
 class StarSpotFinder:
 
-    def __init__(self, velocity_bins=None, movingpeak=None, interactive=False, **kwargs):
+    def __init__(self, velocity_bins=None, movingpeak=None, interactive=True, **kwargs):
         self.kwargs = kwargs
 
         self.phase = 0
