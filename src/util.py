@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.widgets import Slider
 from scipy.interpolate import PPoly, make_interp_spline
-
+from mpl_toolkits.basemap import Basemap
 
 def TPXYZ(theta, phi):
     return np.row_stack(
@@ -16,7 +16,7 @@ def TPXYZ(theta, phi):
 
 def XYZTP(x,y,z):
     r = np.sqrt( x**2 + y**2 + z**2)
-    return np.vstack(
+    return np.row_stack(
         [
             np.arccos(z),
             np.arctan2(y,x)
@@ -220,10 +220,10 @@ class StarSpotFinder:
         pass
 
     def velocity(self, y):
-        return self.kwargs['v0'] + y * self.kwargs['vmax']
+        return y * self.kwargs['vmax']
     
     def y(self, v):
-        return (v-self.kwargs['v0']) / self.kwargs['vmax']
+        return v / self.kwargs['vmax']
 
     @property
     def sampled_phases(self):
@@ -311,54 +311,6 @@ class StarSpotFinder:
 
         return np.dot( self.rotation_star_to_earth(), v), v
     
-    def pixel_spot(self, theta, phi, phase=0):
-        """the likelihood to have a starspot at theta, phi (at phase)
-
-        :param theta: _description_
-        :type theta: _type_
-        :param phi: _description_
-        :type phi: _type_
-        :param phase: _description_, defaults to 0
-        :type phase: int, optional
-        """
-        phases = np.linspace(0, 2*np.pi, self.movingpeak.shape[1])
-        ct = np.cos(theta)
-        st = np.sin(theta)
-
-        v = np.vstack(
-            (
-               st * np.cos(phi+phase+phases),
-               st * np.sin(phi+phase+phases),
-               np.full( phases.shape[0], ct) 
-            )
-        )
-
-        v0 = self.kwargs['v0']
-        vv = np.dot( self.rotation_star_to_earth(), v) / np.sqrt( np.sum(v**2))
-        vr = self.kwargs['vmax'] * vv[1, :] + self.kwargs['v0']
-        visi = vv[0,:] > 0
-
-        dv = self.velocity_bins[1] - self.velocity_bins[0]
-
-        vel = np.zeros(self.velocity_bins.shape[0] + 1)
-        vel[1:] = self.velocity_bins + dv/2
-        vel[0] = self.velocity_bins[0] - dv/2
-
-        j = np.digitize(vr, vel)
-        visi = vv[0,:] > 0
-        return j, visi
-    
-    def grid_spot(self, theta, phi, phase=0):
-        tmp = np.zeros_like(self.movingpeak)
-        j, visi = self.pixel_spot(theta, phi, phase)
-        
-        for i in range(tmp.shape[0]):
-            tmp[i, j[i]] = 1
-
-        return tmp
-
-    
-    
     def likelihood_spot(self, theta, phi, phase=0):
         """the likelihood to have a starspot at theta, phi (at phase)
 
@@ -369,9 +321,7 @@ class StarSpotFinder:
         :param phase: _description_, defaults to 0
         :type phase: int, optional
         """
-        phases = np.linspace(0, 2*np.pi, self.movingpeak.shape[1])
-
-        """
+        phases = np.linspace(0, 2*np.pi, self.movingpeak.shape[0])
         ct = np.cos(theta)
         st = np.sin(theta)
 
@@ -384,7 +334,7 @@ class StarSpotFinder:
         )
 
         v0 = self.kwargs['v0']
-        vv = np.dot( self.rotation_star_to_earth(), v) / np.sqrt( np.sum(v**2))
+        vv = np.dot( self.rotation_star_to_earth(), v) 
         vr = self.kwargs['vmax'] * vv[1, :] + self.kwargs['v0']
         visi = vv[0,:] > 0
 
@@ -396,17 +346,13 @@ class StarSpotFinder:
 
         j = np.digitize(vr, vel)
         # print(j)
-        """
 
-        j, visi = self.pixel_spot(theta, phi, phase)
         res = 0
-        try:
-            res = np.sum( 
-                [self.movingpeak[j[i], i ] 
-                    for i in range(phases.shape[0]) 
-                        if (i<self.velocity_bins.shape[0] and visi[i])])
-        except:
-            pass
+        for i in range(phases.shape[0]):
+            if visi[i]:
+                res += self.movingpeak[i, j[i]] 
+
+            #print(i, j[i], self.movingpeak[i, j[i]]) 
         return res
 
 
@@ -415,7 +361,7 @@ class StarSpotFinder:
     def lh_spot(self):
 
 
-        theta=np.linspace(-np.pi/2, np.pi/2, 128)
+        theta=np.linspace(0, np.pi, 128, endpoint=True)
         phi = np.linspace(0, 2*np.pi, 128)
 
 
@@ -429,10 +375,9 @@ class StarSpotFinder:
         res = np.zeros(len(theta)*len(phi))
 
         for i, tp in enumerate(zip(t.ravel(), p.ravel())):
-            # print(i, tp)
-            res[i] = self.likelihood_spot(np.pi/2 - tp[0], tp[1])
+            res[i] = self.likelihood_spot(tp[0], tp[1])
     
-        res = np.reshape(res, (len(theta), len(phi)))
+        res = np.reshape(res, (len(phi), len(theta) ))
 
         #print(res)
         return theta, phi, res
@@ -493,22 +438,13 @@ class StarSpotFinder:
 
         return orbit, visi, phases
 
-    def velocity_from_Y(self, y):
-        """
-        the radial velocity from the y coordinate
-        """
-        return 
-    
-    def Y_from_velocity(self, v):
-        return
-
     def _plot_background(self):
         velocity = self.velocity_bins
         v0 = self.kwargs['v0']
         self.ax0.set_xlim(velocity[0]-v0, velocity[-1]-v0)
         res=self.movingpeak
         self.ax0.imshow(-res, cmap=plt.cm.gray_r, 
-                       aspect='auto',interpolation='bicubic', 
+                       aspect='auto',interpolation='none',
                        origin='lower',extent=[velocity[0]-v0, velocity[-1]-v0,0,2*np.pi],
                        vmin=-0.0002,vmax=0.0002)
         
@@ -559,13 +495,27 @@ class StarSpotFinder:
 
             # print(f'Spotposition (lat, lon) {180 * self.theta / np.pi},  {180 * self.phi / np.pi}')
 
-            # print(self.likelihood_spot(self.theta, self.phi, self.phase))
+            #print(self.likelihood_spot(self.theta, self.phi, self.phase))
 
         except:
             pass
 
 
+    def plot_lh(self):
 
+        theta, phi, res = self.lh_spot()
+
+        map = Basemap(projection='moll', lon_0=0)
+        plt.figure()
+        #map.drawcoastlines()
+        map.imshow(res[:, ::-1].T, interpolation='none')
+
+        map.drawmeridians(np.linspace(-180, 180, 12))
+        map.drawparallels(np.linspace(-90, 90, 6))
+        #map.plot(180*phi/np.pi, 128*[180*self.kwargs['angle']/np.pi], '-b', latlon=True)
+        map.plot(180*phi/np.pi, 128*[0], '-r', latlon=True)
+        #map.plot(180*phi/np.pi, 128*[-180*self.kwargs['angle']/np.pi], '-b', latlon=True)
+        plt.show()
 
 
 
@@ -583,7 +533,7 @@ if __name__ == '__main__':
 
 
     star = StarSpotFinder(
-        image = "moving_simple_per_night.txt",
+        image = image, #"test_spot.txt", "moving_simple_per_night.txt",
         vbins = "velocitybins.txt",
         v0=-13.01,
         vmax = 22,
@@ -591,11 +541,6 @@ if __name__ == '__main__':
         interactive = False
         )
 
-    #plt.show()
-    
-    plt.figure()
-    plt.imshow(star.lh_spot()[2].T) 
-
-    #star.lh_spot()
+    star.plot_lh()
 
     plt.show()

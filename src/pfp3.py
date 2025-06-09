@@ -238,10 +238,10 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
     )
 
 
-experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
+#experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
@@ -1708,7 +1708,7 @@ class Pictures(object):
         map = Basemap(projection='moll', lon_0=0)
         plt.figure()
         #map.drawcoastlines()
-        map.imshow(res.T, interpolation='bicubic')
+        map.imshow(res[:,::-1].T, interpolation='bicubic')
 
         map.drawmeridians(np.linspace(-180, 180, 12))
         map.drawparallels(np.linspace(-90, 90, 6))
@@ -1806,8 +1806,8 @@ if __name__ == '__main__':
 
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-    #myPics.moving_peaks_simple_per_night()
-    myPics.moving_peaks_simple_per_night_play()
+    myPics.moving_peaks_simple_per_night()
+    # myPics.moving_peaks_simple_per_night_play()
 
     myPics.spot_density()
 
