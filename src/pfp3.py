@@ -1855,8 +1855,8 @@ if __name__ == '__main__':
     #myPics.ts_eqwidth()
 #    myPics.intens()
 #    myPics.intens_all()
-    myPics.vrad_mean_vspan()
-    myPics.vrad_corr_vspan()
+#    myPics.vrad_mean_vspan()
+#    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_vspan()
 #    myPics.vrad_corr_vspan()
 #    myPics.vrad_mean_skew()
@@ -1883,9 +1883,9 @@ if __name__ == '__main__':
     #myPics.moving_peaks_simple_per_night_play()
 
 
-##    myPics.spot_density()
+    myPics.spot_density()
 
-    #myPics.moving_peaks_signoise()
+    myPics.moving_peaks_signoise()
 
     # myPics.moving_peaks_simple()
     # myPics.moving_peaks_simple_time()
