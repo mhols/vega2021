@@ -1878,11 +1878,6 @@ if __name__ == '__main__':
 
 #    alldata = [self.time, self.inte, self.vrad_mean, self.vrad_corr, self.vspan, self.vrad_skew, self.vrad_std]
 #   myPics.bayes_freq_vrad_mean()
-<<<<<<< HEAD
-    myPics.moving_peaks_simple_per_night()
-    # myPics.moving_peaks_simple_per_night_play()
-=======
->>>>>>> 524f648700e93cd37ef94be20a5241850df2dd71
 
     myPics.moving_peaks_simple_per_night()
     #myPics.moving_peaks_simple_per_night_play()
