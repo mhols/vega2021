@@ -1530,6 +1530,7 @@ class Pictures(object):
             np.savetxt('velocitybins.txt', self.velocity)
 
             v0=-13.9
+            # a dark spot on the stellar surface produces an emission bump in the stellar spectroscopic profile. A bright spot produces a dark line. Here we want to show bright lines = bright spot, we therefore plot -res:
             plt.imshow(-res, cmap=plt.cm.gray_r,
                        aspect='auto',interpolation='bicubic',
                        origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],

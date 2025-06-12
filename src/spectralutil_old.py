@@ -44,8 +44,9 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     
     # for Sophie 2018 data set
     time = time - 24583313.417
-    #time = time -time[0]
     
+    # for Neo-Narval 2023 and 2024 data
+    #time = time -2456892.015
 
     velocity = data[0, colspec:colval]  # velocities of bins (redundant data format...)
     intens = data[:, colval:colvul]  # intensities
@@ -66,7 +67,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
 
 
     print (fluctuation.shape, time.shape)
-    q = np.quantile(fluctuation, 0.8)
+    q = np.quantile(fluctuation, 0.6)
     I, = np.where( fluctuation <= q)
 
     print(I)

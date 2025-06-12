@@ -443,7 +443,7 @@ class StarSpotFinder:
         v0 = self.kwargs['v0']
         self.ax0.set_xlim(velocity[0]-v0, velocity[-1]-v0)
         res=self.movingpeak
-        self.ax0.imshow(-res, cmap=plt.cm.gray_r, 
+        self.ax0.imshow(-res, cmap=plt.cm.gray_r,
                        aspect='auto',interpolation='none',
                        origin='lower',extent=[velocity[0]-v0, velocity[-1]-v0,0,2*np.pi],
                        vmin=-0.0002,vmax=0.0002)
@@ -508,7 +508,17 @@ class StarSpotFinder:
         map = Basemap(projection='moll', lon_0=0)
         plt.figure()
         #map.drawcoastlines()
-        map.imshow(res[:, ::-1].T, interpolation='none')
+        #map.imshow(res[:, ::-1].T, interpolation='none',vmin=-0.004,vmax=0.005)
+        
+        #### simultions showed that a bright line in the dynamic spectrum produces a bright
+        # yellow spot in the map. A bright line in the dynamic spectrum corresponds to a dark spot
+        # on the stellar surface. If we want to have bright yellow spot on map = bright spot on
+        # star, we have to plot -res and not res!
+        
+        
+        
+        
+        map.imshow(-res[:, ::-1].T, interpolation='none')
 
         map.drawmeridians(np.linspace(-180, 180, 12))
         map.drawparallels(np.linspace(-90, 90, 6))
