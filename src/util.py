@@ -543,7 +543,7 @@ if __name__ == '__main__':
 
 
     star = StarSpotFinder(
-        image = image, #"test_spot.txt", "moving_simple_per_night.txt",
+        image = "test_spot.txt", #"moving_simple_per_night.txt",
         vbins = "velocitybins.txt",
         v0=-13.01,
         vmax = 22,

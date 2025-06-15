@@ -270,7 +270,7 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
     )
 
 
-#experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
+experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
 #experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
