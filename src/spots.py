@@ -79,6 +79,8 @@ class Spot:
 
         try:
             bins = self.kwargs['velocitybins']
+            d = (np.max(bins) - np.min(bins)) / (len(bins)-1)
+            bins = np.min(bins)  + d * (np.arange(len(bins)+1) - 0.5)
         except:
             d = (self.kwargs['vbinmax'] - self.kwargs['vbinmin']) / (self.kwargs['nvelocity'] -1 )
             bins = self.kwargs['vbinmin'] + d * (np.arange(self.kwargs['nvelocity']+1) - 0.5)
@@ -255,10 +257,10 @@ if __name__=="__main__":
     s = Spot(
         period=0.7, 
         angle=7*np.pi/180,
-        nvelocity=58,
-        vbinmin= -58.9,
-        vbinmax=38.0,
-        vbins=vbins,
+        #nvelocity=58,
+        #vbinmin= -58.9,
+        #vbinmax=38.0,
+        velocitybins=vbins,
         nphase=128, 
         v0=-13.01, 
         vmax=22,
