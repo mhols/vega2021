@@ -518,7 +518,7 @@ class StarSpotFinder:
         
         
         
-        map.imshow(-res[:, ::-1].T, interpolation='none')
+        map.imshow(-res[:, ::-1].T, interpolation='none',vmin=-0.004,vmax=0.004)
 
         map.drawmeridians(np.linspace(-180, 180, 12))
         map.drawparallels(np.linspace(-90, 90, 6))
