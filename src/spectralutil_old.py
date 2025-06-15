@@ -37,15 +37,18 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     time = data[:, coltime].ravel()
 
     #subtraction of the HJD_zero by P.Petit
-    #time = time-2456892.015
+    time = time-2456892.015
     
     #for Sophie 2012 (works for all):
-    #time = time-2456142.
+    #time zero is 2456142.332
+    #time = time - time[0]
     
     # for Sophie 2018 data set
-    time = time - 24583313.417
-    #time = time -time[0]
+    #time = time - 24583313.417
+    # put to zero data from 60:75
     
+    # for Neo-Narval 2023 and 2024 data
+    #time = time -2456892.015
 
     velocity = data[0, colspec:colval]  # velocities of bins (redundant data format...)
     intens = data[:, colval:colvul]  # intensities
@@ -361,7 +364,7 @@ class SpectralAnalyser:
         ):
 
         self.rotperiod =  0.678 # 0.66149 #0.678# #0.678 #rotation period
-
+        
         print (DATAFILE, normalise, vrange, noiselevel)
 
         # reading the file matrix
