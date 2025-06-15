@@ -277,7 +277,7 @@ experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
-experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
+#experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
