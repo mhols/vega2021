@@ -37,11 +37,13 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     time = data[:, coltime].ravel()
 
     #subtraction of the HJD_zero by P.Petit
-    #time = time-2456892.015
+    time = time-2456892.015
     
     #for Sophie 2012 (works for all):
     #time zero is 2456142.332
-    time = time - time[0]
+    #time = time - time[0]
+    #time = time - 2456142
+
     
     # for Sophie 2018 data set
     #time = time - 24583313.417
