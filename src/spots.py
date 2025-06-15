@@ -179,13 +179,9 @@ class Spot:
 
             bias = self._bias(res)
 
-            plt.figure()
-            plt.plot(bias)
-            plt.show()
-
             for i in range(res.shape[0]):
                 j = i % self.kwargs['ntheta']
-                res[i, :] /= bias[j]
+                res[i, :] /= 1 #bias[j]
 
             self._matrix_wavemap_star = res
 
@@ -202,9 +198,9 @@ class Spot:
 
             wm = self.matrix_star_wavemap()[:, i]
             tmp = np.dot (F, wm)
-            res[i] = np.sum(np.abs(tmp)) #/ np.sin(th) 
+            res[i] = np.max(np.abs(tmp)) / np.sin(th) 
 
-        return res + 0.2*np.max(res)
+        return res + 0.3*np.max(res)
     
     def plot_on_sphere(self, value):
 
@@ -213,6 +209,8 @@ class Spot:
             value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
 
         map.imshow(value[:, ::-1].T, interpolation='none')
+        map.drawmeridians(np.linspace(-180, 180, 12))
+        map.drawparallels(np.linspace(-90, 90 , 6))
 
 
     def extended_spot(self, theta, phi, angle):
@@ -250,7 +248,7 @@ if __name__=="__main__":
     import matplotlib.pyplot as plt
 
     vbins = np.loadtxt('velocitybins.txt')
-    movingpeaks = np.loadtxt('moving_simple_per_night.txt')
+    movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
 
     GRAD = np.pi/180
 
@@ -270,7 +268,7 @@ if __name__=="__main__":
     
 
 
-    spots = s.extended_spot(60*GRAD, 180*GRAD, 10*GRAD)  + s.extended_spot(6*GRAD, 0*GRAD, 10*GRAD) + s.extended_spot(80*GRAD, 270*GRAD, 10*GRAD)
+    spots = s.extended_spot(50*GRAD, 100*GRAD, 20*GRAD)  + s.extended_spot(10*GRAD, 180*GRAD, 20*GRAD) + s.extended_spot(70*GRAD, 270*GRAD, 20*GRAD)
     phasemap = s.phasemap_from_star(spots)
     print( s.matrix_star_wavemap().shape )
     plt.figure()

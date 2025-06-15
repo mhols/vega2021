@@ -43,6 +43,7 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     #time zero is 2456142.332
     time = time - time[0]
     #time = time - 2456142
+
     
     # for Sophie 2018 data set
     #time = time - 24583313.417
