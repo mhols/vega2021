@@ -277,7 +277,7 @@ experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
-experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
+#experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
@@ -1884,9 +1884,9 @@ if __name__ == '__main__':
     #myPics.moving_peaks_simple_per_night_play()
 
 
-    myPics.spot_density()
+    #myPics.spot_density()
 
-    myPics.moving_peaks_signoise()
+    #myPics.moving_peaks_signoise()
 
     # myPics.moving_peaks_simple()
     # myPics.moving_peaks_simple_time()
