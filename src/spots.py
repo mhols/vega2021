@@ -210,9 +210,13 @@ class Spot:
         if len(value.shape)==1:
             value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
 
+        #map.imshow(1e8*value[:, ::-1].T, interpolation='none',vmin=-5,vmax=3.5)
         map.imshow(value[:, ::-1].T, interpolation='none')
+        #map.imshow(value[:, ::-1].T, interpolation='none',vmin=-0.004,vmax=0.004)
         map.drawmeridians(np.linspace(-180, 180, 12))
         map.drawparallels(np.linspace(-90, 90 , 6))
+        map.drawparallels([0], color = "red", linewidth=2)
+        #map.plot(180*phi./np.pi, 128*[0], '-r', latlon=True)
 
 
     def extended_spot(self, theta, phi, angle):
@@ -269,23 +273,26 @@ if __name__=="__main__":
         )
     
 
+    spots = s.extended_spot(50*GRAD, 100*GRAD, 10*GRAD)  + s.extended_spot(10*GRAD, 180*GRAD,10*GRAD) + s.extended_spot(70*GRAD, 270*GRAD, 20*GRAD)
+    #spots =  s.extended_spot(80*GRAD, 10*GRAD, 10*GRAD)
 
-    spots = s.extended_spot(50*GRAD, 100*GRAD, 20*GRAD)  + s.extended_spot(10*GRAD, 180*GRAD, 20*GRAD) + s.extended_spot(70*GRAD, 270*GRAD, 20*GRAD)
     phasemap = s.phasemap_from_star(spots)
     print( s.matrix_star_wavemap().shape )
-    plt.figure()
-    plt.imshow(s.reshape(s.matrix_star_wavemap()[:, 678]))
+    #plt.figure()
+    #plt.imshow(s.reshape(s.matrix_star_wavemap()[:, 678]))
 
     plt.figure()
     s.plot_on_sphere( spots )
 
     plt.figure()
-    plt.imshow(phasemap)
+    plt.imshow(phasemap, origin='lower')
+    plt.gca().invert_xaxis()
 
+    
     plt.figure()
     s.plot_on_sphere(s.star_from_phasemap(phasemap, niter=1))
 
-    plt.figure()
-    s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
+    #plt.figure()
+    #s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
 
     plt.show()

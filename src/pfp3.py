@@ -32,7 +32,7 @@ full_prof_add = 10 #km/s
 
 # rotation period fixed for comparision with PPetit
 rotper = 0.678
-
+#rotper = 0.670
 
 prof_beg = radial_velocity-rotation_vsini #km/s
 prof_end = radial_velocity+rotation_vsini #km/s
@@ -273,7 +273,7 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 #experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
@@ -281,7 +281,7 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
-experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
+#experiment = VEGA_2023_NEONARVAL_NEXTRA.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_Q09.kwargs
 #experiment = VEGA_2023_NEONARVAL_NEXTRA_SELECT.kwargs
 
@@ -308,8 +308,8 @@ class Pictures(object):
         
         self.upper_errorbar = 0.0001
         self.lower_errorbar = - 0.0001
-        self.rotperiod =  0.678 # 0.66149 #self.rotperiod# #self.rotperiod #rotation period
-        ##self.rotperiod =  0.678
+        #self.rotperiod =  0.670 # 0.66149 #self.rotperiod# #self.rotperiod #rotation period
+        self.rotperiod =  0.678
         self.extension = (0.15, 0.3) # limits of bisector area for median calculation vrad_bis
         self.d0, self.d1 = (0.1, 0.9)  # limits for bisector
         self.cpd = [24.0 / 12.5 ]  # cycles per day, where to plot a vertical lline (FRot
@@ -1871,7 +1871,7 @@ if __name__ == '__main__':
 #    myPics.ls_spec_all3()
 ##    myPics.ls_spec_vrad_corr()
 ##    myPics.ls_spec_vrad_bis()
-##    myPics.ls_spec_vspan()
+###    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()
 #    myPics.bisector_time()
 #    myPics.bisector_width()
