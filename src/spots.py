@@ -175,15 +175,20 @@ class Spot:
 
             for i, (tth, pph) in enumerate(zip(th, ph)):
                 res[i, : ] = np.where( self.phasemap_of_point_spot(tth, pph).ravel() * np.sin(tth) > 0, 1, 0)
+                # res[i, : ] = self.phasemap_of_point_spot(tth, pph).ravel() 
                 fac = 1 #np.sum(res[i, : ]**2)
                 if fac > 0:
                     res[i, : ] /= fac
 
-            bias = self._bias(res)
+            b = np.dot( self.matrix_star_wavemap(), np.ones(th.shape[0]))
+            b = np.dot( res, b)
 
-            for i in range(res.shape[0]):
-                j = i % self.kwargs['ntheta']
-                res[i, :] /= 1 #bias[j]
+            res /=  (b + 0.1 * np.max(b))[:, None]
+            #bias = self._bias(res)
+
+            #for i in range(res.shape[0]):
+            #    j = i % self.kwargs['ntheta']
+            #    res[i, :] /= 1 #bias[j]
 
             self._matrix_wavemap_star = res
 
@@ -195,12 +200,15 @@ class Spot:
         theta = tp[0].ravel()
         phi = tp[1].ravel()
         res = np.zeros(self.kwargs['ntheta'])
+        """
         for i in range(self.kwargs['ntheta']):
             th = theta[i]
 
             wm = self.matrix_star_wavemap()[:, i]
             tmp = np.dot (F, wm)
             res[i] = np.max(np.abs(tmp)) / np.sin(th) 
+        """
+
 
         return res + 0.3*np.max(res)
     
