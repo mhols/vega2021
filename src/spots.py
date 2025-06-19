@@ -67,7 +67,7 @@ class Spot:
         """
         self.kwargs = kwargs
         self.velocitybins = self._vbins() # limits of velcity bins (one more than actual bins)
-
+        self.velocitybinscenters = 0.5 * (self.velocitybins[1:] + self.velocitybins[:-1])
 
     def angle(self):
         return self.kwargs['angle']
@@ -226,6 +226,26 @@ class Spot:
         map.drawparallels([0], color = "red", linewidth=2)
         #map.plot(180*phi./np.pi, 128*[0], '-r', latlon=True)
 
+    def plot_phasemap(self, phasemap):
+
+        vbins = self.velocitybinscenters
+        v0 = self.kwargs['v0']
+
+        plt.imshow(phasemap, aspect='auto',interpolation='none', origin='lower',
+                extent=[vbins[0]-v0, vbins[-1]-v0,0,1])
+        plt.xticks([])
+        rv = np.array([-20, -10, 0, 10, 20 ])
+        st = [ str(i) for i in rv]
+        plt.xticks(rv, st)
+        plt.yticks([])
+        yt = [0,0.2,0.4,0.6,0.8, 1]
+        plt.yticks(yt,[str(t) for t in yt])
+        plt.vlines([-22, 0, 22], 0,1)
+        plt.vlines([-35, 0, 37], 0,1,linestyles='dashed')
+        plt.hlines([1./2], -33,32)
+        plt.xlim(vbins[0]-v0, vbins[-1]-v0)
+        plt.xlabel('velocity [km/s]')
+        plt.ylabel('phase fraction of period]')
 
     def extended_spot(self, theta, phi, angle):
         t, p = self.theta_phi_grid()
@@ -263,7 +283,7 @@ if __name__=="__main__":
 
     vbins = np.loadtxt('velocitybins.txt')
     movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
-
+    v0=-13.01
     GRAD = np.pi/180
 
     s = Spot(
@@ -281,21 +301,23 @@ if __name__=="__main__":
         )
     
 
-    spots = s.extended_spot(50*GRAD, 100*GRAD, 10*GRAD)  + s.extended_spot(10*GRAD, 180*GRAD,10*GRAD) + s.extended_spot(70*GRAD, 270*GRAD, 20*GRAD)
+    spots = s.extended_spot(50*GRAD, 100*GRAD, 10*GRAD)  + \
+        s.extended_spot(10*GRAD, 180*GRAD,10*GRAD) + s.extended_spot(70*GRAD, 270*GRAD, 10*GRAD)
     #spots =  s.extended_spot(80*GRAD, 10*GRAD, 10*GRAD)
 
     phasemap = s.phasemap_from_star(spots)
     print( s.matrix_star_wavemap().shape )
     plt.figure()
-    plt.imshow(s.reshape(s.matrix_star_wavemap()[:, 678]))
+
+    #plt.imshow(s.reshape(s.matrix_star_wavemap()[:, 678]))
+    s.plot_phasemap(s.reshape(s.matrix_star_wavemap()[:, 678]))
+
 
     plt.figure()
     s.plot_on_sphere( spots )
 
     plt.figure()
-    plt.imshow(phasemap, origin='lower')
-    plt.gca().invert_xaxis()
-
+    s.plot_phasemap( s.reshape(phasemap) )
     
     plt.figure()
     s.plot_on_sphere(s.star_from_phasemap(phasemap, niter=1))
