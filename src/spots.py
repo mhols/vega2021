@@ -213,7 +213,7 @@ class Spot:
         return res + 0.3*np.max(res)
     
     def plot_on_sphere(self, value):
-
+        # Mollweider  moll ou mercator merc
         map = Basemap(projection='moll', lon_0=np.pi/2)
         if len(value.shape)==1:
             value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
@@ -286,8 +286,8 @@ if __name__=="__main__":
 
     phasemap = s.phasemap_from_star(spots)
     print( s.matrix_star_wavemap().shape )
-    #plt.figure()
-    #plt.imshow(s.reshape(s.matrix_star_wavemap()[:, 678]))
+    plt.figure()
+    plt.imshow(s.reshape(s.matrix_star_wavemap()[:, 678]))
 
     plt.figure()
     s.plot_on_sphere( spots )
@@ -300,7 +300,7 @@ if __name__=="__main__":
     plt.figure()
     s.plot_on_sphere(s.star_from_phasemap(phasemap, niter=1))
 
-    #plt.figure()
-    #s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
+    plt.figure()
+    s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
 
     plt.show()
