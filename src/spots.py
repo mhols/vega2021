@@ -301,9 +301,8 @@ if __name__=="__main__":
         )
     
 
-    spots = s.extended_spot(50*GRAD, 100*GRAD, 10*GRAD)  + \
-        s.extended_spot(10*GRAD, 180*GRAD,10*GRAD) + s.extended_spot(70*GRAD, 270*GRAD, 10*GRAD)
-    #spots =  s.extended_spot(80*GRAD, 10*GRAD, 10*GRAD)
+    #spots = s.extended_spot(50*GRAD, 100*GRAD, 10*GRAD)  + s.extended_spot(10*GRAD, 180*GRAD,10*GRAD) + s.extended_spot(70*GRAD, 270*GRAD, 20*GRAD)
+    spots =  s.extended_spot(80*GRAD, 10*GRAD, 10*GRAD)
 
     phasemap = s.phasemap_from_star(spots)
     print( s.matrix_star_wavemap().shape )
