@@ -118,7 +118,7 @@ class Spot:
         return (v-self.kwargs['v0']) / self.kwargs['vmax']
     
     def times(self):
-        return np.linspace(0, self.kwargs['period'], self.kwargs['nphase'])
+        return np.linspace(0, self.kwargs['period'], self.kwargs['nphase']+1)[:-1]
 
 
     def phasemap_of_point_spot(self, theta, phi):
