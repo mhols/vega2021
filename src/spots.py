@@ -1,5 +1,6 @@
 import numpy as np
 from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
 import sys
 #from util import *
 
@@ -84,12 +85,13 @@ class Spot:
         except:
             d = (self.kwargs['vbinmax'] - self.kwargs['vbinmin']) / (self.kwargs['nvelocity'] -1 )
             bins = self.kwargs['vbinmin'] + d * (np.arange(self.kwargs['nvelocity']+1) - 0.5)
+        
 
         return bins
     
     @property
     def nvelocity(self):
-        return self.velocitybins.shape[0]-1
+        return self.velocitybins.shape[0]
 
     def empty_phasemap(self):
         return np.zeros( (self.kwargs['nphase'], self.nvelocity))
@@ -141,7 +143,7 @@ class Spot:
         if not hasattr(self, '_theta_phi_grid'):
             self._theta_phi_grid = np.meshgrid(
                 np.linspace(0, np.pi, self.kwargs['ntheta']+2, endpoint=True)[1:-1], 
-                np.linspace(0, 2*np.pi, self.kwargs['nphi'], endpoint=False)
+                np.linspace(-np.pi, np.pi, self.kwargs['nphi'], endpoint=False)
         )
         return self._theta_phi_grid
     
@@ -213,8 +215,8 @@ class Spot:
         return res + 0.3*np.max(res)
     
     def plot_on_sphere(self, value):
-        # Mollweider  moll ou mercator merc
-        map = Basemap(projection='moll', lon_0=np.pi/2)
+
+        map = Basemap(projection='moll', lon_0=-np.pi)
         if len(value.shape)==1:
             value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
 
@@ -230,20 +232,20 @@ class Spot:
 
         vbins = self.velocitybinscenters
         v0 = self.kwargs['v0']
-
+        plt.xlim(vbins[0]-v0, vbins[-1]-v0)
+        plt.ylim(0, 1)
         plt.imshow(phasemap, aspect='auto',interpolation='none', origin='lower',
                 extent=[vbins[0]-v0, vbins[-1]-v0,0,1])
         plt.xticks([])
-        rv = np.array([-20, -10, 0, 10, 20 ])
+        rv = np.array([-20, -10, 0, 10,])
         st = [ str(i) for i in rv]
         plt.xticks(rv, st)
         plt.yticks([])
         yt = [0,0.2,0.4,0.6,0.8, 1]
         plt.yticks(yt,[str(t) for t in yt])
         plt.vlines([-22, 0, 22], 0,1)
-        plt.vlines([-35, 0, 37], 0,1,linestyles='dashed')
+        plt.vlines([-37, 0, 37], 0,1,linestyles='dashed')
         plt.hlines([1./2], -33,32)
-        plt.xlim(vbins[0]-v0, vbins[-1]-v0)
         plt.xlabel('velocity [km/s]')
         plt.ylabel('phase fraction of period]')
 
@@ -276,7 +278,25 @@ class Spot:
     def reshape(self, flatfilematrix):
         return np.reshape(+flatfilematrix, (self.kwargs['nphase'], self.nvelocity  ))
 
+vbins = np.loadtxt('velocitybins.txt')
+movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
+v0=-13.01
+GRAD = np.pi/180
 
+s = Spot(
+    period=0.7, 
+    angle=7*np.pi/180,
+    nvelocity=59,
+    vbinmin= -58.9,
+    vbinmax=38.0,
+    #velocitybins=vbins,
+    nphase=128, 
+    v0=0, #-13.01, 
+    vmax=22,
+    ntheta=128,
+    nphi = 128
+    )
+ 
 if __name__=="__main__":
     
     import matplotlib.pyplot as plt
@@ -299,10 +319,10 @@ if __name__=="__main__":
         ntheta=128,
         nphi = 128
         )
-    
+ 
+    spots = s.extended_spot(50*GRAD, 0*GRAD, 15*GRAD)  + s.extended_spot(50*GRAD, 120*GRAD,15*GRAD) + s.extended_spot(50*GRAD, -120*GRAD, 15*GRAD)
+    #spots =  s.extended_spot(80*GRAD, 10*GRAD, 10*GRAD)
 
-    #spots = s.extended_spot(50*GRAD, 100*GRAD, 10*GRAD)  + s.extended_spot(10*GRAD, 180*GRAD,10*GRAD) + s.extended_spot(70*GRAD, 270*GRAD, 20*GRAD)
-    spots =  s.extended_spot(80*GRAD, 10*GRAD, 10*GRAD)
 
     phasemap = s.phasemap_from_star(spots)
     print( s.matrix_star_wavemap().shape )
