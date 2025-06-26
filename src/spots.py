@@ -2,6 +2,7 @@ import numpy as np
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import sys
+from scipy import sparse
 #from util import *
 
 def TPXYZ(theta, phi):
@@ -155,12 +156,12 @@ class Spot:
             ph = ph.ravel()
             ti = self.times()
 
-            res = np.zeros((th.shape[0], self.kwargs['nphase'] * self.nvelocity))
+            res = np.zeros((self.kwargs['nphase'] * self.nvelocity, th.shape[0]))
 
             for i, (tth, pph) in enumerate(zip(th, ph)):
-                res[i, : ] = self.phasemap_of_point_spot(tth, pph).ravel() * np.sin(tth)
+                res[:, i ] = self.phasemap_of_point_spot(tth, pph).ravel() * np.sin(tth)
 
-            self._matrix_star_wavemap = res.T
+            self._matrix_star_wavemap = res
 
         return self._matrix_star_wavemap
     
@@ -177,15 +178,11 @@ class Spot:
 
             for i, (tth, pph) in enumerate(zip(th, ph)):
                 res[i, : ] = np.where( self.phasemap_of_point_spot(tth, pph).ravel() * np.sin(tth) > 0, 1, 0)
-                # res[i, : ] = self.phasemap_of_point_spot(tth, pph).ravel() 
-                fac = 1 #np.sum(res[i, : ]**2)
-                if fac > 0:
-                    res[i, : ] /= fac
 
             b = np.dot( self.matrix_star_wavemap(), np.ones(th.shape[0]))
             b = np.dot( res, b)
 
-            res /=  (b + 0.1 * np.max(b))[:, None]
+            res = res * (b / (b**2 + 0.1 * np.max(b.ravel()**2)))[:, None]
             #bias = self._bias(res)
 
             #for i in range(res.shape[0]):
@@ -196,36 +193,20 @@ class Spot:
 
         return self._matrix_wavemap_star
     
-    def _bias(self, F):
-        
-        tp = self.theta_phi_grid()
-        theta = tp[0].ravel()
-        phi = tp[1].ravel()
-        res = np.zeros(self.kwargs['ntheta'])
-        """
-        for i in range(self.kwargs['ntheta']):
-            th = theta[i]
-
-            wm = self.matrix_star_wavemap()[:, i]
-            tmp = np.dot (F, wm)
-            res[i] = np.max(np.abs(tmp)) / np.sin(th) 
-        """
-
-
-        return res + 0.3*np.max(res)
-    
+   
     def plot_on_sphere(self, value):
 
-        map = Basemap(projection='moll', lon_0=-np.pi)
+        map = Basemap(projection='moll', lon_0=0)
         if len(value.shape)==1:
             value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
 
         #map.imshow(1e8*value[:, ::-1].T, interpolation='none',vmin=-5,vmax=3.5)
-        map.imshow(value[:, ::-1].T, interpolation='none')
+        map.imshow(value[:, ::-1].T, interpolation='bicubic', extent=[-90,90,0,90])
         #map.imshow(value[:, ::-1].T, interpolation='none',vmin=-0.004,vmax=0.004)
         map.drawmeridians(np.linspace(-180, 180, 12))
         map.drawparallels(np.linspace(-90, 90 , 6))
         map.drawparallels([0], color = "red", linewidth=2)
+        map.drawparallels([-self.kwargs['angle'] * 180 / np.pi, self.kwargs['angle']* 180 / np.pi], color = "blue", linewidth=2)
         #map.plot(180*phi./np.pi, 128*[0], '-r', latlon=True)
 
     def plot_phasemap(self, phasemap):
@@ -347,5 +328,15 @@ if __name__=="__main__":
 
     plt.figure()
     s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
+
+    plt.figure()
+    s.plot_on_sphere(np.sum(s.matrix_wavemap_star()**2, axis=1))
+
+    plt.figure()
+    pm =  s.phasemap_of_point_spot(45*GRAD, 0) \
+        + s.phasemap_of_point_spot(70*GRAD, 100*GRAD) \
+        + s.phasemap_of_point_spot(10*GRAD, -10*GRAD)
+    
+    s.plot_on_sphere(s.star_from_phasemap(pm)) 
 
     plt.show()
