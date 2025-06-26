@@ -201,7 +201,7 @@ class Spot:
             value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
 
         #map.imshow(1e8*value[:, ::-1].T, interpolation='none',vmin=-5,vmax=3.5)
-        map.imshow(value[:, ::-1].T, interpolation='bicubic', extent=[-90,90,0,90])
+        map.imshow(value[:, ::-1].T, interpolation='bicubic', extent=[-180,180,0,180])
         #map.imshow(value[:, ::-1].T, interpolation='none',vmin=-0.004,vmax=0.004)
         map.drawmeridians(np.linspace(-180, 180, 12))
         map.drawparallels(np.linspace(-90, 90 , 6))
@@ -219,9 +219,8 @@ class Spot:
 
     def plot_phasemap(self, phasemap):
 
-        print(self.velocitybins)
-        print(self.velocitybinscenters)
-
+        if len(phasemap.shape)==1:
+            phasemap = self.reshape(phasemap)
         vbins = self.velocitybins
         v0 = self.kwargs['v0']
         plt.xlim(vbins[0], vbins[-1])
@@ -312,16 +311,18 @@ if __name__=="__main__":
         nphi = 128
         )
  
-    #spots = s.extended_spot(50*GRAD, 0*GRAD, 15*GRAD)  + s.extended_spot(50*GRAD, 120*GRAD,15*GRAD) + s.extended_spot(50*GRAD, -120*GRAD, 15*GRAD)
     spots =  s.extended_spot(80*GRAD, -175*GRAD, 10*GRAD)
 
 
     phasemap = s.phasemap_from_star(spots)
-    print( s.matrix_star_wavemap().shape )
+
+    
     plt.figure()
 
-    #plt.imshow(s.reshape(s.matrix_star_wavemap()[:, 678]))
-    s.plot_phasemap(s.reshape(s.matrix_star_wavemap()[:, 678]))
+    onepixel = s.phasemap_of_point_spot(70*GRAD, 0)
+    s.plot_phasemap(onepixel)
+
+    
 
 
     plt.figure()
