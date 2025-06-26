@@ -227,6 +227,14 @@ class Spot:
         map.drawparallels(np.linspace(-90, 90 , 6))
         map.drawparallels([0], color = "red", linewidth=2)
         #map.plot(180*phi./np.pi, 128*[0], '-r', latlon=True)
+        plt.show()
+        #plt.figure()
+        #plt.imshow(value[:,28:68], interpolation='none')
+        #plt.imshow(value, interpolation='none')
+        #plt.show()
+        #plt.plot(np.sum(value[:,28:68],axis=1))
+        #plt.show()
+        np.savetxt("courbe_activity_18.txt",np.sum(value[:,28:68],axis=1))
 
     def plot_phasemap(self, phasemap):
 
@@ -323,8 +331,8 @@ if __name__=="__main__":
         nphi = 128
         )
  
-    spots = s.extended_spot(50*GRAD, 0*GRAD, 15*GRAD)  + s.extended_spot(50*GRAD, 120*GRAD,15*GRAD) + s.extended_spot(50*GRAD, -120*GRAD, 15*GRAD)
-    #spots =  s.extended_spot(80*GRAD, 10*GRAD, 10*GRAD)
+    #spots = s.extended_spot(50*GRAD, 0*GRAD, 15*GRAD)  + s.extended_spot(50*GRAD, 120*GRAD,15*GRAD) + s.extended_spot(50*GRAD, -120*GRAD, 15*GRAD)
+    spots =  s.extended_spot(80*GRAD, -175*GRAD, 10*GRAD)
 
 
     phasemap = s.phasemap_from_star(spots)
