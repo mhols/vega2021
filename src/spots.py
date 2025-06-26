@@ -227,7 +227,7 @@ class Spot:
         map.drawparallels(np.linspace(-90, 90 , 6))
         map.drawparallels([0], color = "red", linewidth=2)
         #map.plot(180*phi./np.pi, 128*[0], '-r', latlon=True)
-        plt.show()
+        #plt.show()
         #plt.figure()
         #plt.imshow(value[:,28:68], interpolation='none')
         #plt.imshow(value, interpolation='none')
