@@ -143,7 +143,7 @@ class Spot:
         if not hasattr(self, '_theta_phi_grid'):
             self._theta_phi_grid = np.meshgrid(
                 np.linspace(0, np.pi, self.kwargs['ntheta']+2, endpoint=True)[1:-1], 
-                np.linspace(-np.pi, np.pi, self.kwargs['nphi'], endpoint=False)
+                np.linspace(2*np.pi, 0., self.kwargs['nphi'], endpoint=False)
         )
         return self._theta_phi_grid
     
@@ -219,15 +219,17 @@ class Spot:
         map = Basemap(projection='moll', lon_0=-np.pi)
         if len(value.shape)==1:
             value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
-
-        #map.imshow(1e8*value[:, ::-1].T, interpolation='none',vmin=-5,vmax=3.5)
-        map.imshow(value[:, ::-1].T, interpolation='none')
-        #map.imshow(value[:, ::-1].T, interpolation='none',vmin=-0.004,vmax=0.004)
-        map.drawmeridians(np.linspace(-180, 180, 12))
-        map.drawparallels(np.linspace(-90, 90 , 6))
+        #dark spot on star = emission relative to average profile, generates bright
+        #S-shaped signature. Therefore here we have to plot -value!!
+        
+        #map.imshow(-1e8*value[:, ::-1].T, interpolation='none',vmin=-0.0003,vmax=0.0003)
+        map.imshow(-1e8*value[:, ::-1].T, interpolation='none')
+        
+        map.drawmeridians(np.linspace(-180, 180, 13))
+        map.drawparallels(np.linspace(-90, 90 , 7))
         map.drawparallels([0], color = "red", linewidth=2)
         #map.plot(180*phi./np.pi, 128*[0], '-r', latlon=True)
-        plt.show()
+        #plt.show()
         #plt.figure()
         #plt.imshow(value[:,28:68], interpolation='none')
         #plt.imshow(value, interpolation='none')
@@ -331,25 +333,28 @@ if __name__=="__main__":
         nphi = 128
         )
  
-    #spots = s.extended_spot(50*GRAD, 0*GRAD, 15*GRAD)  + s.extended_spot(50*GRAD, 120*GRAD,15*GRAD) + s.extended_spot(50*GRAD, -120*GRAD, 15*GRAD)
-    spots =  s.extended_spot(80*GRAD, -175*GRAD, 10*GRAD)
-
+    spots = s.extended_spot(70*GRAD, -10*GRAD, 10*GRAD)  + s.extended_spot(20*GRAD, -120*GRAD,10*GRAD) + s.extended_spot(50*GRAD, -270*GRAD, 10*GRAD)
+    #spots =  s.extended_spot(80*GRAD, -10*GRAD, 10*GRAD) + s.extended_spot(80*GRAD, -30*GRAD, 10*GRAD)
+    #spots =  s.extended_spot(80*GRAD, -10*GRAD, 10*GRAD)
 
     phasemap = s.phasemap_from_star(spots)
     print( s.matrix_star_wavemap().shape )
-    plt.figure()
+    #plt.figure()
 
     #plt.imshow(s.reshape(s.matrix_star_wavemap()[:, 678]))
-    s.plot_phasemap(s.reshape(s.matrix_star_wavemap()[:, 678]))
+    ##s.plot_phasemap(s.reshape(s.matrix_star_wavemap()[:, 678]))
 
 
     plt.figure()
+    plt.title("spot on map")
     s.plot_on_sphere( spots )
-
+    
     plt.figure()
+    plt.title("dynamical spectrum")
     s.plot_phasemap( s.reshape(phasemap) )
     
     plt.figure()
+    plt.title("reconstruction")
     s.plot_on_sphere(s.star_from_phasemap(phasemap, niter=1))
 
     plt.figure()

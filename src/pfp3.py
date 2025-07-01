@@ -273,11 +273,11 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 #experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
-#experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
+experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
@@ -1531,7 +1531,7 @@ class Pictures(object):
 
             v0=-13.9
             # a dark spot on the stellar surface produces an emission bump in the stellar spectroscopic profile. A bright spot produces a dark line. Here we want to show bright lines = bright spot, we therefore plot -res:
-            plt.imshow(-res, cmap=plt.cm.gray_r,
+            plt.imshow(res, cmap=plt.cm.gray_r,
                        aspect='auto',interpolation='bicubic',
                        origin='lower',extent=[self.velocity[0]-v0, self.velocity[-1]-v0,0,1],
                        vmin=-0.0002,vmax=0.0002)
