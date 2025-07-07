@@ -6,7 +6,7 @@ from scipy import sparse
 #from util import *
 
 def TPXYZ(theta, phi):
-    return np.row_stack(
+    return np.vstack(
         [
             np.sin(theta) * np.cos(phi),
             np.sin(theta) * np.sin(phi),
@@ -16,7 +16,7 @@ def TPXYZ(theta, phi):
 
 def XYZTP(x,y,z):
     r = np.sqrt( x**2 + y**2 + z**2)
-    return np.row_stack(
+    return np.vstack(
         [
             np.arccos(z),
             np.arctan2(y,x)
@@ -121,6 +121,15 @@ class Spot:
     def times(self):
         return np.linspace(0, self.kwargs['period'], self.kwargs['nphase']+1)[:-1]
 
+    def phis(self):
+        return np.linspace(0, 2*np.pi, self.kwargs['nphi']+1)[:-1]
+    
+    def thetas(self):
+        angle = self.kwargs['angle']
+        if not self.kwargs.get('full', True):
+            return np.linspace(0, np.pi/2 + angle, self.kwargs['ntheta']+1)[1:]
+        else:
+            return np.linspace(0, np.pi, self.kwargs['ntheta']+2)[1:-1]
 
     def phasemap_of_point_spot(self, theta, phi):
         """
@@ -143,8 +152,10 @@ class Spot:
     def theta_phi_grid(self):
         if not hasattr(self, '_theta_phi_grid'):
             self._theta_phi_grid = np.meshgrid(
-                np.linspace(0, np.pi, self.kwargs['ntheta']+2, endpoint=True)[1:-1], 
-                np.linspace(2*np.pi, 0., self.kwargs['nphi'], endpoint=False)
+                #np.linspace(0, np.pi, self.kwargs['ntheta']+2, endpoint=True)[1:-1], 
+                #np.linspace(2*np.pi, 0., self.kwargs['nphi'], endpoint=False)
+                self.thetas(), 
+                self.phis()
         )
         return self._theta_phi_grid
     
@@ -196,6 +207,8 @@ class Spot:
    
     def plot_on_sphere(self, value):
 
+        assert self.kwargs.get('full', True), 'plot_on_sphere needs full grid'
+
         map = Basemap(projection='moll', lon_0=0)
         if len(value.shape)==1:
             value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
@@ -220,6 +233,21 @@ class Spot:
         #plt.plot(np.sum(value[:,28:68],axis=1))
         #plt.show()
         np.savetxt("courbe_activity_18.txt",np.sum(value[:,28:68],axis=1))
+
+    
+    def plot_visible_on_cylinder(self, value):
+        assert not self.kwargs.get('full', True), 'plot_visible_on_sphere needs partial grid'
+
+        if len(value.shape)==1:
+            value = np.reshape(value, (self.kwargs['nphi'], self.kwargs['ntheta']))
+        angle = self.kwargs['angle'] * 180 / np.pi
+        plt.imshow(value.T, extent=(0, 360, -angle, 90))
+        plt.yticks([])
+        plt.yticks( [-angle, 0, angle, 30, 60, 90])
+        plt.hlines([0, angle], 0, 360)
+        plt.xticks()
+        plt.xticks(np.arange(0,360,30))
+
 
     def plot_phasemap(self, phasemap):
 
@@ -273,10 +301,10 @@ class Spot:
     def reshape(self, flatfilematrix):
         return np.reshape(+flatfilematrix, (self.kwargs['nphase'], self.nvelocity  ))
 
-vbins = np.loadtxt('velocitybins.txt')
-movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
-v0=-13.01
-GRAD = np.pi/180
+#vbins = np.loadtxt('velocitybins.txt')
+#movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
+#v0=-13.01
+#GRAD = np.pi/180
 
 s = Spot(
     period=0.7, 
@@ -296,22 +324,23 @@ if __name__=="__main__":
     
     import matplotlib.pyplot as plt
 
-    vbins = np.loadtxt('velocitybins.txt')
-    movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
-    v0=-13.01
+    #vbins = np.loadtxt('velocitybins.txt')
+    #movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
+    #v0=-13.01
     GRAD = np.pi/180
 
     s = Spot(
         period=0.7, 
         angle=7*np.pi/180,
-        #nvelocity=58,
-        #vbinmin= -58.9,
-        #vbinmax=38.0,
-        velocitybins=vbins,
+        nvelocity=58,
+        vbinmin= -58.9,
+        vbinmax=38.0,
+        full=False,
+        #velocitybins=vbins,
         nphase=128, 
         v0=-13.01, 
         vmax=22,
-        ntheta=128,
+        ntheta=70,
         nphi = 128
         )
  
@@ -339,7 +368,8 @@ if __name__=="__main__":
 
     plt.figure()
     plt.title("spot on map")
-    s.plot_on_sphere( spots )
+    #s.plot_on_sphere( spots )
+    s.plot_visible_on_cylinder( spots )
     
     plt.figure()
     plt.title("dynamical spectrum")
@@ -347,19 +377,21 @@ if __name__=="__main__":
     
     plt.figure()
     plt.title("reconstruction")
-    s.plot_on_sphere(s.star_from_phasemap(phasemap, niter=1))
+    #s.plot_on_sphere(s.star_from_phasemap(phasemap, niter=1))
+    s.plot_visible_on_cylinder(s.star_from_phasemap(phasemap))
+    #plt.figure()
+    #s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
 
     plt.figure()
-    s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
-
-    plt.figure()
-    s.plot_on_sphere(np.sum(s.matrix_wavemap_star()**2, axis=1))
+    #s.plot_on_sphere(np.sum(s.matrix_wavemap_star()**2, axis=1))
+    s.plot_visible_on_cylinder(np.sum(s.matrix_wavemap_star()**2, axis=1))
 
     plt.figure()
     pm =  s.phasemap_of_point_spot(45*GRAD, 0) \
         + s.phasemap_of_point_spot(70*GRAD, 100*GRAD) \
         + s.phasemap_of_point_spot(10*GRAD, -10*GRAD)
     
-    s.plot_on_sphere(s.star_from_phasemap(pm)) 
+    #s.plot_on_sphere(s.star_from_phasemap(pm)) 
+    s.plot_visible_on_cylinder(s.star_from_phasemap(pm)) 
 
     plt.show()
