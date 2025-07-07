@@ -203,8 +203,8 @@ class Spot:
         #dark spot on star = emission relative to average profile, generates bright
         #S-shaped signature. Therefore here we have to plot -value!!
         
-        #map.imshow(-1e8*value[:, ::-1].T, interpolation='none',vmin=-0.0003,vmax=0.0003)
-        map.imshow(-1e8*value[:, ::-1].T, interpolation='none')
+        map.imshow(-1e8*value[:, ::-1].T, interpolation='none',vmin=-0.0003,vmax=0.0003)
+        #map.imshow(-1e8*value[:, ::-1].T, interpolation='none')
         
         map.drawmeridians(np.linspace(-180, 180, 13))
         map.drawparallels(np.linspace(-90, 90 , 7))
@@ -214,12 +214,12 @@ class Spot:
         #map.plot(180*phi./np.pi, 128*[0], '-r', latlon=True)
         #plt.show()
         #plt.figure()
-        #plt.imshow(value[:,28:68], interpolation='none')
+        plt.imshow(value[:,28:68], interpolation='none')
         #plt.imshow(value, interpolation='none')
-        #plt.show()
-        #plt.plot(np.sum(value[:,28:68],axis=1))
-        #plt.show()
-        np.savetxt("courbe_activity_18.txt",np.sum(value[:,28:68],axis=1))
+        plt.show()
+        plt.plot(np.sum(value[:,28:68],axis=1))
+        plt.show()
+        np.savetxt("courbe_activity18.txt",np.sum(value[:,28:68],axis=1))
 
     def plot_phasemap(self, phasemap):
 
@@ -352,6 +352,7 @@ if __name__=="__main__":
     plt.figure()
     s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
 
+    """
     plt.figure()
     s.plot_on_sphere(np.sum(s.matrix_wavemap_star()**2, axis=1))
 
@@ -360,6 +361,7 @@ if __name__=="__main__":
         + s.phasemap_of_point_spot(70*GRAD, 100*GRAD) \
         + s.phasemap_of_point_spot(10*GRAD, -10*GRAD)
     
-    s.plot_on_sphere(s.star_from_phasemap(pm)) 
-
+    s.plot_on_sphere(s.star_from_phasemap(pm))
+    """
+    
     plt.show()
