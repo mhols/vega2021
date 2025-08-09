@@ -278,7 +278,15 @@ class Spot:
         center = TPXYZ(theta, phi)
         xyz = TPXYZ(t.ravel(), p.ravel())
 
-        return np.where( np.sum(center * xyz, axis=0) < np.cos(angle), np.random(0,5e-5),  1./70000)
+        return np.where( np.sum(center * xyz, axis=0) < np.cos(angle), 0, 1.)
+        
+    def new_extended_spot(self, theta, phi, angle):
+        t, p = self.theta_phi_grid()
+
+        center = TPXYZ(theta, phi)
+        xyz = TPXYZ(t.ravel(), p.ravel())
+
+        return np.where( np.sum(center * xyz, axis=0) < np.cos(angle), 0,  1./70000)
     
     def svd(self):
         return np.linalg.svd(self.matrix_star_wavemap(), full_matrices=False, compute_uv=False, hermitian=False)
@@ -344,8 +352,12 @@ if __name__=="__main__":
         nphi = 128
         )
  
-
+    """
     spots = s.extended_spot(70*GRAD, -10*GRAD, 10*GRAD)  + s.extended_spot(20*GRAD, -120*GRAD,10*GRAD) + s.extended_spot(50*GRAD, -270*GRAD, 10*GRAD)
+    """
+    spots = s.new_extended_spot(70*GRAD, -10*GRAD, 10*GRAD)  + s.new_extended_spot(20*GRAD, -120*GRAD,10*GRAD) + s.new_extended_spot(50*GRAD, -270*GRAD, 10*GRAD)
+    
+    
     #spots =  s.extended_spot(80*GRAD, -10*GRAD, 10*GRAD) + s.extended_spot(80*GRAD, -30*GRAD, 10*GRAD)
     #spots =  s.extended_spot(80*GRAD, -10*GRAD, 10*GRAD)
 
