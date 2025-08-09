@@ -273,11 +273,11 @@ VEGA_2018_SOPHIE_NARVAL_DUOFILE = Experiment(
 #experiment = VEGA_2012_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_SOPHIE_LSDJFD.kwargs
-#experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
+experiment = VEGA_2018_SOPHIE_LSDPY.kwargs
 
 #experiment = VEGA_2018_NARVAL_LE.kwargs
 #experiment = VEGA_2018_NARVAL_NEXTRA.kwargs
-experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
+#experiment = VEGA_2018_NARVAL_NEXTRA_KM17.kwargs
 
 #experiment = VEGA_2018_SOPHIE_NARVAL_DUOFILE.kwargs
 
@@ -1866,10 +1866,11 @@ if __name__ == '__main__':
 #    myPics.skew_vspan()
 #    myPics.ts_skew()
 #    myPics.ts_vspan()
-##   myPics.ls_spec_vrad_skew()
+##    myPics.ls_spec_vrad_skew()
 ##    myPics.ls_spec_vrad_mean()
-#    myPics.ls_spec_all3()
+##    myPics.ls_spec_all3()
 ##    myPics.ls_spec_vrad_corr()
+
 ##    myPics.ls_spec_vrad_bis()
 ###    myPics.ls_spec_vspan()
 #    myPics.ls_spec_eqwidth()

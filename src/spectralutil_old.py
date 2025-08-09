@@ -50,7 +50,11 @@ def load_data(DATAFILE, vrange, noiselevel, meanmethod=np.median):
     # put to zero data from 60:75
     
     # for Neo-Narval 2023 and 2024 data
-    time = time -2456892.015
+    #time = time -2456892.015
+    # 2023:
+    #time = time -2456892.185
+    # 2024:
+    time = time -2456892.506
 
     velocity = data[0, colspec:colval]  # velocities of bins (redundant data format...)
     intens = data[:, colval:colvul]  # intensities

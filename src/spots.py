@@ -243,7 +243,7 @@ class Spot:
         angle = self.kwargs['angle'] * 180 / np.pi
         plt.imshow(value.T, extent=(0, 360, -angle, 90))
         plt.yticks([])
-        plt.yticks( [-angle, 0, angle, 30, 60, 90])
+        plt.yticks( [-angle, 0,angle, 30, 60, 90])
         plt.hlines([0, angle], 0, 360)
         plt.xticks()
         plt.xticks(np.arange(0,360,30))
@@ -278,7 +278,7 @@ class Spot:
         center = TPXYZ(theta, phi)
         xyz = TPXYZ(t.ravel(), p.ravel())
 
-        return np.where( np.sum(center * xyz, axis=0) < np.cos(angle), 0,  1)
+        return np.where( np.sum(center * xyz, axis=0) < np.cos(angle), np.random(0,5e-5),  1./70000)
     
     def svd(self):
         return np.linalg.svd(self.matrix_star_wavemap(), full_matrices=False, compute_uv=False, hermitian=False)
@@ -302,7 +302,7 @@ class Spot:
         return np.reshape(+flatfilematrix, (self.kwargs['nphase'], self.nvelocity  ))
 
 #vbins = np.loadtxt('velocitybins.txt')
-#movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
+movingpeaks = -np.loadtxt('moving_simple_per_night.txt')
 #v0=-13.01
 #GRAD = np.pi/180
 
@@ -359,10 +359,10 @@ if __name__=="__main__":
     
 
     
-    plt.figure()
+    #plt.figure()
 
     onepixel = s.phasemap_of_point_spot(70*GRAD, 0)
-    s.plot_phasemap(onepixel)
+    #s.plot_phasemap(onepixel)
 
 
 
@@ -382,30 +382,26 @@ if __name__=="__main__":
     #plt.figure()
     #s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
 
-    plt.figure()
-<<<<<<< HEAD
+    #plt.figure()
+    
+    """
     s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
 
-    """
     plt.figure()
     s.plot_on_sphere(np.sum(s.matrix_wavemap_star()**2, axis=1))
-=======
-    #s.plot_on_sphere(np.sum(s.matrix_wavemap_star()**2, axis=1))
     s.plot_visible_on_cylinder(np.sum(s.matrix_wavemap_star()**2, axis=1))
->>>>>>> 65355d3e2a0da8c62fcbac4db79c801d878ccaee
-
+    
     plt.figure()
     pm =  s.phasemap_of_point_spot(45*GRAD, 0) \
         + s.phasemap_of_point_spot(70*GRAD, 100*GRAD) \
         + s.phasemap_of_point_spot(10*GRAD, -10*GRAD)
-    
-<<<<<<< HEAD
     s.plot_on_sphere(s.star_from_phasemap(pm))
     """
-    
-=======
-    #s.plot_on_sphere(s.star_from_phasemap(pm)) 
-    s.plot_visible_on_cylinder(s.star_from_phasemap(pm)) 
 
->>>>>>> 65355d3e2a0da8c62fcbac4db79c801d878ccaee
+    #s.plot_on_sphere(s.star_from_phasemap(pm)) 
+    #s.plot_visible_on_cylinder(s.star_from_phasemap(phasemap))
+    
+    #plt.figure()
+    #s.plot_visible_on_cylinder(s.star_from_phasemap(movingpeaks))
+
     plt.show()
