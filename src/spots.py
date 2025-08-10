@@ -385,12 +385,11 @@ if __name__=="__main__":
     #s.plot_phasemap(onepixel)
 
 
-
     plt.figure()
     plt.title("spot on map")
     #s.plot_on_sphere( spots )
     s.plot_visible_on_cylinder( spots )
-    
+  
     plt.figure()
     plt.title("dynamical spectrum")
     s.plot_phasemap( s.reshape(phasemap) )
@@ -402,7 +401,6 @@ if __name__=="__main__":
     #plt.figure()
     #s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
 
-    #plt.figure()
     
     """
     s.plot_on_sphere(s.star_from_phasemap(movingpeaks))
