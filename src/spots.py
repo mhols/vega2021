@@ -286,7 +286,7 @@ class Spot:
         center = TPXYZ(theta, phi)
         xyz = TPXYZ(t.ravel(), p.ravel())
 
-        return np.where( np.sum(center * xyz, axis=0) < np.cos(angle), 0,  1./70000)
+        return np.where( np.sum(center * xyz, axis=0) < np.cos(angle), 0,  1./140000)
     
     def svd(self):
         return np.linalg.svd(self.matrix_star_wavemap(), full_matrices=False, compute_uv=False, hermitian=False)
@@ -362,6 +362,14 @@ if __name__=="__main__":
     #spots =  s.extended_spot(80*GRAD, -10*GRAD, 10*GRAD)
 
     phasemap = s.phasemap_from_star(spots)
+    """
+    plt.figure()
+    plt.imshow(phasemap)
+    plt.show()
+    """
+    for i in range(phasemap.shape[0]):
+        phasemap[i]+=np.random.normal(0,5e-5,phasemap.shape[1])
+    print("phasemap",phasemap.shape)
     print( s.matrix_star_wavemap().shape )
     #plt.figure()
 
